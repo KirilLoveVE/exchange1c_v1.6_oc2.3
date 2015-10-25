@@ -138,16 +138,19 @@ class ModelToolExchange1c extends Model {
 						);
 					}
 				}
-				$data = $order;
-				
 				$document_counter++;
 			}
 		}
 
-		$root = '<?xml version="1.0" encoding="utf-8"?><КоммерческаяИнформация ВерсияСхемы="2.04" ДатаФормирования="' . date('Y-m-d', time()) . '" />';
-		$xml = $this->array_to_xml($document, new SimpleXMLElement($root));
-
-		return $xml->asXML();
+		//if (count($document)) {
+			$root = '<?xml version="1.0" encoding="UTF-8"?><КоммерческаяИнформация ВерсияСхемы="2.04" ДатаФормирования="' . date('Y-m-d', time()) . '" />';
+			$xml = $this->array_to_xml($document, new SimpleXMLElement($root));
+	
+			return $xml->asXML();
+		//}
+		//else {
+		//	return '';
+		//}
 	}
 
 	/**
@@ -274,6 +277,8 @@ class ModelToolExchange1c extends Model {
 	 */
 	public function parseOffers($filename, $config_price_type, $language_id) {
 
+		$this->log("Начат разбор предложений (остатки и цены)...");
+
 		$this->language_id = $language_id;
 		$importFile = DIR_CACHE . 'exchange1c/' . $filename;
 		$xml = simplexml_load_file($importFile);
@@ -289,8 +294,6 @@ class ModelToolExchange1c extends Model {
 		$currencies = $this->model_localisation_currency->getCurrencies(); 
 
 		$this->load->model('catalog/option');
-
-		$this->log("Начат разбор предложений из файла: " . $filename);
 
 		if (!empty($config_price_type) && count($config_price_type) > 0) {
 			$config_price_type_main = array_shift($config_price_type);
@@ -513,15 +516,30 @@ class ModelToolExchange1c extends Model {
 	 * Загружает картинки
 	 */
 	private function parseImages($xml) {
-		$watermark =  $watermark = $this->config->get('exchange1c_watermark');
-		// Устанавливаем водяные знаки на первую картинку
-		$this->data['image'] = $watermark ? $this->applyWatermark((string)$xml[0]) : (string)$xml[0];
-		unset($xml[0]);
+		$watermark = $this->config->get('exchange1c_watermark');
+
 		foreach ($xml as $image) {
-			$this->data['product_image'][] = array(
-				'image' => $watermark ? $this->applyWatermark((string)$image) : (string)$image,
-				'sort_order' => 0
-			);
+			// проверим существование картинки
+			if (file_exists(DIR_IMAGE . (string)$image)) {
+				$newimage = empty($watermark) ? (string)$image : $this->applyWatermark((string)$image);
+				$this->log("Картинка найдена: " . (string)$image . ", наложили водяные знаки на картинку: " . $newimage);
+			}
+			else {
+				$newimage = '';
+				$this->log("Картинка не найдена: " . (string)$image);
+			}
+			
+			if (empty($this->data['image'])) {
+				// Первая картинка
+				$this->data['image'] = $newimage;
+			}
+			else {
+				$this->data['product_image'][] = array(
+					'image' => $newimage,
+					'sort_order' => 0
+				);
+			}
+			
 		}
 	} // parseImages()
 
@@ -649,7 +667,7 @@ class ModelToolExchange1c extends Model {
 		// Количество загруженныйх товаров
 		$count = 0;
 
-		$this->log('Всего товаров в XML: '.count($xml));
+		$this->log("Всего товаров в XML: ".count($xml));
 		
 		foreach ($xml as $product) {
 			$uuid = explode('#', (string)$product->Ид);
@@ -703,7 +721,7 @@ class ModelToolExchange1c extends Model {
 	 */
 	public function parseImport($filename, $language_id) {
 
-		$this->log('Начало разбора каталога из файла...');
+		$this->log('Начало разбора каталога...');
 		$importFile = DIR_CACHE . 'exchange1c/' . $filename;
 		$this->language_id  = $language_id;
 		$xml = simplexml_load_file($importFile);
@@ -720,12 +738,15 @@ class ModelToolExchange1c extends Model {
 		
 		// Загрузим группы
 		if($xml->Классификатор->Группы) $this->insertCategory($xml->Классификатор->Группы->Группа, 0);
-
+		$this->log("Категории загружены...");
+		
 		// Загрузим свойства
 		if ($xml->Классификатор->Свойства) $this->insertAttribute($xml->Классификатор->Свойства->Свойство);
+		$this->log("Свойства загружены...");
 
 		// Загрузим товары
 		if ($xml->Каталог->Товары) $this->parseProducts($xml->Каталог->Товары->Товар);
+		$this->log("Товары загружены...");
 
 		unset($xml);
 		$this->log('Окончен разбор каталога.');
@@ -781,7 +802,7 @@ class ModelToolExchange1c extends Model {
 
 			if (isset($category->Ид) && isset($category->Наименование) ){ 
 				$id =  (string)$category->Ид;
-				$this->log('Найдена категория: '.(string)$category->Наименование.', UUID: '.$id);
+				//$this->log('Найдена категория: '.(string)$category->Наименование.', UUID: '.$id);
 				$data = array();
 
 				$query = $this->db->query('SELECT * FROM `' . DB_PREFIX . 'category_to_1c` WHERE `1c_category_id` = "' . $this->db->escape($id) . '"');
@@ -793,14 +814,14 @@ class ModelToolExchange1c extends Model {
 					$data['status'] = 1;
 					$data = $this->initCategory($category, $parent, $data, $this->language_id);
 					$this->model_catalog_category->editCategory($category_id, $data);
-					$this->log('	> такая категория уже есть, id: '.$category_id);
+					//$this->log('	> такая категория уже есть, id: '.$category_id);
 				}
 				else {
 					$data = $this->initCategory($category, $parent, array(), $this->language_id);
 					//$category_id = $this->getCategoryIdByName($data['category_description'][1]['name']) ? $this->getCategoryIdByName($data['category_description'][1]['name']) : $this->model_catalog_category->addCategory($data);
 					$category_id = $this->model_catalog_category->addCategory($data);
 					$this->db->query('INSERT INTO `' . DB_PREFIX . 'category_to_1c` SET category_id = ' . (int)$category_id . ', `1c_category_id` = "' . $this->db->escape($id) . '"');
-					$this->log('	> создана новая категория, id: '.$category_id);
+					//$this->log('	> создана новая категория, id: '.$category_id);
 				}
 
 				$this->CATEGORIES[$id] = $category_id;
