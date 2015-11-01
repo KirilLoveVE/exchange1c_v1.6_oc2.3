@@ -3,24 +3,11 @@
 // Configuration
 require_once('../admin/config.php');
 
-
-if (file_exists('../vqmod/vqmod.php')) {
-	require_once('../vqmod/vqmod.php');
-	VQMod::bootup();
-
-	require_once(VQMod::modCheck(DIR_SYSTEM . 'startup.php'));
-	require_once(VQMod::modCheck(DIR_SYSTEM . 'library/currency.php'));
-	require_once(VQMod::modCheck(DIR_SYSTEM . 'library/user.php'));
-	require_once(VQMod::modCheck(DIR_SYSTEM . 'library/weight.php'));
-	require_once(VQMod::modCheck(DIR_SYSTEM . 'library/length.php'));
-}
-else {
-	require_once(DIR_SYSTEM . 'startup.php');
-	require_once(DIR_SYSTEM . 'library/currency.php');
-	require_once(DIR_SYSTEM . 'library/user.php');
-	require_once(DIR_SYSTEM . 'library/weight.php');
-	require_once(DIR_SYSTEM . 'library/length.php');
-}
+require_once(DIR_SYSTEM . 'startup.php');
+require_once(DIR_SYSTEM . 'library/currency.php');
+require_once(DIR_SYSTEM . 'library/user.php');
+require_once(DIR_SYSTEM . 'library/weight.php');
+require_once(DIR_SYSTEM . 'library/length.php');
 
 // Registry
 $registry = new Registry();
@@ -37,15 +24,33 @@ $registry->set('config', $config);
 $db = new DB(DB_DRIVER, DB_HOSTNAME, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
 $registry->set('db', $db);
 
+// Store
+if (isset($_SERVER['HTTPS']) && (($_SERVER['HTTPS'] == 'on') || ($_SERVER['HTTPS'] == '1'))) {
+	$store_query = $db->query("SELECT * FROM " . DB_PREFIX . "store WHERE REPLACE(`ssl`, 'www.', '') = '" . $db->escape('https://' . str_replace('www.', '', $_SERVER['HTTP_HOST']) . rtrim(dirname($_SERVER['PHP_SELF']), '/.\\') . '/') . "'");
+} else {
+	$store_query = $db->query("SELECT * FROM " . DB_PREFIX . "store WHERE REPLACE(`url`, 'www.', '') = '" . $db->escape('http://' . str_replace('www.', '', $_SERVER['HTTP_HOST']) . rtrim(dirname($_SERVER['PHP_SELF']), '/.\\') . '/') . "'");
+}
+
+if ($store_query->num_rows) {
+	$config->set('config_store_id', $store_query->row['store_id']);
+} else {
+	$config->set('config_store_id', 0);
+}
+
 // Settings
-$query = $db->query("SELECT * FROM " . DB_PREFIX . "setting");
- 
-foreach ($query->rows as $setting) {
-	if (!$setting['serialized']) {
-		$config->set($setting['key'], $setting['value']);
+$query = $db->query("SELECT * FROM `" . DB_PREFIX . "setting` WHERE store_id = '0' OR store_id = '" . (int)$config->get('config_store_id') . "' ORDER BY store_id ASC");
+
+foreach ($query->rows as $result) {
+	if (!$result['serialized']) {
+		$config->set($result['key'], $result['value']);
 	} else {
-		$config->set($setting['key'], unserialize($setting['value']));
+		$config->set($result['key'], json_decode($result['value'], true));
 	}
+}
+
+if (!$store_query->num_rows) {
+	$config->set('config_url', HTTP_SERVER);
+	$config->set('config_ssl', HTTPS_SERVER);
 }
 
 // Log 
@@ -151,11 +156,28 @@ $registry->set('event', $event);
 // Front Controller
 $controller = new Front($registry);
 
+// Принудительное использование HTTP авторизации, если она отключена на сервере
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+	$remote_user = $_SERVER["REMOTE_USER"] ? $_SERVER["REMOTE_USER"]: $_SERVER["REDIRECT_REMOTE_USER"];
+	$strTmp = base64_decode(substr($remote_user,6));
+	if($strTmp) list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
+	$log->write('Включен режим принудительной авторизации в beta версии!');
+}
+
+// Информация используется для поиска и отладки возможных ошибок в beta версиях
+$sapi = php_sapi_name();
+if ($sapi=='cli') 
+	$log->write('Запуск веб сервера из командной строки');
+elseif (substr($sapi,0,3)=='cgi') 
+	$log->write('Запуск веб сервера в режиме CGI');
+elseif (substr($sapi,0,6)=='apache') 
+	$log->write('Запуск веб сервера в режиме модуля Apache');
+else 
+	$log->write('Запуск веб сервера в режиме модуля сервера '.$sapi);
+
 // Router
 if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 
-	//$log->write('mode='.$request->get['mode'].', type='.$request->get['type']);
-	
 	switch ($request->get['mode']) {
 		case 'checkauth':
 			$action = new Action('module/exchange1c/modeCheckauth');

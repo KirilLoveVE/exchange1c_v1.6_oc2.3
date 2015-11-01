@@ -1,6 +1,8 @@
 <?php
 class ControllerModuleExchange1c extends Controller {
 	private $error = array(); 
+	private $module_version = '1.6.1.6b';
+	private $module_name = 'Exchange 1C 8.x';
 
 	public function index() {
 
@@ -11,9 +13,17 @@ class ControllerModuleExchange1c extends Controller {
 
 		$this->load->model('setting/setting');
 			
+		//$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
+		
+		if  (!$this->config->get('exchange1c_version')) {
+			$this->install();
+			$this->load->model('extension/extension');
+			$this->model_extension_extension->install('module', 'exchange1c');
+		}
+		
 		// настройки сохраняются только для первого магазина
 		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
-		 
+
 		if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
 			$this->request->post['exchange1c_order_date'] = $this->config->get('exchange1c_order_date');
 			$settings = array_merge($settings, $this->request->post);
@@ -280,8 +290,13 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		// Группы
-		$this->load->model('sale/customer_group');
-		$data['customer_groups'] = $this->model_sale_customer_group->getCustomerGroups();
+		if(version_compare(VERSION, '2.0.3.1', '>')) {
+			$this->load->model('customer/customer_group');
+			$data['customer_groups'] = $this->model_customer_customer_group->getCustomerGroups();
+		} else {
+			$this->load->model('sale/customer_group');
+			$data['customer_groups'] = $this->model_sale_customer_group->getCustomerGroups();
+		}
 
 		$this->load->model('localisation/order_status');
 
@@ -324,12 +339,22 @@ class ControllerModuleExchange1c extends Controller {
 		
 		$this->load->model('extension/event');
 		
-		if(!$this->config->get('version')) {
-			$this->load->model('setting/setting');
-			$settings = array();
-			$settings['exchange1c_version'] = '1.6.1.5';
-			$this->model_setting_setting->editSetting('exchange1c', $settings);
-		}
+		$this->load->model('setting/setting');
+		$this->model_setting_setting->editSetting('exchange1c',
+			array(
+				'exchange1c'.'_version'	=> $this->module_version,
+				'exchange1c'.'_name'	=> $this->module_name
+			)
+		);
+
+
+//		$this->load->model('extension/module');
+//		$this->model_extension_module->addModule('exchange1c', 
+//			array(
+//				'version'	=> $this->module_version,
+//				'name'		=> $this->module_name
+//			)
+//		);
 	
 		// Связь товаров с 1С
 		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'product_to_1c"');
@@ -435,6 +460,7 @@ class ControllerModuleExchange1c extends Controller {
 			);
 		}
 
+		$this->log->write("Установлен модуль " . $this->module_name . " версии " . $this->module_version . " для OpenCart " . VERSION);
 	}
 
 	public function uninstall() {
@@ -442,6 +468,12 @@ class ControllerModuleExchange1c extends Controller {
 		$this->load->model('extension/event');
 		$this->model_extension_event->deleteEvent('exchange1c');
 		
+		$this->load->model('setting/setting');
+		$this->model_setting_setting->deleteSetting('exchange1c');
+
+//		$this->load->model('extension/module');
+//		$this->model_extension_module->deleteModule('exchange1c'); 
+
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_quantity`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "category_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "attribute_to_1c`");
@@ -449,6 +481,40 @@ class ControllerModuleExchange1c extends Controller {
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "store_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_quantity`");
 		
+		// Удаляем и файлы
+		if (is_file($_SERVER['DOCUMENT_ROOT'].'/export/exchange1c.php'))
+			unlink($_SERVER['DOCUMENT_ROOT'].'/export/exchange1c.php');
+		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/controller/module/exchange1c.php'))
+			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/controller/module/exchange1c.php');
+		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/model/tool/exchange1c.php'))
+			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/model/tool/exchange1c.php');
+		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/language/english/module/exchange1c.php'))
+			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/language/english/module/exchange1c.php');
+		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/language/russian/module/exchange1c.php'))
+			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/language/russian/module/exchange1c.php');
+		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/view/template/module/exchange1c.tpl'))
+			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/view/template/module/exchange1c.tpl');
+			
+		$this->log->write("Удален модуль " . $this->module_name . " версии " . $this->module_version . " для OpenCart " . VERSION);
+		
+	}
+	
+	private function authWarning() {
+		// Проверим есть ли в файле .htaccess строчки:
+		// RewriteCond %{HTTP:Authorization} ^Basic.*
+		// RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization},L]
+		$htaccess = $_SERVER['DOCUMENT_ROOT'].'/.htaccess';
+		if ($fp = fopen($htaccess, 'r')) {
+			$buffer = fread($fp, 4096);
+			fclose($fp);
+			if (!strpos($buffer, 'RewriteCond %{HTTP:Authorization} ^Basic.*')) {
+				$this->log->write('ВНИМАНИЕ! при ошибке авторизации добавьте в файл .htaccess следующие строки:');
+				$this->log->write('RewriteCond %{HTTP:Authorization} ^Basic.*');
+				$this->log->write('RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization},L]');
+			}
+		} else {
+			$this->log->write('Файл не найден: '.$htaccess);
+		}
 	}
 
 	// ---
@@ -472,15 +538,19 @@ class ControllerModuleExchange1c extends Controller {
 				exit;
 			}
 		}
+
 		// Авторизуем
 		if (($this->config->get('exchange1c_username') != '') && (@$_SERVER['PHP_AUTH_USER'] != $this->config->get('exchange1c_username'))) {
 			echo "failure\n";
 			echo "error login";
+			$this->authWarning();
+			exit;
 		}
 		
 		if (($this->config->get('exchange1c_password') != '') && (@$_SERVER['PHP_AUTH_PW'] != $this->config->get('exchange1c_password'))) {
 			echo "failure\n";
 			echo "error password";
+			$this->authWarning();
 			exit;
 		}
 
@@ -598,6 +668,9 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		$cache = DIR_CACHE . 'exchange1c/';
+		
+		// Проверяем на наличие каталога
+		if(!is_dir($cache)) mkdir($cache);
 
 		// Проверяем на наличие имени файла
 		if (isset($this->request->get['filename'])) {
@@ -619,7 +692,10 @@ class ControllerModuleExchange1c extends Controller {
 		// Получаем данные
 		$data = file_get_contents("php://input");
 
+		//$this->log->write($data);
+		
 		if ($data !== false) {
+			file_put_contents($uplod_file, $data);
 			if ($fp = fopen($uplod_file, "wb")) {
 				$result = fwrite($fp, $data);
 
@@ -636,8 +712,7 @@ class ControllerModuleExchange1c extends Controller {
 			}
 			else {
 				echo "failure\n";
-				echo "Can not open file: $uplod_file\n";
-				echo $cache;
+				echo "Can not open file: $uplod_file";
 			}
 		}
 		else {
@@ -651,7 +726,8 @@ class ControllerModuleExchange1c extends Controller {
 	public function modeImport($manual = false) {
 
 		$cache = DIR_CACHE . 'exchange1c/';
-
+		if(!is_dir($cache)) mkdir($cache);
+		
 		if ($manual) {
 			$filename = $manual;
 			$importFile = $cache . $filename;

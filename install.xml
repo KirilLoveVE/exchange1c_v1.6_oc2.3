@@ -1,7 +1,21 @@
 <modification>
 	<name>Exchange Module for OpenCart 2.x</name>
-	<code>Exchange Module for OpenCart 2.x</code>
-	<version>1.6.1.5</version>
+	<version>1.6.1.6b</version>
+	<id>OpenCart Exchange</id> 
 	<author>KirilLoveVE</author>
 	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
+	<code>exchange1c</code>
+	<file path="admin/controller/common/menu.php">
+		<operation>
+			<search><![CDATA[$data['module'] = $this->url->link('extension/module', 'token=' . $this->session->data['token'], 'SSL');]]></search>
+			<add position="after"><![CDATA[$data['exchange1c'] = $this->url->link('module/exchange1c', 'token=' . $this->session->data['token'], 'SSL');]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/view/template/common/menu.tpl">
+		<operation>
+			<search><![CDATA[<li><a href="<?php echo $total; ?>"><?php echo $text_total; ?></a></li>]]></search>
+			<add position="after"><![CDATA[<li><a href="<?php echo $exchange1c; ?>">Opencart Exchange 1C</a></li>]]></add>
+		</operation>
+	</file>
 </modification>
