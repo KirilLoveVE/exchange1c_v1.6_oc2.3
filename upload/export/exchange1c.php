@@ -175,6 +175,28 @@ elseif (substr($sapi,0,6)=='apache')
 else 
 	$log->write('Запуск веб сервера в режиме модуля сервера '.$sapi);
 
+$cms_info = new Action('module/exchange1c/checkCMS');
+
+// Определяем версию системы
+if ($handle = fopen($_SERVER['DOCUMENT_ROOT'].'/index.php', 'r')) {
+	$buffer = fread($handle, 2048);
+	fclose($handle);
+	
+	if (strpos($buffer, 'OCSHOP')) {
+		define('CMS', 'ocShop');
+	} elseif (strpos($buffer, 'OCSTORE')) {
+		define('CMS', 'ocStore');
+	} else {
+		define('CMS', 'OpenCart');
+	}
+	
+	if (preg_match("/[\d](\.[\d])+/", $buffer, $matches)) {
+		define('VERSION', $matches[0]);
+	} else {
+		define('VERSION', '2.0.3.1');
+	}
+}
+
 // Router
 if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 

@@ -937,6 +937,29 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		return 0;
 	}
+	
+	public function checkCMS() {
+		$log->write('Сбор информации о CMS');
+		// Определяем версию системы
+		if ($handle = fopen($_SERVER['DOCUMENT_ROOT'].'/index.php', 'r')) {
+			$buffer = fread($handle, 2048);
+			fclose($handle);
+			
+			if (strpos($buffer, 'OCSHOP')) {
+				define('CMS', 'OCSHOP');
+			} elseif (strpos($buffer, 'OCSTORE')) {
+				define('CMS', 'OCSTORE');
+			} else {
+				define('CMS', 'OPENCART');
+			}
+			
+			if (preg_match("/[\d](\.[\d])+/", $buffer, $matches)) {
+				define('VERSION', $matches[0]);
+			} else {
+				define('VERSION', '2.0.3.1');
+			}
+		}
+	}
 
 }
 ?>
