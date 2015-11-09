@@ -240,7 +240,7 @@ class ModelToolExchange1c extends Model {
 	 */
 	 private function parsePrice($xml, $price_types, $discount_price_type, $config_price_type_main){
 		// Первая цена по умолчанию - $config_price_type_main
-		if (!$config_price_type_main['keyword']) {
+		if (!isset($config_price_type_main['keyword'])) {
 			$this->data['price'] = (float)$xml->ЦенаЗаЕдиницу;
 		}
 		else {
@@ -273,6 +273,40 @@ class ModelToolExchange1c extends Model {
 		}
 	 	
 	 }
+
+	/**
+	 * Функция добавляет склады
+	 *
+	 * @param	SimpleXMLElement
+	 */
+	private function insertWarehouse($xml) {
+
+		if (!$xml) return;
+		$this->log('Загрузка складов...');
+
+		foreach ($xml as $warehouse){
+			if (isset($warehouse->Ид) && isset($warehouse->Наименование) ){
+				$id = (string)$warehouse->Ид;
+				$name = (string)$warehouse->Наименование;
+				
+				$query = $this->db->query('SELECT * FROM `' . DB_PREFIX . 'warehouse` WHERE `1c_warehouse_id` = "' . $this->db->escape($id) . '"');
+				if ($query->num_rows) {
+					$this->log('	-> Найден склад: '.(string)$query->row['name']);
+					$warehouse_id = (int)$query->row['warehouse_id'];
+				} else {
+					$this->db->query('INSERT INTO `' . DB_PREFIX . 'warehouse` SET name = "' . $name . '", `1c_warehouse_id` = "' . $this->db->escape($id) . '"');
+					$this->log('	-> Добавлен склад: ' . $name. ', Ид: ' . $id);
+					$id = $this->db->getLastId();
+				}
+			}
+			
+			$this->WAREHOUSES[$id] = array(
+				'warehouse_id' => $warehouse_id,
+				'name' => $name
+				);             	
+		}
+		unset($xml);
+	} // insertWarehouse($xml)
 
 	/**
 	 * Парсит цены и количество
@@ -425,6 +459,27 @@ class ModelToolExchange1c extends Model {
 					}
 				}
 
+				//Количество
+				$this->data['quantity'] = isset($offer->Количество) ? (int)$offer->Количество : 0;
+				if ($offer->Склад) {
+					if (!isset($this->data['quantity']))
+						$this->data['quantity'] = 0;
+					$this->data['product_quantity'] = array();
+					if (isset($this->WAREHOUSES[(string)$offer->Склад['ИдСклада']]['name'])) {
+						$quantity = (int)$offer->Склад['КоличествоНаСкладе'];
+						$this->log('Склад [UUID]:'.(string)$offer->Склад['ИдСклада'].', наименование:'.$this->WAREHOUSES[(string)$offer->Склад['ИдСклада']]['name'] . ', остаток:' . $quantity);
+						$this->data['product_quantity'][] = array(
+							'warehouse_id' => $this->WAREHOUSES[(string)$offer->Склад['ИдСклада']]['warehouse_id'],
+							'1c_id' => (string)$offer->Склад['ИдСклада'],
+							'quantity' => $quantity
+						);
+						$this->data['quantity'] += $quantity;
+						$this->log('Запись остатков. Склад ID='.$this->WAREHOUSES[(string)$offer->Склад['ИдСклада']]['warehouse_id'].', товар ID='.$product_id.', остаток: '.$quantity);
+						$this->setQuantity($this->WAREHOUSES[(string)$offer->Склад['ИдСклада']]['warehouse_id'], $product_id, $quantity);
+					}
+				}
+				$this->log('Общий остаток по всем складам: '.$this->data['quantity']);
+
 				if (!$exchange1c_relatedoptions || $new_product) {
 					
 					if ($offer->СкидкиНаценки) {
@@ -465,6 +520,32 @@ class ModelToolExchange1c extends Model {
 		$this->log('Окончен разбор предложений.');
 	} // parseOffers()
 	
+	/**
+	 * Функция добавляет остаток на склад
+	 *
+	 * @param	int
+	 * @param	int
+	 */
+	private function setQuantity($warehouse_id, $product_id, $quantity) {
+		
+		$this->log('admin_model_tool_exchange1c->setQuantity()');
+
+		$sql = "SELECT * FROM `" . DB_PREFIX . "product_quantity` WHERE product_id = " . $product_id;
+		//$this->log($sql);
+		$query = $this->db->query($sql);
+		
+		if ($query->num_rows) {
+			$sql = "UPDATE  `" . DB_PREFIX . "product_quantity` SET warehouse_id = " . $warehouse_id . ", quantity = " . $quantity ." WHERE product_id = " . $product_id;
+			//$this->log($sql);
+			$query = $this->db->query($sql);
+		} else {
+			$sql = "INSERT INTO  `" . DB_PREFIX . "product_quantity` SET warehouse_id = " . $warehouse_id . ", product_id = " . $product_id . ", quantity = " . $quantity;
+			//$this->log($sql);
+			$query = $this->db->query($sql);
+		}
+		
+	}
+
 	/**
 	 * Устанавливает опцию
 	 *
@@ -536,14 +617,12 @@ class ModelToolExchange1c extends Model {
 			if (empty($this->data['image'])) {
 				// Первая картинка
 				$this->data['image'] = $newimage;
-				$this->log("Первая картинка найдена: " . $newimage);
 			}
 			else {
 				$this->data['product_image'][] = array(
 					'image' => $newimage,
 					'sort_order' => 0
 				);
-				$this->log("Еще картинка найдена: " . $newimage);
 			}
 			
 		}
@@ -609,16 +688,16 @@ class ModelToolExchange1c extends Model {
 						$this->insertManufacturer($attribute_value);
 					break;
 					case 'oc.seo_h1':
-						$data['seo_h1'] = $attribute_value;
+						$this->data['seo_h1'] = $attribute_value;
 					break;
 					case 'oc.seo_title':
-						$data['seo_title'] = $attribute_value;
+						$this->data['seo_title'] = $attribute_value;
 					break;
 					case 'oc.sort_order':
-						$data['sort_order'] = $attribute_value;
+						$this->data['sort_order'] = $attribute_value;
 					break;
 					default:
-						$data['product_attribute'][] = array(
+						$this->data['product_attribute'][] = array(
 							'attribute_id'			=> $attribute['id'],
 							'product_attribute_description'	=> array(
 								$this->language_id => array(
@@ -644,7 +723,7 @@ class ModelToolExchange1c extends Model {
 				case 'ОписаниеФайла':
 					// XML v2.04
 					//$this->data['weight'] = $requisite->Значение ? (float)$requisite->Значение : 0;
-					$this->log("	-> ТипНоменклатуры. В стадии разработки");
+					$this->log("	-> ОписаниеФайла: " . (string)$requisite->Значение);
 				break;
 				case 'ТипНоменклатуры':
 					$this->data['type'] = $requisite->Значение ? (string)$requisite->Значение : '';
@@ -686,8 +765,6 @@ class ModelToolExchange1c extends Model {
 			$this->data['sku'] = $product->Артикул? (string)$product->Артикул : '';
 
 			$this->log("Найден товар: '" . $this->data['name'] . "', артикул: '" . $this->data['sku'] . "', 1C UUID: '" . $this->data['1c_id'] . "'");
-if (isset($this->data['image'])) $this->log("У товара уже есть картинки: " . $this->data['image']);
-if (isset($this->data['product_image'])) $this->log("У товара уже есть еще картинки: " . count($this->data['product_image']));
 			if ($product->Картинка) $this->parseImages($product->Картинка);
 			if ($product->ХарактеристикиТовара) $this->parseOptions($product->ХарактеристикиТовара);
 			if ($product->Группы) $this->data['category_1c_id'] = $product->Группы->Ид;
@@ -1194,11 +1271,7 @@ if (isset($this->data['product_image'])) $this->log("У товара уже ес
 
 		$this->load->model('catalog/product');
 
-if (isset($product['image'])) $this->log("Записывается картинка в product[]: " . $product['image']);
-
 		$product_old = $this->initProduct($product, $product_old);
-
-if (isset($product_old['image'])) $this->log("Записывается картинка в product_old[]: " . $product_old['image']);
 
 		//Редактируем продукт
 		$product_id = $this->model_catalog_product->editProduct($product_id, $product_old);
