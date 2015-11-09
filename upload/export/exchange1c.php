@@ -165,17 +165,17 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 }
 
 // Информация используется для поиска и отладки возможных ошибок в beta версиях
-$sapi = php_sapi_name();
-if ($sapi=='cli') 
-	$log->write('Запуск веб сервера из командной строки');
-elseif (substr($sapi,0,3)=='cgi') 
-	$log->write('Запуск веб сервера в режиме CGI');
-elseif (substr($sapi,0,6)=='apache') 
-	$log->write('Запуск веб сервера в режиме модуля Apache');
-else 
-	$log->write('Запуск веб сервера в режиме модуля сервера '.$sapi);
+//$sapi = php_sapi_name();
+//if ($sapi=='cli') 
+//	$log->write('Запуск веб сервера из командной строки');
+//elseif (substr($sapi,0,3)=='cgi') 
+//	$log->write('Запуск веб сервера в режиме CGI');
+//elseif (substr($sapi,0,6)=='apache') 
+//	$log->write('Запуск веб сервера в режиме модуля Apache');
+//else 
+//	$log->write('Запуск веб сервера в режиме модуля сервера '.$sapi);
 
-$cms_info = new Action('module/exchange1c/checkCMS');
+//$cms_info = new Action('module/exchange1c/checkCMS');
 
 // Определяем версию системы
 if ($handle = fopen($_SERVER['DOCUMENT_ROOT'].'/index.php', 'r')) {
