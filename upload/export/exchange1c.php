@@ -197,6 +197,7 @@ if ($handle = fopen($_SERVER['DOCUMENT_ROOT'].'/index.php', 'r')) {
 	}
 }
 
+//$log->write("mode: " . $request->get['mode'] . ", type: " . $request->get['type']);
 // Router
 if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 

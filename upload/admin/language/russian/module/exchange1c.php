@@ -6,10 +6,12 @@ $_['heading_title']							= 'Обмен данными с 1C v8.x';
 $_['text_module']							= 'Модули';
 $_['text_success']							= 'Настройки модуля обновлены!';
 
+$_['text_tab_store']						= 'Магазин';
 $_['text_tab_general']						= 'Основное';
 $_['text_tab_product']						= 'Обмен товарами';
 $_['text_tab_order']						= 'Обмен заказами';
-$_['text_tab_manual']						= 'Ручная загрузка';
+$_['text_tab_manual']						= 'Ручная обработка';
+$_['text_tab_developing']					= 'Разработка';
 
 $_['text_upload_success']					= 'Импорт завершен';
 $_['text_upload_error']						= 'Что-то пошло не так. Загляните в &laquo;Система &rarr; Журнал ошибок&raquo;';
@@ -32,6 +34,8 @@ $_['entry_config_price_type']				= 'Тип цены в 1С';
 $_['entry_customer_group']					= 'Группа покупателей';
 $_['entry_quantity']						= 'Количество';
 $_['entry_priority']						= 'Приоритет';
+$_['entry_catalog_1c']						= 'Имя каталога в 1С';
+$_['entry_store']							= 'Магазин';
 $_['entry_action']							= 'Действия';
 // Справка
 $_['help_allow_ip']							= 'С каких IP разрешен доступ';
@@ -66,13 +70,31 @@ $_['entry_order_status_completed']			= 'Статус выполненных за
 $_['entry_order_notify']					= 'Уведомлять пользователей о смене статуса:';
 $_['entry_order_currency'] 					= 'Обозначение валюты (руб.):';
 $_['entry_upload']							= 'Выберите файл *.XML для загрузки';
+// 1.6.1.7
+$_['entry_download_orders']					= 'Скачать orders.xml';
 
 // Кнопки
 $_['button_upload']							= 'Загрузить';
 $_['button_add']							= 'Добавить';
+// 1.6.1.7
+$_['button_download_orders']				= 'Скачать заказы';
 
 // Error
 $_['error_permission']						= 'У Вас нет прав для управления этим модулем!';
 
 // Справка
-$_['help_upload']							= 'Принимается import.xml, offers.xml, orders.xml. <br>Названия файлов может отличаться.';
+$_['help_upload']							= 'Принимается import.xml, offers.xml, orders.xml.';
+// 1.6.1.7
+$_['help_download_orders']					= 'Скачивание выбранных заказов в ХМЛ формате.';
+
+$_['text_legend_store']						= 'Связь каталога в 1С с магазином';
+$_['text_legend_auth']						= 'Авторизация';
+$_['text_legend_security']					= 'Безопасность';
+$_['text_legend_other']						= 'Прочее';
+$_['text_legend_price']						= 'Связь типов цен (соглашений) в 1С с группами покупателей';
+$_['text_legend_cleaning']					= 'Очистка';
+$_['text_legend_images']					= 'Картинки';
+$_['text_legend_export_orders']				= 'Выгрузка заказов в 1С';
+$_['text_legend_import_orders']				= 'Загрузка заказов из 1С';
+
+$_['text_in_developing']					= 'В разработке';

@@ -1,7 +1,7 @@
 <?php
 class ControllerModuleExchange1c extends Controller {
 	private $error = array(); 
-	private $module_version = '1.6.1.6.1';
+	private $module_version = '1.6.1.7';
 	private $module_name = 'Exchange 1C 8.x';
 
 	public function index() {
@@ -134,7 +134,7 @@ class ControllerModuleExchange1c extends Controller {
 			if(empty($data['exchange1c_price_type'])) {
 				$data['exchange1c_price_type'][] = array(
 					'keyword'			=> '',
-					'customer_group_id'		=> 0,
+					'customer_group_id'	=> 0,
 					'quantity'			=> 0,
 					'priority'			=> 0
 				);
@@ -297,6 +297,38 @@ class ControllerModuleExchange1c extends Controller {
 			$this->load->model('sale/customer_group');
 			$data['customer_groups'] = $this->model_sale_customer_group->getCustomerGroups();
 		}
+		// + 1.6.1.7 исключаем группу по умолчанию
+		unset($data['customer_groups'][0]);
+
+		// + 1.6.1.7 Магазины
+		$data['stores'] = array();
+		$data['store_default'] = $this->config->get('config_name');
+		$store_id = 0;
+		$result = $this->db->query("SELECT * FROM `" . DB_PREFIX . "store`")->rows;
+		foreach ($result as $store) {
+			$data['stores'][] = array(
+				'store_id'	=> $store_id,
+				'name'		=> $store['name']
+			);
+			$store_id++;
+		}
+		unset($store_id);
+		unset($result);
+
+		if (isset($this->request->post['exchange1c_stores'])) {
+			$data['exchange1c_stores'] = $this->request->post['exchange1c_stores'];
+		}
+		else {
+			$data['exchange1c_stores'] = $this->config->get('exchange1c_stores');
+			if(empty($data['exchange1c_stores'])) {
+				$data['exchange1c_stores'][] = array(
+					'1c'			=> '',
+					'name'			=> $this->config->get('config_name'),
+					'store_id'		=> 0
+				);
+			}
+		}
+		// - 1.6.1.7 Магазины
 
 		$this->load->model('localisation/order_status');
 
@@ -308,6 +340,8 @@ class ControllerModuleExchange1c extends Controller {
 				'name'			  => $order_status['name']
 			);
 		}
+		// + 1.6.1.7
+		unset($order_statuses);
 
 		$this->template = 'module/exchange1c.tpl';
 		$this->children = array(
@@ -639,6 +673,33 @@ class ControllerModuleExchange1c extends Controller {
 			}
 		}
 
+		// + 1.6.1.7
+		// Включена проверка на запись файлов и папок
+		$test_file = DIR_CACHE . 'exchange1c/test.php';
+		if ($fp = fopen($test_file, "w")) {
+			fclose($fp);
+			unlink($test_file);
+		} else {
+			$error_message = "ВНИМАНИЕ! Папка '" . DIR_CACHE . "exchange1c' не доступна для записи!";
+			$this->log->write($error_message);
+			echo "failure\n";
+			echo $error_message;
+			return;
+		}
+
+		$test_file = DIR_IMAGE . 'test.php';
+		if ($fp = fopen($test_file, "w")) {
+			fclose($fp);
+			unlink($test_file);
+		} else {
+			$error_message = "ВНИМАНИЕ! Папка '" . DIR_IMAGE . "' не доступна для записи!";
+			$this->log->write($error_message);
+			echo "failure\n";
+			echo $error_message;
+			return;
+		}
+		// - 1.6.1.7
+
 		$limit = 100000 * 1024;
 	
 		if ($echo) {
@@ -679,6 +740,7 @@ class ControllerModuleExchange1c extends Controller {
 		else {
 			echo "failure\n";
 			echo "ERROR 10: No file name variable";
+			$this->log->write("ОШИБКА! Имя файла не определено!");
 			return;
 		}
 
@@ -703,7 +765,7 @@ class ControllerModuleExchange1c extends Controller {
 					echo "success\n";
 
 					//$this->log->write($uplod_file);
-					//chmod($uplod_file , 0777);
+					chmod($uplod_file , 0777);
 					echo "success\n";
 				}
 				else {
@@ -713,11 +775,13 @@ class ControllerModuleExchange1c extends Controller {
 			else {
 				echo "failure\n";
 				echo "Can not open file: $uplod_file";
+				$this->log->write("Отсутствует файл для загрузки '" . $uplod_file . "'");
 			}
 		}
 		else {
 			echo "failure\n";
 			echo "No data file\n";
+			$this->log->write("ОШИБКА! Отсутвуют данные в файле!");
 		}
 
 
@@ -739,6 +803,7 @@ class ControllerModuleExchange1c extends Controller {
 		else {
 			echo "failure\n";
 			echo "ERROR 10: No file name variable";
+			$this->log->write("Отсутствует файл для загрузки каталога. Загрузка каталога не будет произведена!");
 			return 0;
 		}
 
@@ -767,7 +832,6 @@ class ControllerModuleExchange1c extends Controller {
 			}
             // Только если выбран способ deadcow_seo
 			if ($this->config->get('exchange1c_seo_url') == 1) {
-				$this->load->model('module/deadcow_seo');
 				$this->load->model('module/deadcow_seo');
 				$this->model_module_deadcow_seo->generateCategories($this->config->get('deadcow_seo_categories_template'), '', 'Russian', true, true);
 				$this->model_module_deadcow_seo->generateProducts($this->config->get('deadcow_seo_products_template'), '.html', 'Russian', true, true);

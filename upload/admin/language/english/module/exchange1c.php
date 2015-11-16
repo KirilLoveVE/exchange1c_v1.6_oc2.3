@@ -6,10 +6,12 @@ $_['heading_title']							= 'Exchange 1C v8.x';
 $_['text_module']							= 'Modules';
 $_['text_success']							= 'Settings saved!';
 
+$_['text_tab_store']						= 'Store';
 $_['text_tab_general']						= 'General';
 $_['text_tab_product']						= 'Products';
 $_['text_tab_order']						= 'Orders';
-$_['text_tab_manual']						= 'Manual import';
+$_['text_tab_manual']						= 'Manual processing';
+$_['text_tab_developing']					= 'Developing';
 
 $_['text_upload_success']					= 'Import completed';
 $_['text_upload_error']						= 'Unknown error';
@@ -27,6 +29,8 @@ $_['text_change']							= 'Modified and support by: Vitaly E. Kirillov (Skype: K
 $_['entry_username']						= 'Login:';
 $_['entry_password']						= 'Password:';
 $_['entry_status']							= 'Status:';
+$_['entry_catalog_1c']						= 'Catalog Name in 1C';
+$_['entry_store']							= 'Shop';
 $_['entry_allow_ip']						= 'Allow IPs (Share a line break. If empty, all addresses are allowed.):';
 $_['entry_action']							= 'Action';
 
@@ -64,6 +68,10 @@ $_['entry_order_currency']					= 'Orders currency:';
 
 $_['entry_upload']							= 'Select file:';
 $_['button_upload']							= 'Upload';
+// 1.6.1.7
+$_['entry_download_orders']					= 'Download orders.xml';
+$_['button_download_orders']				= 'Download Orders';
+$_['button_add']							= 'Add';
 
 // Error
 $_['error_permission']						= 'Premission denied!';
@@ -71,3 +79,17 @@ $_['error_permission']						= 'Premission denied!';
 // Help
 $_['help_allow_ip']							= 'From which IP allowed to access';
 $_['help_upload']							= 'Accepted import.xml, offers.xml, orders.xml. <br> file names may be different.';
+// 1.6.1.7
+$_['help_download_orders']					= 'Download selected orders in CML format.';
+
+$_['text_legend_store']						= 'Linking Catalog in 1C to Store';
+$_['text_legend_auth']						= 'Authorization';
+$_['text_legend_security']					= 'Security';
+$_['text_legend_other']						= 'Other';
+$_['text_legend_price']						= 'Linking Price types in 1C to Customer groups';
+$_['text_legend_cleaning']					= 'Cleaning';
+$_['text_legend_images']					= 'Images';
+$_['text_legend_export_orders']				= 'Export Orders to 1C';
+$_['text_legend_import_orders']				= 'Import Orders from 1C';
+
+$_['text_in_developing']					= 'In Developing';
