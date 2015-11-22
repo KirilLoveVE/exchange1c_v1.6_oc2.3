@@ -25,6 +25,9 @@ $_['text_price_default']					= 'Price for OpenCart';
 $_['text_source_code']						= 'Source code in GitHub';
 $_['text_change']							= 'Modified and support by: Vitaly E. Kirillov (Skype: KirilLoveVE, ICQ: 39927648, Viber: +79144306000, email: vitaly.kirillove@mail.ru)';
 
+// Help
+$_['entry_product_status_disable_if_quantity_zero_help'] = 'Do not show the goods on the site if the remainder is equal to or less than zero.';
+
 // Entry
 $_['entry_username']						= 'Login:';
 $_['entry_password']						= 'Password:';
@@ -47,6 +50,7 @@ $_['entry_fill_parent_cats']				= 'Fill parent categories:';
 $_['entry_seo_url']							= 'Generate SEO URL: <br> (depends on <a href="http://opencartforum.ru/files/file/332-deadcow-seo-v21-automod/" target="_blank">Deadcow SEO</a>)';
 $_['entry_seo_url_deadcow']					= 'via Deadcow SEO';
 $_['entry_seo_url_translit']				= 'Transliterate';
+$_['entry_product_status_disable_if_quantity_zero'] = 'Disable status product if quantity zero';
 
 $_['entry_full_log']						= 'Enable log';
 $_['entry_apply_watermark']					= 'Apply watermark';

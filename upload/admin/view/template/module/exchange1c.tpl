@@ -50,14 +50,14 @@
 										<?php foreach ($exchange1c_stores as $config_store_id => $config_store) { ?>
 											<?php if ($config_store_id == 0) {?>
 												<tr id="exchange1c_store_row<?php echo $config_store_id; ?>">
-													<td class="left"><input class="form-control" type="text" name="exchange1c_stores[<?php echo $config_store_id; ?>][1c]" value="<?php echo $config_store['1c']; ?>" class="form-control"/></td>
+													<td class="left"><input class="form-control" type="text" name="exchange1c_stores[<?php echo $config_store_id; ?>][keyword]" value="<?php echo $config_store['keyword']; ?>" class="form-control"/></td>
 													<td class="left"><?php echo $store_default; ?><input type="hidden" name="exchange1c_stores[<?php echo $config_store_id; ?>][store_id]" value="0" /></td>
 													<td class="left">&nbsp;</td>
 												</tr>
 											<?php } else { ?>
 												<tr id="exchange1c_store_row<?php echo $config_store_id; ?>">
-													<td class="left"><input class="form-control" type="text" name="exchange1c_stores[<?php echo $config_store_id; ?>][1c]" value="<?php echo $config_store['1c']; ?>" /></td>
-													<td class="left"><select name="exchange1c_stores[<?php echo $config_store_id; ?>][name]">
+													<td class="left"><input class="form-control" type="text" name="exchange1c_stores[<?php echo $config_store_id; ?>][keyword]" value="<?php echo $config_store['keyword']; ?>" /></td>
+													<td class="left"><select name="exchange1c_stores[<?php echo $config_store_id; ?>][store_id]">
 												<?php foreach ($stores as $store) { ?>
 														<?php if ($store['store_id'] == $config_store['store_id']) { ?>
 															<option value="<?php echo $store['store_id']; ?>" selected="selected"><?php echo $store['name']; ?></option>
@@ -173,6 +173,7 @@
 										</tr>
 									</thead>
 									<tbody>
+										<!--<?php echo "<pre>"; echo print_r($exchange1c_price_type,true); echo "</pre>"; ?>-->
 										<?php $price_row = 0; ?>
 										<?php foreach ($exchange1c_price_type as $obj) { ?>
 											<?php if ($price_row == 0) {?>
@@ -373,31 +374,29 @@
 									</label>
 								</div>
 							</div>
-							<!--
 							<div class="form-group">
-								<label class="col-sm-2 control-label"><span data-toggle="tooltip" title="<?php echo $lang['entry_relatedoptions_help']; ?>"><?php echo $lang['entry_relatedoptions']; ?></span></label>
+								<label class="col-sm-2 control-label"><span data-toggle="tooltip" title="<?php echo $lang['entry_product_status_disable_if_quantity_zero_help']; ?>"><?php echo $lang['entry_product_status_disable_if_quantity_zero']; ?></span></label>
 								<div class="col-sm-10">
 									<label class="radio-inline">
-										<?php if ($exchange1c_relatedoptions) { ?>
-											<input type="radio" name="exchange1c_relatedoptions" value="1" checked="checked" />
+										<?php if ($exchange1c_product_status_disable_if_quantity_zero) { ?>
+											<input type="radio" name="exchange1c_product_status_disable_if_quantity_zero" value="1" checked="checked" />
 											<?php echo $lang['text_yes']; ?>
 										<?php } else { ?>
-											<input type="radio" name="exchange1c_relatedoptions" value="1" />
+											<input type="radio" name="exchange1c_product_status_disable_if_quantity_zero" value="1" />
 											<?php echo $lang['text_yes']; ?>
 										<?php } ?>
 									</label>
 									<label class="radio-inline">
-										<?php if (!$exchange1c_relatedoptions) { ?>
-											<input type="radio" name="exchange1c_relatedoptions" value="0" checked="checked" />
+										<?php if (!$exchange1c_product_status_disable_if_quantity_zero) { ?>
+											<input type="radio" name="exchange1c_product_status_disable_if_quantity_zero" value="0" checked="checked" />
 											<?php echo $lang['text_no']; ?>
 										<?php } else { ?>
-											<input type="radio" name="exchange1c_relatedoptions" value="0" />
+											<input type="radio" name="exchange1c_product_status_disable_if_quantity_zero" value="0" />
 											<?php echo $lang['text_no']; ?>
 										<?php } ?>
 									</label>
 								</div>
 							</div>
-							-->
 							<div class="form-group">
 								<label class="col-sm-2 control-label"><?php echo $lang['entry_dont_use_artsync']; ?></label>
 								<div class="col-sm-10">
@@ -430,11 +429,13 @@
 										<?php } else { ?>
 											<option value="0"><?php echo $lang['text_disabled']; ?></option>
 										<?php } ?>
+										<!--
 										<?php if ($exchange1c_seo_url == 1) { ?>
 											<option value="1" selected="selected"><?php echo $lang['entry_seo_url_deadcow']; ?></option>
 										<?php } else { ?>
 											<option value="1"><?php echo $lang['entry_seo_url_deadcow']; ?></option>
 										<?php } ?>
+										-->
 										<?php if ($exchange1c_seo_url == 2) { ?>
 											<option value="2" selected="selected"><?php echo $lang['entry_seo_url_translit']; ?></option>
 										<?php } else { ?>
@@ -569,16 +570,27 @@
 								Ожидаемые изменения в версии 1.6.1.7:
 								<ul>
 									<li>Загрузка каталогов из 1С в указанный магазин в настройках (Система -> Настройки)</li>
-									<li>Опция - отключение товаров если количество меньше 1</li>
 									<li>Временно убраны "Связанные опции"</li>
 								</ul>
 							</div>
 							<div class="col-sm-12">
 								<p>Ожидаемые изменения в версии 1.6.1.8:</p>
 								<ul>
+									<li>Исправление ошибок с загрузкой цен</li>
+									<li>В режиме доработки загрузка каталога с 1С в разные магазины</li>
+									<li>В режиме доработки загрузка опций</li>
+									<li>Добавлена опция - отключение товаров если количество меньше или равно нулю</li>
+								</ul>
+							</div>
+							<div class="col-sm-12">
+								<p>Ожидаемые изменения в следующих версиях:</p>
+								<ul>
 									<li>Загрузка заказов из 1С</li>
 									<li>Смена статусов заказов на сайте при загрузке из 1С</li>
+									<li>Заполнение родительскими категориями для всех версий</li>
+									<li>Смена статусов заказов на сайте при загрузке из 1С</li>
 									<li>Скачивание заказов, для ручной загрузки в 1С</li>
+									<li>Заполнение родительскими категориями для всех версий</li>
 								</ul>
 							</div>
 							<div class="col-sm-12">
@@ -661,8 +673,8 @@ function addConfigPriceType() {
 	html += '<option value="<?php echo $customer_group['customer_group_id']; ?>"><?php echo $customer_group['name']; ?></option>';
 	<?php } ?>
 	html += '</select></td>';
-	html += '<td class="center"><input type="text" name="exchange1c_price_type[' + price_row + '][quantity]" value="0" size="2" /></td>';
-	html += '<td class="center"><input type="text" name="exchange1c_price_type[' + price_row + '][priority]" value="0" size="2" /></td>';
+	html += '<td class="center"><input type="text" name="exchange1c_price_type[' + price_row + '][quantity]" value="1" size="2" /></td>';
+	html += '<td class="center"><input type="text" name="exchange1c_price_type[' + price_row + '][priority]" value="<?php echo $price_row+1; ?>" size="2" /></td>';
 	html += '<td class="center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_price_type_row<?php echo $price_row; ?>\').remove() : false;"><i class="fa fa-minus-circle"></i></button></td>';
 	html += '</tr>';
 	
@@ -678,13 +690,13 @@ var store_row = <?php echo count($exchange1c_stores); ?>;
 function addStore() {
 	html= '';
 	html += '<tr id="exchange1c_store_row' + store_row + '">'; 
-	html += '<td class="left"><input class="form-control" type="text" name="exchange1c_stores[' + store_row + '][1c]" value="" /></td>';
+	html += '<td class="left"><input class="form-control" type="text" name="exchange1c_stores[' + store_row + '][keyword]" value="" /></td>';
 	html += '<td class="left"><select name="exchange1c_stores[' + store_row + '][store_id]">';
 	<?php foreach ($stores as $store) { ?>
 	html += '<option value="<?php echo $store['store_id']; ?>"><?php echo $store['name']; ?></option>';
 	<?php } ?>
 	html += '</select></td>';
-	html += '<td class="center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_store_row<?php echo $store_row; ?>\').remove() : false;"><i class="fa fa-minus-circle"></i></button></td>';
+	html += '<td class="center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_store_row<?php echo count($exchange1c_stores); ?>\').remove() : false;"><i class="fa fa-minus-circle"></i></button></td>';
 	html += '</tr>';
 	
 	$('#exchange1c_store_id tbody').append(html);

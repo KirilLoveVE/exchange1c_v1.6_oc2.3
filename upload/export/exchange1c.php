@@ -219,6 +219,7 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 		break;
 
 		default:
+			$log->write("type=catalog, status: success");
 			echo "success\n";
 	}
 
@@ -250,6 +251,7 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 		break;
 
 		default:
+			$log->write("type=sale, status: success");
 			echo "success\n";
 
 	}
@@ -267,13 +269,14 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 
 
 		default:
+			$log->write('type=get_catalog, status: success');
 			echo "success\n";
-			$log->write('type=get_catalog -> success');
 
 	}
 
 
 } else {
+	$log->write("mode: " . $request->get['mode'] . ", type: " . $request->get['type'] . ", status: success");
 	echo "success\n";
 	exit;
 }

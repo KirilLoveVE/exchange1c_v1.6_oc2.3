@@ -1,7 +1,7 @@
 <?php
 class ControllerModuleExchange1c extends Controller {
 	private $error = array(); 
-	private $module_version = '1.6.1.7';
+	private $module_version = '1.6.1.8';
 	private $module_name = 'Exchange 1C 8.x';
 
 	public function index() {
@@ -134,9 +134,9 @@ class ControllerModuleExchange1c extends Controller {
 			if(empty($data['exchange1c_price_type'])) {
 				$data['exchange1c_price_type'][] = array(
 					'keyword'			=> '',
-					'customer_group_id'	=> 0,
-					'quantity'			=> 0,
-					'priority'			=> 0
+					'customer_group_id'	=> $this->config->get('config_customer_group_id'),
+					'quantity'			=> 1,
+					'priority'			=> 1
 				);
 			}
 		}
@@ -162,11 +162,11 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		// Отключать товар если остаток меньше или равен нулю
-		if (isset($this->request->post['exchange1c_disable_product_if_quantity_zero'])) {
-			$data['exchange1c_disable_product_if_quantity_zero'] = $this->request->post['exchange1c_disable_product_if_quantity_zero'];
+		if (isset($this->request->post['exchange1c_product_status_disable_if_quantity_zero'])) {
+			$data['exchange1c_product_status_disable_if_quantity_zero'] = $this->request->post['exchange1c_product_status_disable_if_quantity_zero'];
 		}
 		else {
-			$data['exchange1c_disable_product_if_quantity_zero'] = $this->config->get('exchange1c_disable_product_if_quantity_zero');
+			$data['exchange1c_product_status_disable_if_quantity_zero'] = $this->config->get('exchange1c_product_status_disable_if_quantity_zero');
 		}
 
 		if (isset($this->request->post['exchange1c_flush_product'])) {
@@ -216,6 +216,7 @@ class ControllerModuleExchange1c extends Controller {
 		} else {
 			$data['exchange1c_relatedoptions'] = $this->config->get('exchange1c_relatedoptions');
 		}
+
 		if (isset($this->request->post['exchange1c_order_status_to_exchange'])) {
 			$data['exchange1c_order_status_to_exchange'] = $this->request->post['exchange1c_order_status_to_exchange'];
 		} else {
@@ -298,12 +299,12 @@ class ControllerModuleExchange1c extends Controller {
 			$data['customer_groups'] = $this->model_sale_customer_group->getCustomerGroups();
 		}
 		// + 1.6.1.7 исключаем группу по умолчанию
-		unset($data['customer_groups'][0]);
+		//unset($data['customer_groups'][0]);
 
 		// + 1.6.1.7 Магазины
 		$data['stores'] = array();
 		$data['store_default'] = $this->config->get('config_name');
-		$store_id = 0;
+		$store_id = 1;
 		$result = $this->db->query("SELECT * FROM `" . DB_PREFIX . "store`")->rows;
 		foreach ($result as $store) {
 			$data['stores'][] = array(
@@ -754,8 +755,6 @@ class ControllerModuleExchange1c extends Controller {
 		// Получаем данные
 		$data = file_get_contents("php://input");
 
-		//$this->log->write($data);
-		
 		if ($data !== false) {
 			file_put_contents($uplod_file, $data);
 			if ($fp = fopen($uplod_file, "wb")) {
@@ -803,29 +802,24 @@ class ControllerModuleExchange1c extends Controller {
 		else {
 			echo "failure\n";
 			echo "ERROR 10: No file name variable";
-			$this->log->write("Отсутствует файл для загрузки каталога. Загрузка каталога не будет произведена!");
+			$this->log->write("[ERR] Отсутствует файл для загрузки каталога. Загрузка каталога отменена!");
 			return 0;
 		}
 
 		$this->load->model('tool/exchange1c');
+
+		// Проверка базы данных
+		if (!$this->model_tool_exchange1c->checkDB()) {
+			$this->log->write("[ERR] Проверка базы данных не пройдена!. Загрузка отменена");
+			return 0;
+		}
 
 		// Определяем текущую локаль
 		$language_id = $this->model_tool_exchange1c->getLanguageId($this->config->get('config_language'));
 
 		if (strpos($filename, 'import') !== false) {
 			
-			// Очищаем таблицы
-			$this->model_tool_exchange1c->flushDb(array(
-				'product' 		=> $this->config->get('exchange1c_flush_product'),
-				'category'		=> $this->config->get('exchange1c_flush_category'),
-				'manufacturer'		=> $this->config->get('exchange1c_flush_manufacturer'),
-				'attribute'		=> $this->config->get('exchange1c_flush_attribute'),
-				'full_log'		=> $this->config->get('exchange1c_full_log'),
-				'apply_watermark'	=> $this->config->get('exchange1c_apply_watermark'),
-				'quantity'		=> $this->config->get('exchange1c_flush_quantity')
-			));
-
-			$this->model_tool_exchange1c->parseImport($filename, $language_id);
+			$this->model_tool_exchange1c->parseImportFromFile($filename);
 
 			if ($this->config->get('exchange1c_fill_parent_cats')) {
 				$this->model_tool_exchange1c->fillParentsCategories();
@@ -848,7 +842,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		else if (strpos($filename, 'offers') !== false) {
 			$exchange1c_price_type = $this->config->get('exchange1c_price_type');
-			$this->model_tool_exchange1c->parseOffers($filename, $exchange1c_price_type, $language_id);
+			$this->model_tool_exchange1c->parseOffersFromFile($filename, $exchange1c_price_type);
 			
 			if (!$manual) {
 				echo "success\n";
@@ -856,7 +850,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		else if (strpos($filename, 'orders') !== false) {
 			$exchange1c_price_type = $this->config->get('exchange1c_price_type');
-			$this->model_tool_exchange1c->parseOrders($filename, $exchange1c_price_type, $language_id);
+			$this->model_tool_exchange1c->parseOrdersFromFile($filename, $exchange1c_price_type);
 			
 			if (!$manual) {
 				echo "success\n";
