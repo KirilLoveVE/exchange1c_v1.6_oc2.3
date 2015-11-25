@@ -173,14 +173,13 @@
 										</tr>
 									</thead>
 									<tbody>
-										<!--<?php echo "<pre>"; echo print_r($exchange1c_price_type,true); echo "</pre>"; ?>-->
 										<?php $price_row = 0; ?>
 										<?php foreach ($exchange1c_price_type as $obj) { ?>
 											<?php if ($price_row == 0) {?>
 												<tr id="exchange1c_price_type_row<?php echo $price_row; ?>">
 													<td class="left"><input type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" class="form-control"/></td>
-													<td class="left"><?php echo $lang['text_price_default']; ?><input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]" value="0" /></td>
-													<td class="center">-<input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="0" /></td>
+													<td class="left"><?php echo $lang['text_price_default']; ?><input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]" value="<?php echo $obj['customer_group_id']; ?>" /></td>
+													<td class="center">-<input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="1" /></td>
 													<td class="center">-<input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][priority]" value="0" /></td>
 													<td class="left">&nbsp;</td>
 												</tr>
@@ -222,95 +221,12 @@
 						<fieldset>
 							<legend><?php echo $lang['text_legend_cleaning']; ?></legend>
 							<div class="form-group">
-								<label class="col-sm-2 control-label"><?php echo $lang['entry_flush_product']; ?></label>
+								<label class="col-sm-2 control-label">Очищать таблицы:</label>
 								<div class="col-sm-10">
-									<label class="radio-inline">
-										<?php if ($exchange1c_flush_product) { ?>
-											<input type="radio" name="exchange1c_flush_product" value="1" checked="checked" />
-											<?php echo $lang['text_yes']; ?>
-										<?php } else { ?>
-											<input type="radio" name="exchange1c_flush_product" value="1" />
-											<?php echo $lang['text_yes']; ?>
-										<?php } ?>
-									</label>
-									<label class="radio-inline">
-										<?php if (!$exchange1c_flush_product) { ?>
-											<input type="radio" name="exchange1c_flush_product" value="0" checked="checked" />
-											<?php echo $lang['text_no']; ?>
-										<?php } else { ?>
-											<input type="radio" name="exchange1c_flush_product" value="0" />
-											<?php echo $lang['text_no']; ?>
-										<?php } ?>
-									</label>
-								</div>
-							</div>
-							<div class="form-group">
-								<label class="col-sm-2 control-label"><?php echo $lang['entry_flush_category']; ?></label>
-								<div class="col-sm-10">
-									<label class="radio-inline">
-										<?php if ($exchange1c_flush_category) { ?>
-											<input type="radio" name="exchange1c_flush_category" value="1" checked="checked" />
-											<?php echo $lang['text_yes']; ?>
-										<?php } else { ?>
-											<input type="radio" name="exchange1c_flush_category" value="1" />
-											<?php echo $lang['text_yes']; ?>
-										<?php } ?>
-									</label>
-									<label class="radio-inline">
-										<?php if (!$exchange1c_flush_category) { ?>
-											<input type="radio" name="exchange1c_flush_category" value="0" checked="checked" />
-											<?php echo $lang['text_no']; ?>
-										<?php } else { ?>
-											<input type="radio" name="exchange1c_flush_category" value="0" />
-											<?php echo $lang['text_no']; ?>
-										<?php } ?>
-									</label>
-								</div>
-							</div>
-							<div class="form-group">
-								<label class="col-sm-2 control-label"><?php echo $lang['entry_flush_manufacturer']; ?></label>
-								<div class="col-sm-10">
-									<label class="radio-inline">
-										<?php if ($exchange1c_flush_manufacturer) { ?>
-											<input type="radio" name="exchange1c_flush_manufacturer" value="1" checked="checked" />
-											<?php echo $lang['text_yes']; ?>
-										<?php } else { ?>
-											<input type="radio" name="exchange1c_flush_manufacturer" value="1" />
-											<?php echo $lang['text_yes']; ?>
-										<?php } ?>
-									</label>
-									<label class="radio-inline">
-										<?php if (!$exchange1c_flush_manufacturer) { ?>
-											<input type="radio" name="exchange1c_flush_manufacturer" value="0" checked="checked" />
-											<?php echo $lang['text_no']; ?>
-										<?php } else { ?>
-											<input type="radio" name="exchange1c_flush_manufacturer" value="0" />
-											<?php echo $lang['text_no']; ?>
-										<?php } ?>
-									</label>
-								</div>
-							</div>
-							<div class="form-group">
-								<label class="col-sm-2 control-label"><?php echo $lang['entry_flush_attribute']; ?></label>
-								<div class="col-sm-10">
-									<label class="radio-inline">
-										<?php if ($exchange1c_flush_attribute) { ?>
-											<input type="radio" name="exchange1c_flush_attribute" value="1" checked="checked" />
-											<?php echo $lang['text_yes']; ?>
-										<?php } else { ?>
-											<input type="radio" name="exchange1c_flush_attribute" value="1" />
-											<?php echo $lang['text_yes']; ?>
-										<?php } ?>
-									</label>
-									<label class="radio-inline">
-										<?php if (!$exchange1c_flush_attribute) { ?>
-											<input type="radio" name="exchange1c_flush_attribute" value="0" checked="checked" />
-											<?php echo $lang['text_no']; ?>
-										<?php } else { ?>
-											<input type="radio" name="exchange1c_flush_attribute" value="0" />
-											<?php echo $lang['text_no']; ?>
-										<?php } ?>
-									</label>
+									<button id="button-clean" class="btn btn-primary" type="button" data-loading-text="Очистить таблицы">
+										<i class="fa fa-trash-o fa-lg"></i>
+										Очистить таблицы всех магазинов (товары, категории, опции, характеристики, производители, остатки, цены) 
+									</button>
 								</div>
 							</div>
 							<div class="form-group">
@@ -567,34 +483,81 @@
 					<div class="tab-pane" id="tab-developing">
 						<div class="form-group">
 							<div class="col-sm-12">
-								Ожидаемые изменения в версии 1.6.1.7:
-								<ul>
-									<li>Загрузка каталогов из 1С в указанный магазин в настройках (Система -> Настройки)</li>
-									<li>Временно убраны "Связанные опции"</li>
-								</ul>
+								<fieldset>
+									<legend>Изменения в версии 1.6.1.7:</legend>
+									<ul>
+										<li>Загрузка каталогов из 1С в указанный магазин в настройках (Система -> Настройки)</li>
+										<li>Временно убраны "Связанные опции"</li>
+									</ul>
+								</fieldset>
 							</div>
 							<div class="col-sm-12">
-								<p>Ожидаемые изменения в версии 1.6.1.8:</p>
-								<ul>
-									<li>Исправление ошибок с загрузкой цен</li>
-									<li>В режиме доработки загрузка каталога с 1С в разные магазины</li>
-									<li>В режиме доработки загрузка опций</li>
-									<li>Добавлена опция - отключение товаров если количество меньше или равно нулю</li>
-								</ul>
+								<fieldset>
+									<legend>Изменения в версии 1.6.1.8:</legend>
+									<ul>
+										<li>Исправление ошибок с загрузкой цен</li>
+										<li>В режиме доработки загрузка каталога с 1С в разные магазины</li>
+										<li>В режиме доработки загрузка опций</li>
+										<li>Добавлена опция - отключение товаров, если количество меньше или равно нулю. То есть на сайте эти товары не будут отображаться, т.к. статус этих товаров будет в режиме "Отключено"</li>
+										<li>
+											<p>Загрузка свойств из import.xml:</p>
+											<ul>
+												<li>Производитель</li>
+												<li>oc.seo_h1</li>
+												<li>oc.seo_title</li>
+												<li>oc.sort_order</li>
+											</ul>
+										</li>
+										<li>
+											<p>Загрузка реквизитов из import.xml:</p>
+											<ul>
+												<li>ОписаниеФайла - не реализовано</li>
+												<li>Вес [height]</li>
+												<li>ТипНоменклатуры [item_type] - загружается только Товар</li>
+												<li>ВидНоменклатуры [item_view] - не реализовано</li>
+												<li>ОписаниеВФорматеHTML [description]</li>
+												<li>Полное наименование [meta_description],[name]</li>
+											</ul>
+										</li>
+									</ul>
+								</fieldset>
 							</div>
 							<div class="col-sm-12">
-								<p>Ожидаемые изменения в следующих версиях:</p>
-								<ul>
-									<li>Загрузка заказов из 1С</li>
-									<li>Смена статусов заказов на сайте при загрузке из 1С</li>
-									<li>Заполнение родительскими категориями для всех версий</li>
-									<li>Смена статусов заказов на сайте при загрузке из 1С</li>
-									<li>Скачивание заказов, для ручной загрузки в 1С</li>
-									<li>Заполнение родительскими категориями для всех версий</li>
-								</ul>
+								<fieldset>
+									<legend>Изменения в версии 1.6.1.9:</legend>
+									<ul>
+										<li>Исправлены ошибки</li>
+										<li>Включено вывод в лог информации о попытке и способе авторизации из программ.</li>
+									</ul>
+								</fieldset>
 							</div>
 							<div class="col-sm-12">
-								<p>Если Вас заинтересуют какие-нибудь еще возможности модуля, пишите, рассмотрю все варианты.</p>
+								<fieldset>
+									<legend>Ожидаемые изменения в следующих версиях:</legend>
+									<ul>
+										<li>Добавлена инструкция</li>
+										<li>Скачивание заказов, для ручной загрузки в 1С</li>
+										<li>Загрузка заказов из 1С</li>
+										<li>Смена статусов заказов на сайте при загрузке из 1С</li>
+										<li>Заполнение родительскими категориями для всех версий</li>
+										<li>При удалении товаров и категории изадминки будут удалятся и связи с 1С</li>
+										<li>Загрузка в режиме связанных опций</li>
+										<li>Генерация Тегов и мета-полей для SEO</li>
+										<li>При загрузке предложений выбор по опциям что обновлять(остатки, цены, опции)</li>
+									</ul>
+								</fieldset>
+							</div>
+							<div class="col-sm-12">
+								<fieldset>
+									<legend>Если Вас заинтересуют какие-нибудь еще возможности модуля, пишите, рассмотрю все варианты.</legend>
+									<p>Демонстрационные сервера (логин/пароль: demo/demo):</p>
+									<ul>
+										<li><a href="http://ocshop21014.ptr-print.ru">OCSHOP.PRO 2.1.0.1.4</a></li>
+										<li><a href="http://opencart2101.ptr-print.ru">OPENCART 2.1.0.1 (english)</a></li>
+										<li><a href="http://opencart2101.ptr-print.ru">OPENCART 2.0.3.1 (русская сборка)</a></li>
+									</ul>
+									
+								</fieldset>
 							</div>
 						</div>
 					</div>
@@ -608,6 +571,43 @@
 		<?php echo $lang['text_change']; ?></p>
 	</div>
 </div>
+
+<script type="text/javascript"><!--
+$('#button-clean').on('click', function() {
+	$('#form-clean').remove();
+	
+	$.ajax({
+		url: 'index.php?route=module/exchange1c/manualCleaning&token=<?php echo $token; ?>',
+		type: 'post',		
+		dataType: 'json',
+		data: new FormData($('#form-clean')[0]),
+		cache: false,
+		contentType: false,
+		processData: false,		
+		beforeSend: function() {
+			$('#button-clean i').replaceWith('<i class="fa fa-circle-o-notch fa-spin"></i>');
+			$('#button-clean').prop('disabled', true);
+		},
+		complete: function() {
+			$('#button-clean i').replaceWith('<i class="fa fa-trash-o"></i>');
+			$('#button-clean').prop('disabled', false);
+		},
+		success: function(json) {
+			if (json['error']) {
+				alert(json['error']);
+			}
+			
+			if (json['success']) {
+				alert(json['success']);
+			}
+		},			
+		error: function(xhr, ajaxOptions, thrownError) {
+			alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+		}
+	});	
+});
+//--></script>
+
 
 <script type="text/javascript"><!--
 $('#button-upload').on('click', function() {
