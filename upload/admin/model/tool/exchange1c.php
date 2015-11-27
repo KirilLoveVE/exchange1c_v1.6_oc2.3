@@ -663,7 +663,6 @@ class ModelToolExchange1c extends Model {
 			}
 
 			$this->updateProduct($this->PRODUCT, $this->LANG_ID);
-			return true;
 		}
 		$this->log("--- Завершена загрузка предложений: parseOffers()");
 		return true;
@@ -1304,7 +1303,7 @@ class ModelToolExchange1c extends Model {
 	 * @return	array
 	 */
 	private function initProduct($product, $data = array()) {
-		$this->log("		--- initProduct() - Инициализация значений товара");
+		$this->log("		--- initProduct() - Начало инициализации значений товара");
 		$this->load->model('tool/image');
 
 		$result = array(
@@ -1421,6 +1420,7 @@ class ModelToolExchange1c extends Model {
 			$result['relatedoptions'] = $product['relatedoptions'];
 		}
 
+		$this->log("		--- initProduct() - Конец инициализации значений товара");
 		return $result;
 	} // initProduct()
 
@@ -1815,7 +1815,7 @@ class ModelToolExchange1c extends Model {
 		$this->load->model('setting/setting');
 		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
 		if (isset($settings['exchange1c_version'])) {
-			$settings['exchange1c_version'] = "1.6.1.9";
+			$settings['exchange1c_version'] = "1.6.1.10";
 			$this->model_setting_setting->editSetting('exchange1c', $settings);
 		}
 	} // update()

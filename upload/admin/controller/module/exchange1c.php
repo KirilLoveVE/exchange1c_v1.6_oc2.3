@@ -1,7 +1,7 @@
 <?php
 class ControllerModuleExchange1c extends Controller {
 	private $error = array(); 
-	private $module_version = '1.6.1.9';
+	private $module_version = '1.6.1.10';
 	private $module_name = 'Exchange 1C 8.x';
 
 	/**
