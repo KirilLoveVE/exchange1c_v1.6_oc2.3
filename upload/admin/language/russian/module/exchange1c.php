@@ -37,9 +37,8 @@ $_['entry_priority']						= 'Приоритет';
 $_['entry_catalog_1c']						= 'Имя каталога в 1С';
 $_['entry_store']							= 'Магазин';
 $_['entry_action']							= 'Действия';
-// Справка
-$_['help_allow_ip']							= 'С каких IP разрешен доступ';
 $_['entry_product_status_disable_if_quantity_zero_help']	= 'Не показывает товар на сайте если остаток равен или меньше нуля.';
+$_['entry_parse_only_types_item']			= 'Обрабатывать только типы номенклатуры:';
 
 $_['entry_flush_product']					= 'Сбрасывать товары:';
 $_['entry_flush_category']					= 'Сбрасывать категории:';
@@ -47,10 +46,10 @@ $_['entry_flush_manufacturer']				= 'Сбрасывать производите
 $_['entry_flush_quantity']					= 'Сбрасывать количество товаров:';
 $_['entry_flush_attribute']					= 'Сбрасывать атрибуты:';
 $_['entry_fill_parent_cats']				= 'Заполнять родительские категории:';
-$_['entry_seo_url']							= 'Генерировать SEO URL: <br> требуется модуль <a href="http://opencartforum.ru/files/file/332-deadcow-seo-v21-automod/" target="_blank">Deadcow SEO</a>)';
-$_['entry_seo_url_deadcow']					= 'через Deadcow SEO';
+$_['entry_seo_url']							= 'Генерировать SEO URL';
 $_['entry_seo_url_translit']				= 'Транслитерация';
-$_['entry_product_status_disable_if_quantity_zero']  = 'Отключать статус товара, если остаток равен нулю';
+$_['entry_product_status_disable_if_quantity_zero']  = 'Отключать товар, если остаток меньше единицы';
+$_['entry_synchronize_uuid_to_id']			= 'Запись Ид объекта из 1С в ID opencart';
 
 $_['entry_full_log']						= 'Включить подробный лог загрузки';
 $_['entry_apply_watermark']					= 'Накладывать водяные знаки при загрузке';
@@ -72,22 +71,21 @@ $_['entry_order_status_completed']			= 'Статус выполненных за
 $_['entry_order_notify']					= 'Уведомлять пользователей о смене статуса:';
 $_['entry_order_currency'] 					= 'Обозначение валюты (руб.):';
 $_['entry_upload']							= 'Выберите файл *.XML для загрузки';
-// 1.6.1.7
 $_['entry_download_orders']					= 'Скачать orders.xml';
 
 // Кнопки
 $_['button_upload']							= 'Загрузить';
 $_['button_add']							= 'Добавить';
-// 1.6.1.7
 $_['button_download_orders']				= 'Скачать заказы';
 
 // Error
 $_['error_permission']						= 'У Вас нет прав для управления этим модулем!';
 
 // Справка
+$_['help_allow_ip']							= 'С каких IP разрешен доступ';
 $_['help_upload']							= 'Принимается import.xml, offers.xml, orders.xml.';
-// 1.6.1.7
 $_['help_download_orders']					= 'Скачивание выбранных заказов в ХМЛ формате.';
+$_['help_synchronize_uuid_to_id']			= 'ВНИМАНИЕ! Для работы этой опции 1С должна в Ид выгружать код товара а не Ид объекта.';
 
 $_['text_legend_store']						= 'Связь каталога в 1С с магазином';
 $_['text_legend_auth']						= 'Авторизация';

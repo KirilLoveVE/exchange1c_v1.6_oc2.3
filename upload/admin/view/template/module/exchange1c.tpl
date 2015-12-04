@@ -268,6 +268,16 @@
 						<fieldset>
 							<legend><?php echo $lang['text_legend_other']; ?></legend>
 							<div class="form-group">
+								<label class="col-sm-2 control-label"><?php echo $lang['entry_parse_only_types_item']; ?></label>
+								<div class="col-sm-10">
+									<?php if ($exchange1c_parse_only_types_item) { ?>
+										<input type="text" class="form-control" name="exchange1c_parse_only_types_item" value="<?php echo $exchange1c_parse_only_types_item; ?>"/>
+									<?php } else { ?>
+										<input type="text" class="form-control" name="exchange1c_parse_only_types_item" value="" />
+									<?php } ?>
+								</div>
+							</div>
+							<div class="form-group">
 								<label class="col-sm-2 control-label"><?php echo $lang['entry_fill_parent_cats']; ?></label>
 								<div class="col-sm-10">
 									<label class="radio-inline">
@@ -345,19 +355,35 @@
 										<?php } else { ?>
 											<option value="0"><?php echo $lang['text_disabled']; ?></option>
 										<?php } ?>
-										<!--
-										<?php if ($exchange1c_seo_url == 1) { ?>
-											<option value="1" selected="selected"><?php echo $lang['entry_seo_url_deadcow']; ?></option>
-										<?php } else { ?>
-											<option value="1"><?php echo $lang['entry_seo_url_deadcow']; ?></option>
-										<?php } ?>
-										-->
 										<?php if ($exchange1c_seo_url == 2) { ?>
 											<option value="2" selected="selected"><?php echo $lang['entry_seo_url_translit']; ?></option>
 										<?php } else { ?>
 											<option value="2"><?php echo $lang['entry_seo_url_translit']; ?></option>
 										<?php } ?>
 									</select>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="col-sm-2 control-label" for="exchange1c_synchronize_uuid_to_id"><span data-toggle="tooltip" data-container="#tab-product" title="<?php echo $lang['help_synchronize_uuid_to_id']; ?>"><?php echo $lang['entry_synchronize_uuid_to_id']; ?></span></label>
+								<div class="col-sm-10">
+									<label class="radio-inline">
+										<?php if ($exchange1c_synchronize_uuid_to_id) { ?>
+											<input type="radio" name="exchange1c_synchronize_uuid_to_id" value="1" checked="checked" />
+											<?php echo $lang['text_yes']; ?>
+										<?php } else { ?>
+											<input type="radio" name="exchange1c_synchronize_uuid_to_id" value="1" />
+											<?php echo $lang['text_yes']; ?>
+										<?php } ?>
+									</label>
+									<label class="radio-inline">
+										<?php if (!$exchange1c_synchronize_uuid_to_id) { ?>
+											<input type="radio" name="exchange1c_synchronize_uuid_to_id" value="0" checked="checked" />
+											<?php echo $lang['text_no']; ?>
+										<?php } else { ?>
+											<input type="radio" name="exchange1c_synchronize_uuid_to_id" value="0" />
+											<?php echo $lang['text_no']; ?>
+										<?php } ?>
+									</label>
 								</div>
 							</div>
 						</fieldset>
@@ -536,6 +562,17 @@
 									<legend>Изменения в версии 1.6.1.10 от 28.11.2015:</legend>
 									<ul>
 										<li>Исправлены ошибки при загрузке предложений</li>
+									</ul>
+								</fieldset>
+							</div>
+							<div class="col-sm-12">
+								<fieldset>
+									<legend>Изменения в версии 1.6.1.11 от 03.12.2015:</legend>
+									<ul>
+										<li>Доработана опция "Заполнение родительскими категориями", теперь работает на любых CMS.</li>
+										<li>Добавлена опция "Обрабатывать только указанные типы номенклатуры", если поле оставить пустым, будет грузить все подряд.</li>
+										<li>Добавлена опция "Запись Ид товаров и категорий из 1С в id. Корректно будет работать если из 1С в поле Ид вместо Ид объекта будет выгружаться Код объекта."</li>
+										<li>Исправлена ошибка при выгрузке заказов. Временно не работает смена статуса заказа при выгрузке, будет работать в следующей версии.</li>
 									</ul>
 								</fieldset>
 							</div>

@@ -47,10 +47,11 @@ $_['entry_flush_manufacturer']				= 'Flush manufacturers:';
 $_['entry_flush_quantity']					= 'Flush quantity:';
 $_['entry_flush_attribute']					= 'Flush attributes:';
 $_['entry_fill_parent_cats']				= 'Fill parent categories:';
-$_['entry_seo_url']							= 'Generate SEO URL: <br> (depends on <a href="http://opencartforum.ru/files/file/332-deadcow-seo-v21-automod/" target="_blank">Deadcow SEO</a>)';
-$_['entry_seo_url_deadcow']					= 'via Deadcow SEO';
+$_['entry_seo_url']							= 'Generate SEO URL';
 $_['entry_seo_url_translit']				= 'Transliterate';
-$_['entry_product_status_disable_if_quantity_zero'] = 'Disable status product if quantity zero';
+$_['entry_product_status_disable_if_quantity_zero'] = 'Does not show items on the site if the balance is equal to or less than zero.';
+$_['entry_parse_only_types_item']			= 'Parse only types of items:';
+$_['entry_synchronize_uuid_to_id']			= 'Write the object ID from 1C ID in opencart';
 
 $_['entry_full_log']						= 'Enable log';
 $_['entry_apply_watermark']					= 'Apply watermark';
@@ -69,13 +70,12 @@ $_['entry_order_status_cancel']				= 'Status of canceled orders:';
 $_['entry_order_status_completed']			= 'Status of completed orders:';
 $_['entry_order_notify']					= 'Notify users of status change:';
 $_['entry_order_currency']					= 'Orders currency:';
-
 $_['entry_upload']							= 'Select file:';
-$_['button_upload']							= 'Upload';
-// 1.6.1.7
 $_['entry_download_orders']					= 'Download orders.xml';
-$_['button_download_orders']				= 'Download Orders';
+
+$_['button_upload']							= 'Upload';
 $_['button_add']							= 'Add';
+$_['button_download_orders']				= 'Download Orders';
 
 // Error
 $_['error_permission']						= 'Premission denied!';
@@ -83,8 +83,8 @@ $_['error_permission']						= 'Premission denied!';
 // Help
 $_['help_allow_ip']							= 'From which IP allowed to access';
 $_['help_upload']							= 'Accepted import.xml, offers.xml, orders.xml. <br> file names may be different.';
-// 1.6.1.7
 $_['help_download_orders']					= 'Download selected orders in CML format.';
+$_['help_synchronize_uuid_to_id']			= 'ATTENTION! For this option 1C needs ID in upload item code and not the object ID.';
 
 $_['text_legend_store']						= 'Linking Catalog in 1C to Store';
 $_['text_legend_auth']						= 'Authorization';

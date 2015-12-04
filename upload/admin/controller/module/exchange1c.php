@@ -1,7 +1,7 @@
 <?php
 class ControllerModuleExchange1c extends Controller {
 	private $error = array(); 
-	private $module_version = '1.6.1.10';
+	private $module_version = '1.6.1.11';
 	private $module_name = 'Exchange 1C 8.x';
 
 	/**
@@ -190,6 +190,14 @@ class ControllerModuleExchange1c extends Controller {
 			$data['exchange1c_product_status_disable_if_quantity_zero'] = $this->config->get('exchange1c_product_status_disable_if_quantity_zero');
 		}
 
+		// Загружать только типы номенклатуры указанные строкой через любой разделитель
+		if (isset($this->request->post['exchange1c_parse_only_types_item'])) {
+			$data['exchange1c_parse_only_types_item'] = $this->request->post['exchange1c_parse_only_types_item'];
+		}
+		else {
+			$data['exchange1c_parse_only_types_item'] = $this->config->get('exchange1c_parse_only_types_item');
+		}
+		
 		if (isset($this->request->post['exchange1c_flush_product'])) {
 			$data['exchange1c_flush_product'] = $this->request->post['exchange1c_flush_product'];
 		}
@@ -248,6 +256,12 @@ class ControllerModuleExchange1c extends Controller {
 			$data['exchange1c_dont_use_artsync'] = $this->request->post['exchange1c_dont_use_artsync'];
 		} else {
 			$data['exchange1c_dont_use_artsync'] = $this->config->get('exchange1c_dont_use_artsync');
+		}
+
+		if (isset($this->request->post['exchange1c_synchronize_uuid_to_id'])) {
+			$data['exchange1c_synchronize_uuid_to_id'] = $this->request->post['exchange1c_synchronize_uuid_to_id'];
+		} else {
+			$data['exchange1c_synchronize_uuid_to_id'] = $this->config->get('exchange1c_synchronize_uuid_to_id');
 		}
 
 		if (isset($this->request->post['exchange1c_seo_url'])) {
@@ -858,15 +872,17 @@ class ControllerModuleExchange1c extends Controller {
 			echo "failure\n";
 			echo "ERROR 10: No file name variable";
 			$this->log("[ERROR] Отсутствует файл для загрузки каталога. Загрузка каталога отменена!");
-			return 0;
+			return false;
 		}
 
 		$this->load->model('tool/exchange1c');
 
 		// Проверка базы данных
 		if (!$this->model_tool_exchange1c->checkDB()) {
+			echo "failure\n";
+			echo "ERROR 11: Database validation";
 			$this->log("[ERROR] Проверка базы данных не пройдена!. Загрузка отменена");
-			return 0;
+			return false;
 		}
 
 		// Определяем текущую локаль
@@ -874,11 +890,15 @@ class ControllerModuleExchange1c extends Controller {
 
 		if (strpos($filename, 'import') !== false) {
 			
-			$this->model_tool_exchange1c->parseImportFromFile($filename);
-
-			if ($this->config->get('exchange1c_fill_parent_cats')) {
-				$this->model_tool_exchange1c->fillParentsCategories();
+			if (!$this->model_tool_exchange1c->parseImportFromFile($filename)){
+				echo "failure\n";
+				echo "ERROR 12: An error occurred while processing file $filename";
+				return false; 
 			}
+
+//			if ($this->config->get('exchange1c_fill_parent_cats')) {
+//				$this->model_tool_exchange1c->fillParentsCategories();
+//			}
             // Только если выбран способ deadcow_seo
 			if ($this->config->get('exchange1c_seo_url') == 1) {
 				$this->load->model('module/deadcow_seo');
@@ -905,7 +925,11 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		else if (strpos($filename, 'orders') !== false) {
 			$exchange1c_price_type = $this->config->get('exchange1c_price_type');
-			$this->model_tool_exchange1c->parseOrdersFromFile($filename, $exchange1c_price_type);
+			if (!$this->model_tool_exchange1c->parseOrdersFromFile($filename, $exchange1c_price_type)) {
+				echo "failure\n";
+				echo "ERROR 12: An error occurred while processing file $filename";
+				return false; 
+			}
 			
 			if (!$manual) {
 				echo "success\n";
@@ -917,7 +941,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		$this->cache->delete('product');
-		return;
+		return true;
 	} // modeImport()
 
 	public function modeQueryOrders() {
@@ -964,12 +988,12 @@ class ControllerModuleExchange1c extends Controller {
 
 		$this->load->model('tool/exchange1c');
 
-		$result = $this->model_tool_exchange1c->queryOrdersStatus(array(
-			'from_date' 		=> $this->config->get('exchange1c_order_date'),
-			'exchange_status'	=> $this->config->get('exchange1c_order_status_to_exchange'),
-			'new_status'		=> $this->config->get('exchange1c_order_status'),
-			'notify'			=> $this->config->get('exchange1c_order_notify')
-		));
+//		$result = $this->model_tool_exchange1c->queryOrdersStatus(array(
+//			'from_date' 		=> $this->config->get('exchange1c_order_date'),
+//			'exchange_status'	=> $this->config->get('exchange1c_order_status_to_exchange'),
+//			'new_status'		=> $this->config->get('exchange1c_order_status'),
+//			'notify'			=> $this->config->get('exchange1c_order_notify')
+//		));
 
 		if($result){
 			$this->load->model('setting/setting');

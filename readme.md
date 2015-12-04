@@ -8,7 +8,7 @@ https://opencartforum.com/topic/15471-opencart-exchange-1c/
 
 Текущая версия модуля:
 
-    v1.6.1.5 от 25.10.2015
+    v1.6.1.11 от 03.11.2015
 
 
 Возможности:
