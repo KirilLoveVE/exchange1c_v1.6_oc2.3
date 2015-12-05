@@ -941,22 +941,29 @@ class ModelToolExchange1c extends Model {
 				$uuid =  (string)$category->Ид;
 				$data = array();
 
-				$query = $this->db->query('SELECT * FROM `' . DB_PREFIX . 'category_to_1c` WHERE `1c_category_id` = "' . $this->db->escape($uuid) . '"');
-
+				$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "category_to_1c` WHERE 1c_category_id = '" . $this->db->escape($uuid) . "'");
 				if ($query->num_rows) {
 					$category_id = (int)$query->row['category_id'];
+				}
+
+				if (isset($category_id)) {
 					$data = $this->model_catalog_category->getCategory($category_id);
 					$data['category_description'] = $this->model_catalog_category->getCategoryDescriptions($category_id);
 					$data['status'] = 1;
 					$data = $this->initCategory($category, $parent, $data);
 					$this->model_catalog_category->editCategory($category_id, $data);
-					//$this->log("	> такая категория уже есть, id: " . $category_id);
+					$this->log("		[=] Обновлена категория: '" . (string)$category->Наименование . "', id: " . $category_id);
 				}
 				else {
 					$data = $this->initCategory($category, $parent, array());
+					// Работа в режиме синхронизации Ид -> id
+					if ($this->config->get('exchange1c_synchronize_uuid_to_id') && strlen($uuid) <= 11) {
+						$data['category_id'] = (int)$uuid;
+						$this->log("		[i] Режим синхронизации Ид -> id, попытка использовать id: " . (int)$uuid);
+					}
 					$category_id = $this->model_catalog_category->addCategory($data);
-					$this->db->query('INSERT INTO `' . DB_PREFIX . 'category_to_1c` SET category_id = ' . (int)$category_id . ', `1c_category_id` = "' . $this->db->escape($uuid) . '"');
-					//$this->log("	> создана новая категория, id: " . $category_id);
+					$this->db->query("INSERT INTO `" . DB_PREFIX . "category_to_1c` SET category_id = " . (int)$category_id . ", 1c_category_id = '" . $this->db->escape($uuid) . "'");
+					$this->log("		[OK] Cоздана новая категория: '" . (string)$category->Наименование . "', id: " . $category_id);
 				}
 
 				$this->CATEGORIES[$uuid] = $category_id;
@@ -1251,6 +1258,10 @@ class ModelToolExchange1c extends Model {
 			,'noindex'			=> isset($data['noindex']) ? $data['noindex'] : 1
 		);
 		
+		if (isset($data['category_id'])) {
+			$result['category_id']	= $data['category_id'];
+		}
+
 		$result['category_description'] = array(
 			$this->LANG_ID => array(
 				 'name'             => (string)$category->Наименование
@@ -1553,7 +1564,7 @@ class ModelToolExchange1c extends Model {
 		$this->load->model('catalog/product');
 
 		if ($this->config->get('exchange1c_synchronize_uuid_to_id')) {
-			$this->log("		[i] Режим синхронизации Ид с product_id.");
+			$this->log("		[i] Режим синхронизации Ид -> product_id.");
 			// Режим синхронизации Ид и product_id 
 			// Длина кода не должна быть более 11 символов
 			if (strlen($this->PRODUCT['1c_id']) > 11) {
@@ -1568,7 +1579,7 @@ class ModelToolExchange1c extends Model {
 				} else {
 					// добавить товар
 					$this->PRODUCT['product_id'] = (int)$this->PRODUCT['1c_id'];
-					$this->log("		[NO] Товара по Ид: '" . (int)$this->PRODUCT['1c_id'] . "', нет в базе.");
+					$this->log("		[i] Товара по Ид: '" . (int)$this->PRODUCT['1c_id'] . "', нет в базе.");
 					$this->addProduct();
 				}
 			}
@@ -1722,7 +1733,7 @@ class ModelToolExchange1c extends Model {
 //		} else {
 			$sql = "DELETE FROM `" . DB_PREFIX . "product_to_category` WHERE product_id = " . $this->PRODUCT['product_id'];
 			$this->db->query($sql);
-			$this->log($sql);
+			//$this->log($sql);
 //		}
 
 		foreach ($this->PRODUCT['product_category'] as $category_id) {
@@ -1733,18 +1744,16 @@ class ModelToolExchange1c extends Model {
 						$main_category = $this->PRODUCT['main_category_id'] == $parent ? 1 : 0;
 						$sql = "INSERT INTO `" .DB_PREFIX . "product_to_category` SET product_id = " . $this->PRODUCT['product_id'] . ", category_id = " . $parent . ", main_category = " . $main_category;
 						$this->db->query($sql);
-						$this->log($sql);
+						//$this->log($sql);
 					} else {
 						$sql = "INSERT INTO `" .DB_PREFIX . "product_to_category` SET product_id = " . $this->PRODUCT['product_id'] . ", category_id = " . $parent;
 						$this->db->query($sql);
-						$this->log($sql);
+						//$this->log($sql);
 					}
 				}
 			}
 		}
-		
-		$this->log($this->PRODUCT['product_category']);
-		
+		unset($sql);
 		return true;
 	} // fillParentsCategories()
 

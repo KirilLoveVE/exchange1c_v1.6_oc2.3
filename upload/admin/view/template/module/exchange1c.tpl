@@ -599,7 +599,7 @@
 									<ul>
 										<li><a href="http://ocshop21014.ptr-print.ru">OCSHOP.PRO 2.1.0.1.4</a></li>
 										<li><a href="http://opencart2101.ptr-print.ru">OPENCART 2.1.0.1 (english)</a></li>
-										<li><a href="http://opencart2101.ptr-print.ru">OPENCART 2.0.3.1 (русская сборка)</a></li>
+										<li><a href="http://opencart2031.ptr-print.ru">OPENCART 2.0.3.1 (русская сборка)</a></li>
 									</ul>
 									
 								</fieldset>
