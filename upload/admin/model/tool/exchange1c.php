@@ -1503,7 +1503,7 @@ class ModelToolExchange1c extends Model {
 		
 		// Надо добавлять товар
 		$data = $this->initProduct(array());
-		if ($this->PRODUCT['product_id'] && $this->config->get('exchange1c_synchronize_uuid_to_id')) {
+		if (isset($this->PRODUCT['product_id']) && $this->config->get('exchange1c_synchronize_uuid_to_id')) {
 			$data['product_id'] = $this->PRODUCT['product_id'];
 		}
 		$this->PRODUCT['product_id'] = $this->model_catalog_product->addProduct($data);
@@ -1579,6 +1579,7 @@ class ModelToolExchange1c extends Model {
 					if ($this->config->get('exchange1c_dont_use_artsync')) {
 						$this->addProduct();
 					} else {
+						// Ищем товар по артикулу
 						if ($this->getProductBySKU()) {
 							$this->updateProduct();
 						} else {
@@ -1704,7 +1705,7 @@ class ModelToolExchange1c extends Model {
 	} // applyWatermark()
 
 	/**
-	 * Заполняет продуктами родительские категории
+	 * Заполняет родительские категории у продукта
 	 */
 	public function fillParentsCategories() {
 		if (!isset($this->PRODUCT['product_id'])) {
@@ -1713,9 +1714,36 @@ class ModelToolExchange1c extends Model {
 		}
 		$this->log("	--- fillParentsCategories() для товара, id: " . $this->PRODUCT['product_id']);
 		
+//		if (method_exists($this->model_catalog_product, 'getProductMainCategoryId')) {
+//			$sql = "DELETE FROM `" . DB_PREFIX . "product_to_category` WHERE product_id = " . $this->PRODUCT['product_id'] . " AND main_category = 0";
+//			$this->db->query($sql);
+//			$this->log($sql);
+//			//$query = $this->db->query('SELECT * FROM `' . DB_PREFIX . 'product_to_category` WHERE `main_category` = 1');
+//		} else {
+			$sql = "DELETE FROM `" . DB_PREFIX . "product_to_category` WHERE product_id = " . $this->PRODUCT['product_id'];
+			$this->db->query($sql);
+			$this->log($sql);
+//		}
+
 		foreach ($this->PRODUCT['product_category'] as $category_id) {
-			$this->PRODUCT['product_category'] = array_merge($this->PRODUCT['product_category'], $this->findParentsCategories($category_id));
+			$parents = array_merge($this->PRODUCT['product_category'], $this->findParentsCategories($category_id));
+			foreach ($parents as $parent) {
+				if ($parent != 0) {
+					if (method_exists($this->model_catalog_product, 'getProductMainCategoryId')) {
+						$main_category = $this->PRODUCT['main_category_id'] == $parent ? 1 : 0;
+						$sql = "INSERT INTO `" .DB_PREFIX . "product_to_category` SET product_id = " . $this->PRODUCT['product_id'] . ", category_id = " . $parent . ", main_category = " . $main_category;
+						$this->db->query($sql);
+						$this->log($sql);
+					} else {
+						$sql = "INSERT INTO `" .DB_PREFIX . "product_to_category` SET product_id = " . $this->PRODUCT['product_id'] . ", category_id = " . $parent;
+						$this->db->query($sql);
+						$this->log($sql);
+					}
+				}
+			}
 		}
+		
+		$this->log($this->PRODUCT['product_category']);
 		
 		return true;
 	} // fillParentsCategories()

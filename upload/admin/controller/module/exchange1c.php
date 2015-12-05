@@ -690,16 +690,22 @@ class ControllerModuleExchange1c extends Controller {
 
 				if (strpos($buffer, 'ПакетПредложений')) {
 					move_uploaded_file($this->request->files['file']['tmp_name'], $cache . 'offers.xml');
-					$this->modeImport('offers.xml');
+					if (!$this->modeImport('offers.xml')) {
+						$json['error'] = "RUS: Ошибка обработки файла";
+					}
 				}
 				else if (strpos($buffer, 'Документ')) {
 					move_uploaded_file($this->request->files['file']['tmp_name'], $cache . 'orders.xml');
-					$this->modeImport('orders.xml');
+					if (!$this->modeImport('orders.xml')) {
+						$json['error'] = "RUS: Ошибка обработки файла";
+					}
 				}
 				else if (strpos($buffer, 'Классификатор')) {
 					$this->modeCatalogInit(array(), false);
 					move_uploaded_file($this->request->files['file']['tmp_name'], $cache . 'import.xml');
-					$this->modeImport('import.xml');
+					if (!$this->modeImport('import.xml')) {
+						$json['error'] = "RUS: Ошибка обработки файла";
+					}
 				}
 				else {
 					$this->log->write('Ошибка при ручной загрузке файла');
@@ -869,9 +875,11 @@ class ControllerModuleExchange1c extends Controller {
 			$importFile = $cache . $filename;
 		}
 		else {
-			echo "failure\n";
-			echo "ERROR 10: No file name variable";
-			$this->log("[ERROR] Отсутствует файл для загрузки каталога. Загрузка каталога отменена!");
+			if (!$manual) {
+				echo "failure\n";
+				echo "ERROR 10: No file name variable";
+				$this->log("[ERROR] Отсутствует файл для загрузки каталога. Загрузка каталога отменена!");
+			}
 			return false;
 		}
 
@@ -879,9 +887,11 @@ class ControllerModuleExchange1c extends Controller {
 
 		// Проверка базы данных
 		if (!$this->model_tool_exchange1c->checkDB()) {
-			echo "failure\n";
-			echo "ERROR 11: Database validation";
-			$this->log("[ERROR] Проверка базы данных не пройдена!. Загрузка отменена");
+			if (!$manual) {
+				echo "failure\n";
+				echo "ERROR 11: Database validation";
+				$this->log("[ERROR] Проверка базы данных не пройдена!. Загрузка отменена");
+			}
 			return false;
 		}
 
@@ -891,8 +901,10 @@ class ControllerModuleExchange1c extends Controller {
 		if (strpos($filename, 'import') !== false) {
 			
 			if (!$this->model_tool_exchange1c->parseImportFromFile($filename)){
-				echo "failure\n";
-				echo "ERROR 12: An error occurred while processing file $filename";
+				if (!$manual) {
+					echo "failure\n";
+					echo "ERROR 12: An error occurred while processing file $filename";
+				}
 				return false; 
 			}
 
