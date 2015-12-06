@@ -318,7 +318,7 @@ class ModelToolExchange1c extends Model {
 	 * @param	array		Массив с настройками типов цен
 	 */
 	 private function initPriceType($xml, $config_price_type) {
-		$this->log("	--- Загрузка типов цен (количество: " . count($config_price_type) . "): initPriceType()");
+		$this->log("--- Загрузка типов цен (количество: " . count($config_price_type) . "): initPriceType()");
 
 		// Если не будет указана ни один тип цен, то модуль в дефолтную группу запишет первую цену в товаре
 		// Перебираем все цены указанные в настройках
@@ -606,7 +606,7 @@ class ModelToolExchange1c extends Model {
 	 * @param	SimpleXMLElement
 	 */
 	private function parseOffers($xml) {
-		$this->log("--- Начало загрузки предложений: parseOffers()");
+		$this->log("	--- Начало загрузки предложений: parseOffers()");
 		
 		foreach ($xml as $offer) {
 			$this->PRODUCT = array();
@@ -625,7 +625,7 @@ class ModelToolExchange1c extends Model {
 			if ($this->config->get('exchange1c_synchronize_uuid_to_id')) {
 				// Длина кода не должна быть более 11 символов
 				if (strlen($this->PRODUCT['1c_id']) > 11) {
-					$this->log("		[ERROR] У товара Ид длиной более 11 символов, видимо Ид является не кодом товара а Ид Объекта.");
+					$this->log("		[i] Синхронизация Ид -> id отключена, т.к. невернвые данные в Ид.");
 				} else {
 					$this->log("		[i] Присваиваем Ид в product_id");
 					$this->PRODUCT['product_id'] = (int)$this->PRODUCT['1c_id'];
@@ -738,7 +738,7 @@ class ModelToolExchange1c extends Model {
 	 * @param	SimpleXMLElement
 	 */
 	private function parseImages($xml) {
-		$this->log("	--- Загружаются картинки: parseImages()");
+		$this->log("		--- Загружаются картинки: parseImages()");
 		$watermark = $this->config->get('exchange1c_watermark');
 
 		foreach ($xml as $image) {
@@ -796,7 +796,7 @@ class ModelToolExchange1c extends Model {
 	 * @param	string	Наименование производителя
 	 */
 	private function setManufacturer($manufacturer_name) {
-		$this->log("	--- Устанавливается производитель: setManufacturer()");
+		$this->log("		--- Устанавливается производитель: setManufacturer()");
 		$this->load->model('catalog/manufacturer');
 		
 		$results = $this->model_catalog_manufacturer->getManufacturers(array('filter_name' => $manufacturer_name));
@@ -841,7 +841,7 @@ class ModelToolExchange1c extends Model {
 	 * @param	SimpleXMLElement
 	 */
 	private function parseProperties($xml) {
-		$this->log("	--- загружаются свойства товара: parseProperties()");
+		$this->log("		--- Загружаются свойства товара: parseProperties()");
 		foreach ($xml->ЗначенияСвойства as $property) {
 			if (isset($this->PROPERTIES[(string)$property->Ид]['name'])) {
 				$attribute = $this->PROPERTIES[(string)$property->Ид];
@@ -891,7 +891,7 @@ class ModelToolExchange1c extends Model {
 	 * @param	SimpleXMLElement
 	 */
  	private function parseRequisite($xml){
-		$this->log("	--- загружаются реквизиты товара: parseRequisite()");
+		$this->log("		--- Загружаются реквизиты товара: parseRequisite()");
 		foreach ($xml->ЗначениеРеквизита as $requisite){
 			switch ($requisite->Наименование){
 				case 'Вес':
@@ -944,9 +944,11 @@ class ModelToolExchange1c extends Model {
 				$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "category_to_1c` WHERE 1c_category_id = '" . $this->db->escape($uuid) . "'");
 				if ($query->num_rows) {
 					$category_id = (int)$query->row['category_id'];
+				} else {
+					$category_id = 0;
 				}
 
-				if (isset($category_id)) {
+				if ($category_id) {
 					$data = $this->model_catalog_category->getCategory($category_id);
 					$data['category_description'] = $this->model_catalog_category->getCategoryDescriptions($category_id);
 					$data['status'] = 1;
@@ -960,6 +962,8 @@ class ModelToolExchange1c extends Model {
 					if ($this->config->get('exchange1c_synchronize_uuid_to_id') && strlen($uuid) <= 11) {
 						$data['category_id'] = (int)$uuid;
 						$this->log("		[i] Режим синхронизации Ид -> id, попытка использовать id: " . (int)$uuid);
+					} else {
+						$this->log("		[i] Режим синхронизации Ид -> id отключен, данные неверны в Ид");
 					}
 					$category_id = $this->model_catalog_category->addCategory($data);
 					$this->db->query("INSERT INTO `" . DB_PREFIX . "category_to_1c` SET category_id = " . (int)$category_id . ", 1c_category_id = '" . $this->db->escape($uuid) . "'");
@@ -969,8 +973,6 @@ class ModelToolExchange1c extends Model {
 				$this->CATEGORIES[$uuid] = $category_id;
 			}
 
-			$this->log("		[=] Найдена категория: " . (string)$category->Наименование . ", Ид: " . $uuid . ", id: " . $category_id);
-			
 			//только если тип 'translit'
 			if ($this->config->get('exchange1c_seo_url') == 2) {
 				$cat_name = "category-" . $data['parent_id'] . "-" . $data['category_description'][$this->LANG_ID]['name'];
@@ -989,7 +991,7 @@ class ModelToolExchange1c extends Model {
 	 * @param 	SimpleXMLElement
 	 */
 	 private function parseAttributeValues2041($xml, $values) {
-		$this->log("	--- Добавление значений в атрибут: parseAttributeValues2041()");
+		$this->log("		--- Добавление значений в атрибут: parseAttributeValues2041()");
 		if ((string)$xml->ТипыЗначений) {
 			if ((string)$xml->ТипыЗначений->ТипЗначений->Тип == 'Справочник') {
 				foreach($xml->ТипыЗначений->ТипЗначений as $type_value){
@@ -1023,7 +1025,7 @@ class ModelToolExchange1c extends Model {
 	 * @param 	SimpleXMLElement
 	 */
 	 private function parseAttributeValues($xml, $values) {
-		$this->log("	--- Добавление значений в атрибут: parseAttributeValues()");
+		$this->log("		--- Добавление значений в атрибут: parseAttributeValues()");
 		if ((string)$xml->ТипЗначений) {
 			if ((string)$xml->ТипЗначений == 'Справочник') {
 				if (!count($xml->ВариантыЗначений->Справочник)) {
@@ -1054,12 +1056,12 @@ class ModelToolExchange1c extends Model {
 	 * @param 	SimpleXMLElement
 	 */
 	private function setAttributeGroup() {
-		$this->log("	--- Установка группы атрибута: setAttributeGroup()");
+		$this->log("		--- Установка группы атрибута: setAttributeGroup()");
 		// Ищем группу атрибутов с именем "Свойства"
 		$query = $this->db->query("SELECT attribute_group_id FROM " . DB_PREFIX . "attribute_group_description WHERE name = 'Свойства'");
 		if ($query->rows) {
 			$attribute_group_id = $query->row['attribute_group_id']; 
-			$this->log("	[=] Найдена группа атрибутов 'Свойства', id: " . $attribute_group_id);
+			$this->log("		[=] Найдена группа атрибутов 'Свойства', id: " . $attribute_group_id);
 		} else {
 			// Не нашли, создаем...
 			$attribute_group_description[$this->LANG_ID] = array (
@@ -1071,7 +1073,7 @@ class ModelToolExchange1c extends Model {
 			);
 			$this->load->model('catalog/attribute_group');
 			$attribute_group_id = $this->model_catalog_attribute_group->addAttributeGroup($data);
-			$this->log("	[+] Создана группа атрибутов 'Свойства', id: " . $attribute_group_id);
+			$this->log("		[+] Создана группа атрибутов 'Свойства', id: " . $attribute_group_id);
 		}
 		return $attribute_group_id;
 	} // setAttributeGroup()
@@ -1083,7 +1085,7 @@ class ModelToolExchange1c extends Model {
 	 * @param 	SimpleXMLElement
 	 */
 	private function parseAttributes($xml) {
-		$this->log("	--- Начало загрузки свойств в атрибуты: parseAttributes()");
+		$this->log("	--- Загрузка свойств в атрибуты: parseAttributes()");
 		// если нет свойст - выходим
 		if (!count($xml)) return 0;
 
@@ -1127,10 +1129,10 @@ class ModelToolExchange1c extends Model {
 				'name'			=> $name,
 				'values'		=> $values
 			);
-			$this->log("	[i] Загружено свойство: " . $name . ", Ид: " . $uuid . ", id: " . $attribute_id . ", значений: " . count($values));
+			$this->log("		[i] Загружено свойство: " . $name . ", Ид: " . $uuid . ", id: " . $attribute_id . ", значений: " . count($values));
 			$count ++;
 		}
-		$this->log("	[i] Всего загружено свойств: " . $count);
+		$this->log("		[i] Всего загружено свойств: " . $count);
 		unset($xml);
 	} // parseAttributes()
 
@@ -1139,13 +1141,13 @@ class ModelToolExchange1c extends Model {
 	 * Вызывается из parseImportFromFile()
 	 */
 	private function parseProducts($xml) {
-		$this->log("	--- Начало загрузки товаров: parseProducts()");
+		$this->log("	--- Загрузки товаров: parseProducts()");
 		$this->load->model('catalog/manufacturer');
 
 		// Количество загруженных товаров
 		$count = 0;
 		
-		$this->log("		[i] Всего товаров в XML: ".count($xml));
+		$this->log("	[i] Всего товаров в XML: ".count($xml));
 		
 		foreach ($xml as $product) {
 			$this->PRODUCT = array();
@@ -1154,7 +1156,7 @@ class ModelToolExchange1c extends Model {
 			$this->PRODUCT['1c_id'] = $uuid[0];
 			
 			if (empty($this->PRODUCT['1c_id'])) {
-				$this->log("		[ERROR] У товара не указан Ид, загрузка товара невозможна.");
+				$this->log("	[ERROR] У товара не указан Ид, загрузка товара невозможна.");
 				continue;
 			}
 			
@@ -1164,8 +1166,8 @@ class ModelToolExchange1c extends Model {
 			$this->PRODUCT['sku'] = $product->Артикул? (string)$product->Артикул : '';
 			$this->PRODUCT['mpn'] = $product->Ид? (string)$product->Ид : '';
 
-			$this->log("		[=] Товар: '" . $this->PRODUCT['name'] . "', Ид: '" . $this->PRODUCT['1c_id'] . "'");
-			if (!empty($this->PRODUCT['sku']))	$this->log("		[=] Артикул: '" . $this->PRODUCT['sku']. "'");
+			$this->log("	[=] Товар: '" . $this->PRODUCT['name'] . "', Ид: '" . $this->PRODUCT['1c_id'] . "'");
+			if (!empty($this->PRODUCT['sku']))	$this->log("	[=] Артикул: '" . $this->PRODUCT['sku']. "'");
 			
 			if ($product->Картинка) 			$this->parseImages($product->Картинка);
 			if ($product->Изготовитель)			$this->setManufacturer((string)$product->Изготовитель->Наименование);
@@ -1244,7 +1246,7 @@ class ModelToolExchange1c extends Model {
 	 * @return	array
 	 */
 	private function initCategory($category, $parent, $data = array()) {
-		$this->log("		--- Инициализация значений катерии: initCategory()");
+		$this->log("		--- Инициализация значений категории: initCategory()");
 
 		$result = array(
 			 'status'			=> isset($data['status']) ? $data['status'] : 1
@@ -1283,7 +1285,7 @@ class ModelToolExchange1c extends Model {
 	* @return	array
 	*/
 	private function getProductWithAllData() {
-		$this->log("		--- getProductWithAllData(), id: ".$this->PRODUCT['product_id']);
+		$this->log("		--- getProductWithAllData(), id: " . $this->PRODUCT['product_id']);
 		
 		$this->load->model('catalog/product');
 		$query = $this->db->query("SELECT DISTINCT * FROM " . DB_PREFIX . "product p LEFT JOIN " . DB_PREFIX . "product_description pd ON (p.product_id = pd.product_id) WHERE p.product_id = '" . $this->PRODUCT['product_id'] . "' AND pd.language_id = '" . $this->LANG_ID . "'");
@@ -1336,7 +1338,7 @@ class ModelToolExchange1c extends Model {
 	 * @return	array
 	 */
 	private function initProduct($data = array()) {
-		$this->log("		--- initProduct() - Начало инициализации значений товара");
+		$this->log("		--- initProduct() - Инициализация значений товара");
 		$this->load->model('tool/image');
 
 		$result = array(
@@ -1424,7 +1426,6 @@ class ModelToolExchange1c extends Model {
 			$result['relatedoptions'] = $this->PRODUCT['relatedoptions'];
 		}
 
-		$this->log("		--- initProduct() - Конец инициализации значений товара");
 		return $result;
 	} // initProduct()
 
@@ -1435,10 +1436,10 @@ class ModelToolExchange1c extends Model {
 	 * @return 	int|bool
 	 */
 	private function getProductBySKU() {
-		$this->log("	--- Поиск товара по артикулу: '" . $this->PRODUCT['sku'] . "': getProductBySKU()");
+		$this->log("		--- Поиск товара по артикулу: '" . $this->PRODUCT['sku'] . "': getProductBySKU()");
 		
 		if (empty($this->PRODUCT['sku'])){
-			$this->log("	[ERROR] По пустому артикулу нельзя найти товар, если все товары без артикулов, то будет определяться всегда один и тот же товар");
+			$this->log("		[ERROR] По пустому артикулу нельзя найти товар, если все товары без артикулов, то будет определяться всегда один и тот же товар");
 			return false;
 		}
 
@@ -1446,11 +1447,11 @@ class ModelToolExchange1c extends Model {
 
         if ($query->num_rows) {
 			$this->PRODUCT['product_id'] = $query->row['product_id']; 
-			$this->log("	[=] Товар по артикулу найден, id: " . $this->PRODUCT['product_id']);
+			$this->log("		[=] Товар по артикулу найден, id: " . $this->PRODUCT['product_id']);
 			return true;
 		}
 		else {
-			$this->log("	[-] Товар по артикулу не найден.");
+			$this->log("		[-] Товар по артикулу не найден.");
 			return false;
 		}
 	} // getProductBySKU()
@@ -1498,7 +1499,7 @@ class ModelToolExchange1c extends Model {
 		//Редактируем продукт
 		$this->model_catalog_product->editProduct($this->PRODUCT['product_id'], $data);
 
-		$this->log("	[OK] Товар обновлен, id: " . $this->PRODUCT['product_id']);
+		$this->log("		[OK] Товар обновлен, id: " . $this->PRODUCT['product_id']);
 			
 		return true;
 	} // updateProduct()
@@ -1508,23 +1509,23 @@ class ModelToolExchange1c extends Model {
 	 *
 	 * @param array
 	 */
-	private function addProduct() {
+	private function addProduct($product_id = 0) {
 		
 		$this->load->model('catalog/product');
 		
 		// Надо добавлять товар
 		$data = $this->initProduct(array());
-		if (isset($this->PRODUCT['product_id']) && $this->config->get('exchange1c_synchronize_uuid_to_id')) {
-			$data['product_id'] = $this->PRODUCT['product_id'];
+		if ($product_id) {
+			$data['product_id'] = $product_id;
 		}
 		$this->PRODUCT['product_id'] = $this->model_catalog_product->addProduct($data);
 		
-		$this->log("	[+] Товар добавлен, id: " . $this->PRODUCT['product_id']);
+		$this->log("		[+] Товар добавлен, id: " . $this->PRODUCT['product_id']);
 
 		// Добавляем линк
 		if ($this->PRODUCT['product_id']){
 			$this->db->query('INSERT INTO `' .  DB_PREFIX . 'product_to_1c` SET product_id = ' . $this->PRODUCT['product_id'] . ', `1c_id` = "' . $this->db->escape($this->PRODUCT['1c_id']) . '"');
-			$this->log("	[+] Добавлена связь Ид с id");
+			$this->log("		[+] Добавлена связь Ид с id");
 		}
 
 		// Устанавливаем SEO URL
@@ -1545,10 +1546,10 @@ class ModelToolExchange1c extends Model {
 	 * @param array
 	 */
 	private function setProduct() {
-		$this->log("	--- setProduct(), Ид: " . $this->PRODUCT['1c_id']);
+		$this->log("		--- setProduct(), Ид: " . $this->PRODUCT['1c_id']);
 		
 		if (!is_array($this->PRODUCT)) {
-			$this->log("	[ERROR] Данные товара не являются массивом! Загрузка товара прервана.");
+			$this->log("		[ERROR] Данные товара не являются массивом! Загрузка товара прервана.");
 			return false;
 		}
 		
@@ -1562,43 +1563,40 @@ class ModelToolExchange1c extends Model {
 		} 
 
 		$this->load->model('catalog/product');
+		$product_id = 0;
+		if ($this->config->get('exchange1c_synchronize_uuid_to_id') && strlen($this->PRODUCT['1c_id']) <= 11) {
+			$this->log("		[i] Включен режим синхронизации Ид -> product_id.");
+			$product_id = (int)$this->PRODUCT['1c_id'];
 
-		if ($this->config->get('exchange1c_synchronize_uuid_to_id')) {
-			$this->log("		[i] Режим синхронизации Ид -> product_id.");
-			// Режим синхронизации Ид и product_id 
-			// Длина кода не должна быть более 11 символов
-			if (strlen($this->PRODUCT['1c_id']) > 11) {
-				$this->log("		[ERROR] У товара Ид длиной более 11 символов");
-			} else {
-				// попытаемся найти товар в базе
-				$product = $this->model_catalog_product->getProduct((int)$this->PRODUCT['1c_id']);
-				if ($product) {
-					$this->PRODUCT['product_id'] = $product['product_id'];
-					$this->log("		[OK] Товар есть в базе, id: " . $product['product_id']);
-					$this->updateProduct();
-				} else {
-					// добавить товар
-					$this->PRODUCT['product_id'] = (int)$this->PRODUCT['1c_id'];
-					$this->log("		[i] Товара по Ид: '" . (int)$this->PRODUCT['1c_id'] . "', нет в базе.");
-					$this->addProduct();
-				}
+			// Проверим есть ли такой товар
+			$product = $this->model_catalog_product->getProduct($product_id);
+			if ($product) {
+				$this->PRODUCT['product_id'] = $product_id;
+				$this->log("		[OK] Найден товар по id: " . $this->PRODUCT['product_id']);
 			}
+		}
+				
+		if (isset($this->PRODUCT['product_id'])) {
+			// Обновляем товар
+			if (!$this->updateProduct()) return false;
 		} else {
-			// Пытаемся получить id товара по Ид или артикулу (если включена опция))
-			if (!isset($this->PRODUCT['product_id'])) {
+			if ($product_id) {
+				if (!$this->addProduct($product_id)) return false; 
+			} else {
+				// Пытаемся получить id товара по Ид или артикулу (если включена опция))
 				if (!$this->getProductIdBy1CProductId()) {
 					if ($this->config->get('exchange1c_dont_use_artsync')) {
-						$this->addProduct();
+						if (!$this->addProduct()) return false;
 					} else {
 						// Ищем товар по артикулу
 						if ($this->getProductBySKU()) {
-							$this->updateProduct();
+							if (!$this->updateProduct()) return false;
 						} else {
-							$this->addProduct();
+							if (!$this->addProduct()) return false;
 						}
 					}
 				}
-			} // if (!$this->PRODUCT['product_id'])
+			}
 		}
 
 		// Заполнение родительских категорий
@@ -1606,7 +1604,6 @@ class ModelToolExchange1c extends Model {
 			$this->fillParentsCategories();
 		}
 
-		$this->log("		--- setProduct(): завершено");
 		return true;
 	} // setProduct()
 
@@ -1671,10 +1668,10 @@ class ModelToolExchange1c extends Model {
 	 * @return	int|bool
 	 */
 	private function getProductIdBy1CProductId() {
-		$this->log("	--- Поиск id товара по Ид: " . $this->PRODUCT['1c_id'] . ", getProductIdBy1CProductId()");
+		$this->log("		--- Поиск id товара по Ид: " . $this->PRODUCT['1c_id'] . ", getProductIdBy1CProductId()");
 		
 		if (empty($this->PRODUCT['1c_id'])) {
-			$this->log("	[ERROR] Пустоезначение Ид. Поиск невозможен!");
+			$this->log("		[ERROR] Пустое значение Ид. Поиск невозможен!");
 			return false;
 		}
 			
@@ -1720,10 +1717,10 @@ class ModelToolExchange1c extends Model {
 	 */
 	public function fillParentsCategories() {
 		if (!isset($this->PRODUCT['product_id'])) {
-			$this->log("	[ERROR] Заполнение родительскими категориями отменено, т.к. не указан product_id!");
+			$this->log("		[ERROR] Заполнение родительскими категориями отменено, т.к. не указан product_id!");
 			return false;
 		}
-		$this->log("	--- fillParentsCategories() для товара, id: " . $this->PRODUCT['product_id']);
+		$this->log("		--- fillParentsCategories() для товара, id: " . $this->PRODUCT['product_id']);
 		
 //		if (method_exists($this->model_catalog_product, 'getProductMainCategoryId')) {
 //			$sql = "DELETE FROM `" . DB_PREFIX . "product_to_category` WHERE product_id = " . $this->PRODUCT['product_id'] . " AND main_category = 0";
@@ -1792,20 +1789,20 @@ class ModelToolExchange1c extends Model {
 	 * Проверяет таблицы магазина
 	 */
 	public function checkDB() {
-		$query = $this->db->query("SHOW TABLES FROM " . DB_DATABASE . " LIKE '" . DB_PREFIX . "%_to_1c'");
-		if (!$query->rows) return false;
-		
-		foreach ($query->row as $table) {
-			$table_no_prefix = substr($table, strlen(DB_PREFIX));
-			$table_no_prefix = substr($table_no_prefix, 0, strlen($table_no_prefix)-6);
-			if (!stripos('product,category,warehouse,option,store,attribute', $table_no_prefix)) {
-				$this->log("[ERR] Не найдена таблица: '" . $table . "'. Загрузка прервана!");
+		$tables_module = array("product_to_1c","category_to_1c","warehouse","option_to_1c","store_to_1c","attribute_to_1c");
+		foreach ($tables_module as $table) {
+			$query = $this->db->query("SHOW TABLES FROM " . DB_DATABASE . " LIKE '" . DB_PREFIX . "%" . $table . "'");
+			if (!$query->rows) {
+				$this->log("[ERROR] Таблица " . $table . " в базе отсутствует, переустановите модуль!");
 				return false;
 			}
 		}
 		return true;
-	}
+	} // checkDB()
 
+	/**
+	 * Очищает базу
+	 */
 	public function cleanDB() {
 		// Удаляем товары
 		$result = "";
@@ -1887,15 +1884,78 @@ class ModelToolExchange1c extends Model {
 		$result .=  "Обнулены все остатки\n";
 
 		return $result;
-	}
+	} // cleanDB()
 
+	/**
+	 * Удаляет связи Ид->id
+	 */
+	public function ProductLinkDelete($product_id) {
+		// Удаляем линк
+		if ($product_id){
+			$this->db->query("DELETE FROM `" .  DB_PREFIX . "product_to_1c` WHERE product_id = '" . $product_id . "'");
+			$this->log("	[+] Удалена связь товара Ид 1С с id: " . $product_id);
+		}
+		$this->load->model('catalog/product');
+		$product = $this->model_catalog_product->getProduct($product_id);
+		if ($product['image']) {
+			// Удаляем только в папке import_files
+			if (substr($product['image'], 0, 12) == "import_files") {
+				unlink(DIR_IMAGE . $product['image']);
+				$this->log("[!] Удален файл: " . $product['image']);
+			}
+		}
+		$productImages = $this->model_catalog_product->getProductImages($product_id);
+		foreach ($productImages as $image) {
+			// Удаляем только в папке import_files
+			if (substr($image['image'], 0, 12) == "import_files") {
+				unlink(DIR_IMAGE . $image['image']);
+				$this->log("[!] Удален файл: " . $image['image']);
+			}
+		}
+	} // ProductLinkDelete()
+	
+	/**
+	 * Удаляет связи Ид->id
+	 */
+	public function CategoryLinkDelete($category_id) {
+		// Удаляем линк
+		if ($category_id){
+			$this->db->query("DELETE FROM `" .  DB_PREFIX . "category_to_1c` WHERE category_id = '" . $category_id . "'");
+			$this->log("	[+] Удалена связь категории Ид 1С с id: " . $category_id);
+		}
+	} //  CategoryLinkDelete()
+	
+	/**
+	 * Создает события
+	 */
+	public function setEvents() {
+		// Установка событий
+		$this->load->model('extension/event');
+		
+		// Удалим все события
+		$this->model_extension_event->deleteEvent('exchange1c');
+		
+		// Добавим удаление связей при удалении товара
+		$this->model_extension_event->addEvent('exchange1c', 'pre.admin.product.delete', 'module/exchange1c/eventProductDelete');
+		// Добавим удаление связей при удалении категории
+		$this->model_extension_event->addEvent('exchange1c', 'pre.admin.category.delete', 'module/exchange1c/eventCategoryDelete');
+	} // setEvents()
+
+	/**
+	 * Устанавливает обновления
+	 */
 	public function update() {
 		$this->load->model('setting/setting');
 		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
 		if (isset($settings['exchange1c_version'])) {
-			$settings['exchange1c_version'] = "1.6.1.11";
+			$settings['exchange1c_version'] = $this->moduleVersion();
 			$this->model_setting_setting->editSetting('exchange1c', $settings);
 		}
+		$this->setEvents();
 	} // update()
+	
+	public function moduleVersion() {
+		return "1.6.1.12";
+	}
 
 }

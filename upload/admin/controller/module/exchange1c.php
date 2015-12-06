@@ -1,7 +1,6 @@
 <?php
 class ControllerModuleExchange1c extends Controller {
 	private $error = array(); 
-	private $module_version = '1.6.1.11';
 	private $module_name = 'Exchange 1C 8.x';
 
 	/**
@@ -347,7 +346,7 @@ class ControllerModuleExchange1c extends Controller {
 			$data['exchange1c_stores'] = $this->config->get('exchange1c_stores');
 			if(empty($data['exchange1c_stores'])) {
 				$data['exchange1c_stores'][] = array(
-					'1c'			=> '',
+					'keyword'		=> '',
 					'name'			=> $this->config->get('config_name'),
 					'store_id'		=> 0
 				);
@@ -396,13 +395,15 @@ class ControllerModuleExchange1c extends Controller {
 
 	public function install() {
 		
-		$this->load->model('extension/event');
+		$this->load->model('tool/exchange1c');
+		$this->model_tool_exchange1c->setEvents();
+		$module_version = $this->model_tool_exchange1c->moduleVersion();
 		
 		$this->load->model('setting/setting');
 		$this->model_setting_setting->editSetting('exchange1c',
 			array(
-				'exchange1c'.'_version'	=> $this->module_version,
-				'exchange1c'.'_name'	=> $this->module_name
+				'exchange1c_version'	=> $module_version,
+				'exchange1c_name'		=> 'Exchange 1C 8.x for OpenCart 2.x'
 			)
 		);
 
@@ -519,11 +520,12 @@ class ControllerModuleExchange1c extends Controller {
 			);
 		}
 
-		$this->log->write("[+] Установлен модуль " . $this->module_name . " версии " . $this->module_version . " для OpenCart " . VERSION);
+		$this->log->write("[+] Установлен модуль " . $this->module_name . " версии " . $this->model_tool_exchange1c->moduleVersion() . " для OpenCart " . VERSION);
 	}
 
 	public function uninstall() {
 		
+		$this->load->model('tool/exchange1c');
 		$this->load->model('extension/event');
 		$this->model_extension_event->deleteEvent('exchange1c');
 		
@@ -1022,6 +1024,9 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	// -- Системные процедуры
+	/**
+	 * Очистка папки cache
+	 */
 	private function cleanCacheDir() {
 
 		// Проверяем есть ли директория
@@ -1039,6 +1044,9 @@ class ControllerModuleExchange1c extends Controller {
 		return 0;
 	}
 
+	/**
+	 * 
+	 */
 	private function checkUploadFileTree($path, $curDir = null) {
 
 		if (!$curDir) $curDir = DIR_CACHE . 'exchange1c/';
@@ -1063,6 +1071,9 @@ class ControllerModuleExchange1c extends Controller {
 	}
 
 
+	/**
+	 * Очистка
+	 */
 	private function cleanDir($root, $self = false) {
 
 		$dir = dir($root);
@@ -1087,6 +1098,9 @@ class ControllerModuleExchange1c extends Controller {
 		return 0;
 	}
 	
+	/**
+	 * Определение версии CMS
+	 */
 	public function checkCMS() {
 		// Определяем версию системы
 		if ($handle = fopen($_SERVER['DOCUMENT_ROOT'].'/index.php', 'r')) {
@@ -1115,6 +1129,23 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		$this->log("[i] Не удалось определить CMS");
 	}
+	
+	/**
+	 * События
+	 */
+	public function eventProductDelete($product_id) {
+		$this->load->model('tool/exchange1c');
+		$this->model_tool_exchange1c->ProductLinkDelete($product_id);
+	}
+	
+	/**
+	 * События
+	 */
+	public function eventCategoryDelete($category_id) {
+		$this->load->model('tool/exchange1c');
+		$this->model_tool_exchange1c->CategoryLinkDelete($category_id);
+	}
+	
 
 }
 ?>
