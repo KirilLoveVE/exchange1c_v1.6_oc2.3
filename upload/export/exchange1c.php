@@ -157,12 +157,14 @@ $registry->set('event', $event);
 $controller = new Front($registry);
 
 // Принудительное использование HTTP авторизации, если она отключена на сервере
-if (!isset($_SERVER['PHP_AUTH_USER'])) {
-	$remote_user = $_SERVER["REMOTE_USER"] ? $_SERVER["REMOTE_USER"]: $_SERVER["REDIRECT_REMOTE_USER"];
-	$strTmp = base64_decode(substr($remote_user,6));
-	if($strTmp) list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
-	$log->write('Включен режим принудительной авторизации в beta версии!');
-}
+//if (!isset($_SERVER['PHP_AUTH_USER'])) {
+//	if (isset($_SERVER["REMOTE_USER"]) && isset($_SERVER["REDIRECT_REMOTE_USER"])){
+//		$remote_user = $_SERVER["REMOTE_USER"] ? $_SERVER["REMOTE_USER"]: $_SERVER["REDIRECT_REMOTE_USER"];
+//		$strTmp = base64_decode(substr($remote_user,6));
+//		if($strTmp) list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
+//		$log->write('Включен режим принудительной авторизации в beta версии!');
+//	}
+//}
 
 // Информация используется для поиска и отладки возможных ошибок в beta версиях
 //$sapi = php_sapi_name();
@@ -196,9 +198,9 @@ if ($handle = fopen($_SERVER['DOCUMENT_ROOT'].'/index.php', 'r')) {
 		define('VERSION', '2.0.3.1');
 	}
 }
-
 //$log->write("mode: " . $request->get['mode'] . ", type: " . $request->get['type']);
 // Router
+
 if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 
 	switch ($request->get['mode']) {
@@ -219,7 +221,6 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 		break;
 
 		default:
-			$log->write("type=catalog, status: success");
 			echo "success\n";
 	}
 
@@ -251,7 +252,6 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 		break;
 
 		default:
-			$log->write("type=sale, status: success");
 			echo "success\n";
 
 	}
@@ -269,15 +269,13 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 
 
 		default:
-			$log->write('type=get_catalog, status: success');
 			echo "success\n";
 
 	}
 
 
 } else {
-	$log->write("mode: " . $request->get['mode'] . ", type: " . $request->get['type'] . ", status: success");
-	echo "success\n";
+	echo "success\n<br>";
 	exit;
 }
 

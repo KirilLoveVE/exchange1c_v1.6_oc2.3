@@ -52,12 +52,16 @@ $_['entry_seo_url_translit']				= 'Transliterate';
 $_['entry_product_status_disable_if_quantity_zero'] = 'Does not show items on the site if the balance is equal to or less than zero.';
 $_['entry_parse_only_types_item']			= 'Parse only types of items:';
 $_['entry_synchronize_uuid_to_id']			= 'Write the object ID from 1C ID in opencart';
+$_['entry_product_name_or_fullname']		= 'The name of the product taken from:';
+
 
 $_['entry_full_log']						= 'Enable log';
 $_['entry_apply_watermark']					= 'Apply watermark';
 $_['text_image_manager'] 					= 'Image Manager';
 $_['text_browse']        					= 'Browse Files';
 $_['text_clear']         					= 'Clear Image';
+$_['text_product_name']						= 'Name';
+$_['text_product_fullname']					= 'Full name';
 
 $_['entry_order_status_to_exchange'] 		= 'Orders status to exchange:';
 $_['entry_order_status_to_exchange_not'] 	= "- don not use -";
@@ -72,6 +76,8 @@ $_['entry_order_notify']					= 'Notify users of status change:';
 $_['entry_order_currency']					= 'Orders currency:';
 $_['entry_upload']							= 'Select file:';
 $_['entry_download_orders']					= 'Download orders.xml';
+$_['entry_product_fields_update']			= 'To update the product fields when importing:';
+$_['entry_default_stock_status']			= 'Status in the absence of stock:';
 
 $_['button_upload']							= 'Upload';
 $_['button_add']							= 'Add';
@@ -95,5 +101,9 @@ $_['text_legend_cleaning']					= 'Cleaning';
 $_['text_legend_images']					= 'Images';
 $_['text_legend_export_orders']				= 'Export Orders to 1C';
 $_['text_legend_import_orders']				= 'Import Orders from 1C';
+$_['text_legend_fields_update']				= 'Updating fields when importing';
+
+$_['text_product_field_column']				= 'Column';
+$_['text_product_field_sort_order']			= 'Sort order';
 
 $_['text_in_developing']					= 'In Developing';

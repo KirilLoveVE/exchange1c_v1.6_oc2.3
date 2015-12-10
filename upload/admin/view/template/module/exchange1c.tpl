@@ -265,6 +265,32 @@
 								</div>
 							</div>
 						</fieldset>
+						
+						<fieldset>
+							<legend><?php echo $lang['text_legend_fields_update']; ?></legend>
+							<div class="form-group">
+								<label class="col-sm-2 control-label" for="exchange1c_apply_watermark"><?php echo $lang['entry_product_fields_update']; ?></label>
+								<div class="col-sm-10">
+									<div class="well well-sm" style="height: 150px; overflow: auto;">
+										<?php foreach ($product_fields as $field => $value) { ?>
+										<div class="checkbox">
+											<label>
+												<?php if (isset($exchange1c_product_fields_update[$field])) { ?>
+												<input name="exchange1c_product_fields_update[<?php echo $field; ?>]" type="checkbox" value="<?php echo $value; ?>" checked="checked" />
+												<?php echo $lang['text_product_field_'.$field]; ?>
+												<?php } else { ?>
+												<input name="exchange1c_product_fields_update[<?php echo $field; ?>]" type="checkbox" value="<?php echo $value; ?>" />
+												<?php echo $lang['text_product_field_'.$field]; ?>
+												<?php } ?>
+											</label>
+										</div>
+										<?php } ?>
+									</div>
+								</div>
+							</div>
+							</legend>
+						</fieldset>
+						
 						<fieldset>
 							<legend><?php echo $lang['text_legend_other']; ?></legend>
 							<div class="form-group">
@@ -298,6 +324,19 @@
 											<?php echo $lang['text_no']; ?>
 										<?php } ?>
 									</label>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="col-sm-2 control-label" for="exchange1c_default_stock_status"><?php echo $lang['entry_default_stock_status']; ?></label>
+								<div class="col-sm-10">
+									<select name="exchange1c_default_stock_status" id="exchange1c_default_stock_status" class="form-control">
+										<?php foreach ($stock_statuses as $status) { ?>
+										<?php if ($exchange1c_default_stock_status == $status['stock_status_id']) { ?>
+										<option value="<?php echo $status['stock_status_id']; ?>" selected="selected"><?php echo $status['name']; ?></option>
+										<?php } ?>
+										<option value="<?php echo $status['stock_status_id']; ?>"><?php echo $status['name']; ?></option>
+										<?php } // foreach ?>
+									</select>
 								</div>
 							</div>
 							<div class="form-group">
@@ -344,6 +383,23 @@
 											<?php echo $lang['text_no']; ?>
 										<?php } ?>
 									</label>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="col-sm-2 control-label" for="exchange1c_product_name_or_fullname"><?php echo $lang['entry_product_name_or_fullname']; ?></label>
+								<div class="col-sm-10">
+									<select name="exchange1c_product_name_or_fullname" id="exchange1c_product_name_or_fullname" class="form-control">
+										<?php if ($exchange1c_product_name_or_fullname == 0) { ?>
+											<option value="0" selected="selected"><?php echo $lang['text_product_name']; ?></option>
+										<?php } else { ?>
+											<option value="0"><?php echo $lang['text_product_name']; ?></option>
+										<?php } ?>
+										<?php if ($exchange1c_product_name_or_fullname == 1) { ?>
+											<option value="1" selected="selected"><?php echo $lang['text_product_fullname']; ?></option>
+										<?php } else { ?>
+											<option value="1"><?php echo $lang['text_product_fullname']; ?></option>
+										<?php } ?>
+									</select>
 								</div>
 							</div>
 							<div class="form-group">
@@ -512,8 +568,8 @@
 								<fieldset>
 									<legend>Изменения в версии 1.6.1.7 от 17.11.2015:</legend>
 									<ul>
-										<li>Загрузка каталогов из 1С в указанный магазин в настройках (Система -> Настройки)</li>
-										<li>Временно убраны "Связанные опции"</li>
+										<li>Загрузка каталогов из 1С в указанный магазин в настройках (Система -> Настройки).</li>
+										<li>Временно убраны "Связанные опции".</li>
 									</ul>
 								</fieldset>
 							</div>
@@ -521,10 +577,10 @@
 								<fieldset>
 									<legend>Изменения в версии 1.6.1.8 от 17.11.2015:</legend>
 									<ul>
-										<li>Исправление ошибок с загрузкой цен</li>
-										<li>В режиме доработки загрузка каталога с 1С в разные магазины</li>
-										<li>В режиме доработки загрузка опций</li>
-										<li>Добавлена опция - отключение товаров, если количество меньше или равно нулю. То есть на сайте эти товары не будут отображаться, т.к. статус этих товаров будет в режиме "Отключено"</li>
+										<li>Исправление ошибок с загрузкой цен.</li>
+										<li>В режиме доработки загрузка каталога с 1С в разные магазины.</li>
+										<li>В режиме доработки загрузка опций.</li>
+										<li>Добавлена опция - отключение товаров, если количество меньше или равно нулю. То есть на сайте эти товары не будут отображаться, т.к. статус этих товаров будет в режиме "Отключено".</li>
 										<li>
 											<p>Загрузка свойств из import.xml:</p>
 											<ul>
@@ -539,10 +595,10 @@
 											<ul>
 												<li>ОписаниеФайла - не реализовано</li>
 												<li>Вес [height]</li>
-												<li>ТипНоменклатуры [item_type] - загружается только Товар</li>
-												<li>ВидНоменклатуры [item_view] - не реализовано</li>
-												<li>ОписаниеВФорматеHTML [description]</li>
-												<li>Полное наименование [meta_description],[name]</li>
+												<li>ТипНоменклатуры [item_type] - загружается только Товар.</li>
+												<li>ВидНоменклатуры [item_view] - не реализовано.</li>
+												<li>ОписаниеВФорматеHTML [description].</li>
+												<li>Полное наименование [meta_description],[name].</li>
 											</ul>
 										</li>
 									</ul>
@@ -561,7 +617,7 @@
 								<fieldset>
 									<legend>Изменения в версии 1.6.1.10 от 28.11.2015:</legend>
 									<ul>
-										<li>Исправлены ошибки при загрузке предложений</li>
+										<li>Исправлены ошибки при загрузке предложений.</li>
 									</ul>
 								</fieldset>
 							</div>
@@ -580,7 +636,20 @@
 								<fieldset>
 									<legend>Изменения в версии 1.6.1.12 от 06.12.2015:</legend>
 									<ul>
-										<li>Добавлены события, при удалении товара или категории из админки, которые удаляют также связи с 1С и картинки товара с диска</li>
+										<li>Добавлены события, при удалении товара или категории из админки, которые удаляют также связи с 1С и картинки товара с диска.</li>
+									</ul>
+								</fieldset>
+							</div>
+							<div class="col-sm-12">
+								<fieldset>
+									<legend>Изменения в версии 1.6.1.13 от 10.12.2015:</legend>
+									<ul>
+										<li>Добавлена опция выбора записи наименования товара из 1С "Наименование полное" или "Наименование".</li>
+										<li>Доработана функция смены статуса заказа при выгрузке заказа в 1С.</li>
+										<li>Исправлена ошибка с обновлением товара.</li>
+										<li>При удалении товаров и категорий из админки удаляются и связи с 1С.</li>
+										<li>Если не заполнять типы цен, по умолчанию в основную загрузит только первую цену.</li>
+										<li>Добавлен список полей, в котором можно указывать какие поля товара будут</li>
 									</ul>
 								</fieldset>
 							</div>
@@ -588,15 +657,13 @@
 								<fieldset>
 									<legend>Ожидаемые изменения в следующих версиях:</legend>
 									<ul>
-										<li>Добавлена инструкция</li>
-										<li>Скачивание заказов, для ручной загрузки в 1С</li>
-										<li>Загрузка заказов из 1С</li>
-										<li>Смена статусов заказов на сайте при загрузке из 1С</li>
-										<li>Заполнение родительскими категориями для всех версий</li>
-										<li>При удалении товаров и категории изадминки будут удалятся и связи с 1С</li>
-										<li>Загрузка в режиме связанных опций</li>
-										<li>Генерация Тегов и мета-полей для SEO</li>
-										<li>При загрузке предложений выбор по опциям что обновлять(остатки, цены, опции)</li>
+										<li>Будет добавлена инструкция.</li>
+										<li>Скачивание заказов, для ручной загрузки в 1С.</li>
+										<li>Загрузка заказов из 1С.</li>
+										<li>Смена статусов заказов на сайте при загрузке из 1С.</li>
+										<li>Загрузка в режиме связанных опций.</li>
+										<li>Генерация Тегов и мета-полей для SEO.</li>
+										<li>При загрузке предложений выбор по опциям что обновлять(остатки, цены, опции).</li>
 									</ul>
 								</fieldset>
 							</div>

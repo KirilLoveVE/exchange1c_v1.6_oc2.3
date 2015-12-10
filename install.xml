@@ -1,6 +1,6 @@
 <modification>
 	<name>Exchange Module for OpenCart 2.x</name>
-	<version>1.6.1.12</version>
+	<version>1.6.1.13</version>
 	<id>OpenCart Exchange</id> 
 	<author>KirilLoveVE</author>
 	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
@@ -14,8 +14,8 @@
 
 	<file path="admin/view/template/common/menu.tpl">
 		<operation>
-			<search><![CDATA[<li><a href="<?php echo $total; ?>"><?php echo $text_total; ?></a></li>]]></search>
-			<add position="after"><![CDATA[<li><a href="<?php echo $exchange1c; ?>">Opencart Exchange 1C</a></li>]]></add>
+			<search><![CDATA[<li><a href="<?php echo $modification; ?>"><?php echo $text_modification; ?></a></li>]]></search>
+			<add position="after"><![CDATA[<li><a href="<?php echo $exchange1c; ?>">Exchange 1C 8.x</a></li>]]></add>
 		</operation>
 	</file>
 
