@@ -5,17 +5,40 @@ class ControllerModuleExchange1c extends Controller {
 
 	/**
 	 * Пишет в файл журнала если включена настройка
-	 *
 	 * @param	string,array()	Сообщение или объект
 	 */
 	private function log($message) {
 		if ($this->config->get('exchange1c_full_log')) $this->log->write(print_r($message,true));
 	} // log()
 
+
+	/**
+	 * Выводит сообщение
+	 */
+	private function echo_message($ok, $message) {
+		if ($ok) {
+			echo "success\n";
+			$this->log("[ECHO] success");
+			if ($message) {
+				echo $message;
+				$this->log("[ECHO] " . $message);
+			}
+		} else {
+			echo "failure\n";
+			$this->log("[ECHO] failure");
+			if ($message) {
+				echo $message;
+				$this->log("[ECHO] " . $message);
+			}
+		};
+	} // echo_message()
+
+
+	/**
+	 * Основная функция 
+	 */
 	public function index() {
 
-		$this->checkCMS();
-		
 		$data['lang'] = $this->load->language('module/exchange1c');
 		$this->load->model('tool/image');
 
@@ -142,9 +165,6 @@ class ControllerModuleExchange1c extends Controller {
 			$this->load->model('sale/customer_group');
 			$data['customer_groups'] = $this->model_sale_customer_group->getCustomerGroups();
 		}
-		// + 1.6.1.7 исключаем группу по умолчанию
-		//unset($data['customer_groups'][0]);
-
 		
 		if (isset($this->request->post['exchange1c_price_type'])) {
 			$data['exchange1c_price_type'] = $this->request->post['exchange1c_price_type'];
@@ -275,6 +295,12 @@ class ControllerModuleExchange1c extends Controller {
 		else {
 			$data['exchange1c_seo_url'] = $this->config->get('exchange1c_seo_url');
 		}
+		// Определим есть ли модуль deadcow seo
+		if ($this->config->get('deadcow_seo_transliteration')) {
+			$data['enable_module_deadcow'] = true;
+		} else {
+			$data['enable_module_deadcow'] = false;
+		}
 
 		if (isset($this->request->post['exchange1c_full_log'])) {
 			$data['exchange1c_full_log'] = $this->request->post['exchange1c_full_log'];
@@ -328,6 +354,13 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		else {
 			$data['exchange1c_order_notify'] = $this->config->get('exchange1c_order_notify');
+		}
+
+		if (isset($this->request->post['exchange1c_file_zip'])) {
+			$data['exchange1c_file_zip'] = $this->request->post['exchange1c_file_zip'];
+		}
+		else {
+			$data['exchange1c_file_zip'] = $this->config->get('exchange1c_file_zip');
 		}
 
 		// Статус товара по умолчанию при отсутствии
@@ -401,7 +434,11 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		// + 1.6.1.7
 		unset($order_statuses);
-
+		
+		$data['upload_max_filesize'] = ini_get('upload_max_filesize');
+		$data['post_max_size'] = ini_get('post_max_size');
+		$data['memory_limit'] = ini_get('memory_limit');
+		
 		$this->template = 'module/exchange1c.tpl';
 		$this->children = array(
 			'common/header',
@@ -412,22 +449,23 @@ class ControllerModuleExchange1c extends Controller {
 		$data['footer'] = $this->load->controller('common/footer');
 
 		$this->response->setOutput($this->load->view('module/exchange1c.tpl', $data));
-	}
+	} // index()
 
+
+	/**
+	 * Проверка разрешения на изменение 
+	 */
 	private function validate() {
-
-		if (!$this->user->hasPermission('modify', 'module/exchange1c')) {
+		if (!$this->user->hasPermission('modify', 'module/exchange1c'))
 			$this->error['warning'] = $this->language->get('error_permission');
-		}
+		if (!$this->error) return true;
+		else return false;
+	} // validate()
 
-		if (!$this->error) {
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
 
+	/**
+	 * Установка модуля 
+	 */
 	public function install() {
 		
 		$this->load->model('tool/exchange1c');
@@ -473,9 +511,9 @@ class ControllerModuleExchange1c extends Controller {
 					'CREATE TABLE
 						`' . DB_PREFIX . 'category_to_1c` (
 							`category_id` int(11) NOT NULL,
-							`1c_category_id` varchar(255) NOT NULL,
+							`1c_id` varchar(255) NOT NULL,
 							KEY (`category_id`),
-							KEY `1c_id` (`1c_category_id`),
+							KEY `1c_id` (`1c_id`),
 							FOREIGN KEY (category_id) REFERENCES '. DB_PREFIX .'category(category_id) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
@@ -488,9 +526,9 @@ class ControllerModuleExchange1c extends Controller {
 					'CREATE TABLE
 						`' . DB_PREFIX . 'attribute_to_1c` (
 							`attribute_id` int(11) NOT NULL,
-							`1c_attribute_id` varchar(255) NOT NULL,
+							`1c_id` varchar(255) NOT NULL,
 							KEY (`attribute_id`),
-							KEY `1c_id` (`1c_attribute_id`),
+							KEY `1c_id` (`1c_id`),
 							FOREIGN KEY (attribute_id) REFERENCES '. DB_PREFIX .'attribute(attribute_id) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
@@ -503,10 +541,25 @@ class ControllerModuleExchange1c extends Controller {
 					'CREATE TABLE
 						`' . DB_PREFIX . 'option_to_1c` (
 							`option_id` int(11) NOT NULL,
-							`1c_option_id` varchar(255) NOT NULL,
+							`1c_id` varchar(255) NOT NULL,
 							KEY (`option_id`),
-							KEY `1c_id` (`1c_option_id`),
-							FOREIGN KEY (option_id) REFERENCES '. DB_PREFIX .'attribute(option_id) ON DELETE CASCADE
+							KEY `1c_id` (`1c_id`),
+							FOREIGN KEY (option_id) REFERENCES '. DB_PREFIX .'option(option_id) ON DELETE CASCADE
+						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
+			);
+		}
+		
+		// Привязка производителя к каталогу 1С
+		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'manufacturer_to_1c"');
+		if(!$query->num_rows) {
+			$this->db->query(
+					'CREATE TABLE
+						`' . DB_PREFIX . 'manufacturer_to_1c` (
+							`manufacturer_id` int(11) NOT NULL,
+							`1c_id` varchar(255) NOT NULL,
+							KEY (`manufacturer_id`),
+							KEY `1c_id` (`1c_id`),
+							FOREIGN KEY (manufacturer_id) REFERENCES '. DB_PREFIX .'manufacturer(manufacturer_id) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
@@ -518,10 +571,10 @@ class ControllerModuleExchange1c extends Controller {
 					'CREATE TABLE
 						`' . DB_PREFIX . 'store_to_1c` (
 							`store_id` int(11) NOT NULL,
-							`1c_store_id` varchar(255) NOT NULL,
+							`1c_id` varchar(255) NOT NULL,
 							KEY (`store_id`),
-							KEY `1c_id` (`1c_store_id`),
-							FOREIGN KEY (store_id) REFERENCES '. DB_PREFIX .'attribute(store_id) ON DELETE CASCADE
+							KEY `1c_id` (`1c_id`),
+							FOREIGN KEY (store_id) REFERENCES '. DB_PREFIX .'store(store_id) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
@@ -549,15 +602,19 @@ class ControllerModuleExchange1c extends Controller {
 						`' . DB_PREFIX . 'warehouse` (
 							`warehouse_id` int(11) NOT NULL AUTO_INCREMENT,
 							`name` varchar(100) NOT NULL,
-							`1c_warehouse_id` varchar(255) NOT NULL,
+							`1c_id` varchar(255) NOT NULL,
                             PRIMARY KEY (`warehouse_id`)
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
 
-		$this->log->write("[+] Установлен модуль " . $this->module_name . " версии " . $this->model_tool_exchange1c->version());
-	}
+		$this->log->write("Включен модуль " . $this->module_name . " версии " . $this->model_tool_exchange1c->version());
+	} // install()
 
+
+	/**
+	 * Деинсталляция
+	 */
 	public function uninstall() {
 		
 		$this->load->model('extension/event');
@@ -566,35 +623,39 @@ class ControllerModuleExchange1c extends Controller {
 		$this->load->model('setting/setting');
 		$this->model_setting_setting->deleteSetting('exchange1c');
 
-		$this->load->model('extension/modification');
-		$modification = $this->model_extension_modification->getModificationByCode('exchange1c');
-		if ($modification) $this->model_extension_modification->deleteModification($modification['modification_id']);
+		//$this->load->model('extension/modification');
+		//$modification = $this->model_extension_modification->getModificationByCode('exchange1c');
+		//if ($modification) $this->model_extension_modification->deleteModification($modification['modification_id']);
 		
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_quantity`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "category_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "attribute_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "option_to_1c`");
+		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "manufacturer_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "store_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_quantity`");
 		
 		// Удаляем и файлы
-		if (is_file($_SERVER['DOCUMENT_ROOT'].'/export/exchange1c.php'))
-			unlink($_SERVER['DOCUMENT_ROOT'].'/export/exchange1c.php');
-		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/controller/module/exchange1c.php'))
-			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/controller/module/exchange1c.php');
-		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/model/tool/exchange1c.php'))
-			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/model/tool/exchange1c.php');
-		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/language/english/module/exchange1c.php'))
-			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/language/english/module/exchange1c.php');
-		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/language/russian/module/exchange1c.php'))
-			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/language/russian/module/exchange1c.php');
-		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/view/template/module/exchange1c.tpl'))
-			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/view/template/module/exchange1c.tpl');
+//		if (is_file($_SERVER['DOCUMENT_ROOT'].'/export/exchange1c.php'))
+//			unlink($_SERVER['DOCUMENT_ROOT'].'/export/exchange1c.php');
+//		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/controller/module/exchange1c.php'))
+//			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/controller/module/exchange1c.php');
+//		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/model/tool/exchange1c.php'))
+//			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/model/tool/exchange1c.php');
+//		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/language/english/module/exchange1c.php'))
+//			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/language/english/module/exchange1c.php');
+//		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/language/russian/module/exchange1c.php'))
+//			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/language/russian/module/exchange1c.php');
+//		if (is_file($_SERVER['DOCUMENT_ROOT'].'/admin/view/template/module/exchange1c.tpl'))
+//			unlink($_SERVER['DOCUMENT_ROOT'].'/admin/view/template/module/exchange1c.tpl');
 			
-		$this->log->write("[-] Удален модуль " . $this->module_name);
-		
-	}
+		$this->log->write("Отключен модуль " . $this->module_name);
+	} // uninstall()
 	
+
+	/**
+	 * Выводит сообщение в лог с инструкцией, если авторизация не удалась
+	 */
 	private function authWarning() {
 		// Проверим есть ли в файле .htaccess строчки:
 		// RewriteCond %{HTTP:Authorization} ^Basic.*
@@ -608,70 +669,54 @@ class ControllerModuleExchange1c extends Controller {
 				$this->log->write("RewriteCond %{HTTP:Authorization} ^Basic.*");
 				$this->log->write("RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization},L]");
 			}
-		} else {
-			$this->log->write("[i] Файл не найден: " . $htaccess);
 		}
-	}
+	} // authWarning()
 
+
+	/**
+	 * Проверка доступа с IP адреса
+	 */
 	private function checkAccess($echo = false) {
-
 		// Проверяем включен или нет модуль
 		if (!$this->config->get('exchange1c_status')) {
-			$message = "[ERROR] Модуль отключен!";
-			$this->log->write($message);
-			if ($echo) {
-				echo "failure\n";
-				echo "The module is disabled";
-			}
-			return $message;
+			if ($echo) $this->echo_message(0, "The module is disabled");
+			return false;
 		}
 		// Разрешен ли IP
 		if ($this->config->get('exchange1c_allow_ip') != '') {
 			$ip = $_SERVER['REMOTE_ADDR'];
 			$allow_ips = explode("\r\n", $this->config->get('exchange1c_allow_ip'));
-
 			if (!in_array($ip, $allow_ips)) {
-				$message = "[ERROR] С Вашего IP адреса [" . $ip. "] не разрешен обмен, скорректируйте настройки модуля!";
-				$this->log->write($message);
-				if ($echo) {
-					echo "failure\n";
-					echo "From Your IP address are not allowed";
-				}
-				return $message;
+				if ($echo) $this->echo_message(0, "From Your IP address are not allowed");
+				return false;
 			}
 		}
-	}
+		return true;
+	} // checkAccess()
 	
-	// ---
+
+	/**
+	 * Режим проверки авторизации через http запрос
+	 */
 	public function modeCheckauth() {
-		
-		if ($this->checkAccess(true))
+		if (!$this->checkAccess(true))
 			exit;
-		
 		// Авторизуем
 		if (($this->config->get('exchange1c_username') != '') && (@$_SERVER['PHP_AUTH_USER'] != $this->config->get('exchange1c_username'))) {
-			$this->log->write("[ERROR] Авторизация: неверное имя!");
-			$this->authWarning();
-			echo "failure\n";
-			echo "Incorrect login";
+			$this->echo_message(0, "Incorrect login");
 		}
-		
 		if (($this->config->get('exchange1c_password') != '') && (@$_SERVER['PHP_AUTH_PW'] != $this->config->get('exchange1c_password'))) {
-			$this->log->write("[ERROR] Авторизация: неверный пароль!");
-			$this->authWarning();
-			echo "failure\n";
-			echo "Incorrect password";
+			$this->echo_message(0, "Incorrect password");
 			exit;
 		}
-		
-
-		echo "success\n";
-		echo "key\n";
+		$this->echo_message(1, "key\n");
 		echo md5($this->config->get('exchange1c_password')) . "\n";
-	}
+	} // modeCheckauth()
 
+	/**
+	 * Очистка базы данных через админ-панель
+	 */
 	public function manualCleaning() {
-
 		$json = array();
 		// Проверим разрешение
 		if ($this->user->hasPermission('modify', 'module/exchange1c'))  {
@@ -692,96 +737,136 @@ class ControllerModuleExchange1c extends Controller {
 	} // manualCleaning()
 	
 	
+	/**
+	 * Поиск папки по имени во всех вложениях в папке кэша
+	 */
+	private function findFolder($folder, $folder_name) {
+		$dir = opendir($folder);
+		while ($file_dir = readdir($dir)) {
+			if($file_dir == "." || $file_dir == "..") continue;
+			if(is_dir($folder . $file_dir)){
+				if ($file_dir == $folder_name) {
+					return $folder;
+				}
+				$found_folder = $this->findFolder($folder . $file_dir . "/", $folder_name);
+				if ($found_folder) {
+					return $found_folder;
+				}
+			}
+		}
+		closedir($dir);
+		return 0;
+	} // findFolder()
+	
+
+	/**
+	 * Импорт файла через админ-панель
+	 */
+	private function moveImages($from, $clean=false) {
+		if (is_dir($from)) {
+			$images = DIR_IMAGE . 'import_files/';
+			if (is_dir($images) && $clean) {
+				$this->cleanDir($images);
+			}
+			rename($from, $images);
+		}
+	}
+
+
+	/**
+	 * Импорт файла через админ-панель
+	 */
 	public function manualImport() {
 		$this->load->language('module/exchange1c');
 		$cache = DIR_CACHE . 'exchange1c/';
 		$json = array();
+		$no_error = 0;
 
 		if (!empty($this->request->files['file']['name']) && is_file($this->request->files['file']['tmp_name'])) {
 
 			$filename = basename(html_entity_decode($this->request->files['file']['name'], ENT_QUOTES, 'UTF-8'));
 			$zip = new ZipArchive;
 			if ($zip->open($this->request->files['file']['tmp_name']) === true) {
-				$this->modeCatalogInit(false);
-
-				$zip->extractTo($cache);
-				$files = scandir($cache);
-
-				foreach ($files as $file) {
-					if (is_file($cache . $file)) {
-						$this->modeImport($file);
-					}
-				}
-
-				if (is_dir($cache . 'import_files')) {
-					$images = DIR_IMAGE . 'import_files/';
+				$max_size_file = $this->modeCatalogInit(array(),false);
+				//$this->log($this->request->files['file']);
+				
+					$zip->extractTo($cache);
+					//ищем папку с папкой import_files
+					$cache = $this->findFolder(DIR_CACHE, 'import_files');
 					
-					if (is_dir($images)) {
-						$this->cleanDir($images);
+					if (!$cache) {
+						$this->log("Не найдена папка import_files");
+						return 0;
 					}
-
-					rename($cache . 'import_files/', $images);
-				}
-
+					
+					$this->MoveImages($cache . 'import_files/', true);
+					$files = scandir($cache);
+					foreach ($files as $file) {
+						if (is_file($cache . $file)) {
+							$no_error = $this->modeImport($cache . $file);
+						}
+					}
+					if (is_dir($cache . '1cbitrix_/import_files')) {
+						rmdir($cache . '1cbitrix_/import_files');
+					}
 			}
 			else {
-
-				// Читаем первые 1024 байт и определяем файл по сигнатуре, ибо мало ли, какое у него имя
-				$handle = fopen($this->request->files['file']['tmp_name'], 'r');
-				$buffer = fread($handle, 1024);
-				fclose($handle);
-
-				if (strpos($buffer, 'ПакетПредложений')) {
-					move_uploaded_file($this->request->files['file']['tmp_name'], $cache . 'offers.xml');
-					$this->modeImport('offers.xml');
-				}
-				else if (strpos($buffer, 'Документ')) {
-					move_uploaded_file($this->request->files['file']['tmp_name'], $cache . 'orders.xml');
-					$this->modeImport('orders.xml');
-				}
-				else if (strpos($buffer, 'Классификатор')) {
-					$this->modeCatalogInit(array(), false);
-					move_uploaded_file($this->request->files['file']['tmp_name'], $cache . 'import.xml');
-					$this->modeImport('import.xml');
-				}
-				else {
-					$this->log->write('Ошибка при ручной загрузке файла');
-					$json['error'] = $this->language->get('text_upload_error');
-					exit;
-				}
+				$import_file = $cache . $this->request->files['file']['name'];
+				move_uploaded_file($this->request->files['file']['tmp_name'], $import_file);
+				$this->log("Загружен файл: " . $this->request->files['file']['name']);
+				$no_error = $this->modeImport($import_file);
+				unlink($import_file);
 			}
-
-			$json['success'] = $this->language->get('text_upload_success');
 		}
-
+		if ($no_error) {
+			$json['success'] = $this->language->get('text_upload_success');
+		} else {
+			$json['error'] = $this->language->get('text_upload_error');
+		}
+		//$this->cleanCacheDir();
 		$this->response->setOutput(json_encode($json));
 	} // manualImport()
 
+
+	/**
+	 * Проверяет наличие куки ключа
+	 */
 	private function checkAuthKey($echo=true) {
 
 		if (!isset($this->request->cookie['key'])) {
-			$this->log->write("[ERROR] Не указан ключ куки.");
-			if ($echo) {
-				echo "failure\n";
-				echo "no cookie key";
-			}
+			if ($echo) $this->echo_message(0, "no cookie key");
 			return false;
 		}
-	
 		if ($this->request->cookie['key'] != md5($this->config->get('exchange1c_password'))) {
-			$this->log->write("[ERROR] Ошибка сессии.");
-			if ($echo) {
-				echo "failure\n";
-				echo "Session error";				
-			}
+			if ($echo) $this->echo_message(0, "Session error");
 			return false;
 		}
 		return true;
 	}
 	
-	public function modeCatalogInit($param = array(), $echo = true) {
 
-		$this->checkCMS();
+	/**
+	 * Возвращает максимальный объем файла в байта для загрузки
+	 */
+	private function getPostMaxFileSize() {
+		$size = ini_get('post_max_size');
+		$type = $size{strlen($size)-1};
+		$size = (integer)$size;
+		switch ($type) {
+			case 'K': $size = $size*1024;
+				break;
+			case 'M': $size = $size*1024*1024;
+				break;
+			case 'G': $size = $size*1024*1024*1024;
+				break;
+		}
+		return $size;
+	}
+
+	/**
+	 * Обрабатывает команду инициализации каталога
+	 */
+	public function modeCatalogInit($param = array(), $echo = true) {
 
 		// Включена проверка на запись файлов и папок
 		$test_file = DIR_CACHE . 'exchange1c/test.php';
@@ -789,53 +874,64 @@ class ControllerModuleExchange1c extends Controller {
 			fclose($fp);
 			unlink($test_file);
 		} else {
-			$error_message = "ВНИМАНИЕ! Папка '" . DIR_CACHE . "exchange1c' не доступна для записи!";
-			$this->log($error_message);
-			if ($echo) {
-				echo "failure\n";
-				echo $error_message;
-			}
-			exit;
+			if ($echo) $this->echo_message(0, "The folder " . DIR_CACHE . " is not writable!");
+			return 0;
 		}
 
-		$test_file = DIR_IMAGE . 'test.php';
+		$test_file = DIR_IMAGE . 'import_files/test.php';
 		if ($fp = fopen($test_file, "w")) {
 			fclose($fp);
 			unlink($test_file);
 		} else {
-			$error_message = "ВНИМАНИЕ! Папка '" . DIR_IMAGE . "' не доступна для записи!";
-			$this->log($error_message);
-			if ($echo) {
-				echo "failure\n";
-				echo $error_message;
-			}
-			exit;
+			if ($echo) $this->echo_message(0, "The folder " . DIR_IMAGE . " is not writable!");
+			return 0;
 		}
 
-		$limit = 100000 * 1024;
-	
 		if ($echo) {
-			echo "zip=no\n";
-			echo "file_limit=".$limit."\n";
+			if ($this->config->get('exchange1c_file_zip')) {
+				echo "zip=yes\n";
+			} else {
+				echo "zip=no\n";
+			}
+			echo "file_limit=" . $this->getPostMaxFileSize() . "\n";
 		}
-	
+		$this->log("file_limit = " . $this->getPostMaxFileSize());
+		return $this->getPostMaxFileSize();
 	} // modeCatalogInit()
 
+
+	/**
+	 * Обрабатывает команду инициализации продаж
+	 */
 	public function modeSaleInit() {
-		$limit = 100000 * 1024;
-	
-		echo "zip=no\n";
-		echo "file_limit=".$limit."\n";
+		if ($this->config->get('exchange1c_file_zip')) {
+			echo "zip=yes\n";
+		} else {
+			echo "zip=no\n";
+		}
+		echo "file_limit=" . $this->getPostMaxFileSize() . "\n";
 	} // modeSaleInit()
 	
+
+	/**
+	 * Проверяем на наличие архива и распаковка
+	 */
+	private function extractArchive($filename) {
+		$cache = DIR_CACHE . 'exchange1c/';
+		$zip = new ZipArchive;
+		if ($zip->open($filename) === true) {
+			$zip->extractTo($cache);
+			unlink($filename);
+			// переносим папку import_files в картинки
+			$this->MoveImages($cache . 'import_files/', true);
+		}
+	} // extractArchive()
+
 	/**
 	 * Обрабатывает загруженный файл на сервер
-	 *
 	 */
 	public function modeFile() {
-
 		if (!$this->checkAuthKey()) exit;
-
 		$cache = DIR_CACHE . 'exchange1c/';
 		
 		// Проверяем на наличие каталога
@@ -846,9 +942,7 @@ class ControllerModuleExchange1c extends Controller {
 			$uplod_file = $cache . $this->request->get['filename'];
 		}
 		else {
-			echo "failure\n";
-			echo "ERROR 10: No file name variable";
-			$this->write->log("[ERROR] Имя загружаемого файла не определено, файл отстутствует, проверьте права на папку, обратитесь к хостеру или администратору сервера!");
+			$this->log(false, "No file name variable");
 			exit;
 		}
 
@@ -866,33 +960,22 @@ class ControllerModuleExchange1c extends Controller {
 			file_put_contents($uplod_file, $data);
 			if ($fp = fopen($uplod_file, "wb")) {
 				$result = fwrite($fp, $data);
-
 				if ($result === strlen($data)) {
-					echo "success\n";
-
-					if (chmod($uplod_file , 0777))
-						echo "The file " . $this->request->get['filename'] . " has been successfully uploaded\n";
-					else
-						echo "The file " . $this->request->get['filename'] . " is not uploaded\n";
+					chmod($uplod_file , 0777);
+					$this->echo_message(1, "The file " . $this->request->get['filename'] . " has been successfully uploaded");
+					$this->extractArchive($uplod_file);
 				}
 				else {
-					echo "failure\n";
-					echo "The file " . $this->request->get['filename'] . " is empty\n";
+					$this->echo_message(0, "Empty file " . $this->request->get['filename']);
 				}
 			}
 			else {
-				echo "failure\n";
-				echo "Can not open file: $uplod_file";
-				$this->write->log("[ERROR] Отсутствует файл для загрузки '" . $this->request->get['filename'] . "'");
+				$this->echo_message(0, "Can not open file " . $this->request->get['filename']);
 			}
 		}
 		else {
-			echo "failure\n";
-			echo "No data file\n";
-			$this->write->log("[ERROR] Отсутвуют данные в файле!");
+			$this->echo_message(0, "No data in file " . $this->request->get['filename']);
 		}
-
-
 	} // modeFile()
 
 	/**
@@ -902,98 +985,60 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	public function modeImport($manual = false) {
 
+		if ($manual) $this->log("[i] Ручная загрузка данных.");
+		
 		$cache = DIR_CACHE . 'exchange1c/';
 		if(!is_dir($cache)) mkdir($cache);
 		
-		if ($manual) {
-			$filename = $manual;
-			$importFile = $cache . $filename;
-		}
-		else if (isset($this->request->get['filename'])) {
-			$filename = $this->request->get['filename'];
-			$importFile = $cache . $filename;
-		}
+		// Определим имя файла
+		if ($manual)
+			$importFile = $manual;
+		elseif (isset($this->request->get['filename']))
+			$importFile = $cache . $this->request->get['filename'];
 		else {
-			if (!$manual) {
-				echo "failure\n";
-				echo "ERROR 10: No file name variable";
-			}
-			$this->write->log("[ERROR 10] Отсутствует файл для загрузки каталога. Загрузка каталога отменена!");
-			return false;
+			if (!$manual) $this->echo_message(0, "No import file name");
+			return 0;
 		}
-
-		$this->load->model('tool/exchange1c');
 
 		// Проверка базы данных
+		$this->load->model('tool/exchange1c');
 		if (!$this->model_tool_exchange1c->checkDB()) {
-			if (!$manual) {
-				echo "failure\n";
-				echo "ERROR 11: Database validation";
-			}
-			$this->write->log("[ERROR 11] Проверка базы данных не пройдена!. Загрузка отменена");
-			return false;
+			if (!$manual) $this->echo_message(0, "Failure Database validation");
+			return 0;
 		}
-		
-		$this->checkCMS();
-
 		// Определяем текущую локаль
 		$language_id = $this->model_tool_exchange1c->getLanguageId($this->config->get('config_language'));
 
-		if (strpos($filename, 'import') !== false) {
-			
-			if (!$this->model_tool_exchange1c->parseImportFromFile($filename)){
-				if (!$manual) {
-					echo "failure\n";
-					echo "ERROR 12: An error occurred while processing file $filename";
-				}
-				return false; 
-			}
-
-            // Только если выбран способ deadcow_seo
-			if ($this->config->get('exchange1c_seo_url') == 1) {
-				$this->load->model('module/deadcow_seo');
-				$this->model_module_deadcow_seo->generateCategories($this->config->get('deadcow_seo_categories_template'), '', 'Russian', true, true);
-				$this->model_module_deadcow_seo->generateProducts($this->config->get('deadcow_seo_products_template'), '.html', 'Russian', true, true);
-				$this->model_module_deadcow_seo->generateManufacturers($this->config->get('deadcow_seo_manufacturers_template'), '', 'Russian', true, true);
-				$this->model_module_deadcow_seo->generateProductsMetaKeywords($this->config->get('deadcow_seo_meta_template'), $this->config->get('deadcow_seo_yahoo_id'), 'Russian', false);
-				$this->model_module_deadcow_seo->generateTags($this->config->get('deadcow_seo_tags_template'), 'Russian', false);
-				$this->model_module_deadcow_seo->generateCategoriesMetaKeywords($this->config->get('deadcow_seo_categories_template'), 'Russian');
-			}
-
+		// Загружаем файл
+		if (!$this->model_tool_exchange1c->importFile($importFile)) {
 			if (!$manual) {
-				echo "success\n";
+				$this->echo_message(0, "Error processing file " . $importFile);
 			}
-			
-		}
-		else if (strpos($filename, 'offers') !== false) {
-			$exchange1c_price_type = $this->config->get('exchange1c_price_type');
-			$this->model_tool_exchange1c->parseOffersFromFile($filename, $exchange1c_price_type);
-			
+			return 0;
+		} else {
 			if (!$manual) {
-				echo "success\n";
+				$this->echo_message(1, "Successfully processed file " . $importFile);
 			}
 		}
-		else if (strpos($filename, 'orders') !== false) {
-			$exchange1c_price_type = $this->config->get('exchange1c_price_type');
-			if (!$this->model_tool_exchange1c->parseOrdersFromFile($filename, $exchange1c_price_type)) {
-				echo "failure\n";
-				echo "ERROR 12: An error occurred while processing file $filename";
-				return false; 
-			}
-			
-			if (!$manual) {
-				echo "success\n";
-			}
-		}
-		else {
-			echo "failure\n";
-			echo $filename;
+		
+		// Только если выбран способ deadcow_seo
+		if ($this->config->get('exchange1c_seo_url') == 1) {
+			$this->load->model('module/deadcow_seo');
+			$this->model_module_deadcow_seo->generateCategories($this->config->get('deadcow_seo_categories_template'), '', 'Russian', true, true);
+			$this->model_module_deadcow_seo->generateProducts($this->config->get('deadcow_seo_products_template'), '.html', 'Russian', true, true);
+			$this->model_module_deadcow_seo->generateManufacturers($this->config->get('deadcow_seo_manufacturers_template'), '', 'Russian', true, true);
+			$this->model_module_deadcow_seo->generateProductsMetaKeywords($this->config->get('deadcow_seo_meta_template'), $this->config->get('deadcow_seo_yahoo_id'), 'Russian', false);
+			$this->model_module_deadcow_seo->generateTags($this->config->get('deadcow_seo_tags_template'), 'Russian', false);
+			$this->model_module_deadcow_seo->generateCategoriesMetaKeywords($this->config->get('deadcow_seo_categories_template'), 'Russian');
 		}
 
 		$this->cache->delete('product');
-		return true;
+		return 1;
 	} // modeImport()
 
+	/**
+	 * Режим запроса заказов
+	 */
 	public function modeQueryOrders() {
 		if (!$this->checkAuthKey(true)) exit;
 
@@ -1012,12 +1057,11 @@ class ControllerModuleExchange1c extends Controller {
 	}
 
 	/**
-	 * Changing order statuses.
+	 * Изменение статусов заказов
 	 */
 	public function modeOrdersChangeStatus(){
-		$this->log("========== Заказы успешно загружены в 1С, смена статуса ==========");
 		if (!$this->checkAuthKey(true)) exit;
-
+		$this->log("[F] Изменение статусов заказов");
 		$this->load->model('tool/exchange1c');
 
 		$result = $this->model_tool_exchange1c->queryOrdersStatus(array(
@@ -1034,10 +1078,7 @@ class ControllerModuleExchange1c extends Controller {
 			$this->model_setting_setting->editSetting('exchange1c', $config);
 		}
 
-		if($result) {
-			echo "success\n";
-		} else
-			echo "fail\n";
+		$this->echo($result);
 	}
 
 
@@ -1046,7 +1087,6 @@ class ControllerModuleExchange1c extends Controller {
 	 * Очистка папки cache
 	 */
 	private function cleanCacheDir() {
-
 		// Проверяем есть ли директория
 		if (file_exists(DIR_CACHE . 'exchange1c')) {
 			if (is_dir(DIR_CACHE . 'exchange1c')) {
@@ -1056,46 +1096,35 @@ class ControllerModuleExchange1c extends Controller {
 				unlink(DIR_CACHE . 'exchange1c');
 			}
 		}
-
 		mkdir (DIR_CACHE . 'exchange1c'); 
+	} // cleanCacheDir()
 
-		return 0;
-	}
 
 	/**
-	 * 
+	 * Проверка дерева каталога для загрузки файлов
 	 */
 	private function checkUploadFileTree($path, $curDir = null) {
-
 		if (!$curDir) $curDir = DIR_CACHE . 'exchange1c/';
-
 		foreach (explode('/', $path) as $name) {
-
 			if (!$name) continue;
-
 			if (file_exists($curDir . $name)) {
 				if (is_dir( $curDir . $name)) {
 					$curDir = $curDir . $name . '/';
 					continue;
 				}
-
 				unlink ($curDir . $name);
 			}
-
 			mkdir ($curDir . $name );
 			$curDir = $curDir . $name . '/';
 		}
-		
-	}
+	} // checkUploadFileTree()
 
-
+	
 	/**
-	 * Очистка
+	 * Очистка папки рекурсивно
 	 */
 	private function cleanDir($root, $self = false) {
-
 		$dir = dir($root);
-
 		while ($file = $dir->read()) {
 			if ($file == '.' || $file == '..') continue;
 			if (file_exists($root . $file)) {
@@ -1105,47 +1134,15 @@ class ControllerModuleExchange1c extends Controller {
 			}
 			var_dump($file);
 		}
-
 		if ($self) {
 			if(file_exists($root) && is_dir($root)) {
 				rmdir($root); return 0;
 			}
-
 			var_dump($root);
 		}
 		return 0;
-	}
+	} // cleanDir()
 	
-	/**
-	 * Определение версии CMS
-	 */
-	public function checkCMS() {
-		// Определяем версию системы
-		if ($handle = fopen($_SERVER['DOCUMENT_ROOT'].'/index.php', 'r')) {
-			$buffer = fread($handle, 2048);
-			fclose($handle);
-			
-			if (!defined('CMS')) {
-				if (strpos($buffer, 'OCSHOP')) {
-					define('CMS', 'OCSHOP');
-				} elseif (strpos($buffer, 'OCSTORE')) {
-					define('CMS', 'OSTORE');
-				} else {
-					define('CMS', 'OPENCART');
-				}
-			}
-			
-			if (!defined('VERSION')) {
-				if (preg_match("/[\d](\.[\d])+/", $buffer, $matches)) {
-					define('VERSION', $matches[0]);
-				} else {
-					define('VERSION', '2.0.3.1');
-				}
-			}
-			return;
-		}
-		$this->log("[i] Не удалось определить CMS");
-	}
 	
 	/**
 	 * События
@@ -1153,7 +1150,7 @@ class ControllerModuleExchange1c extends Controller {
 	public function eventProductDelete($product_id) {
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->ProductLinkDelete($product_id);
-	}
+	} // eventProductDelete()
 	
 	/**
 	 * События
@@ -1161,7 +1158,7 @@ class ControllerModuleExchange1c extends Controller {
 	public function eventCategoryDelete($category_id) {
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->CategoryLinkDelete($category_id);
-	}
+	} // eventCategoryDelete()
 	
 
 }

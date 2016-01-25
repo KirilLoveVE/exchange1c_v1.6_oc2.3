@@ -157,14 +157,14 @@ $registry->set('event', $event);
 $controller = new Front($registry);
 
 // Принудительное использование HTTP авторизации, если она отключена на сервере
-//if (!isset($_SERVER['PHP_AUTH_USER'])) {
-//	if (isset($_SERVER["REMOTE_USER"]) && isset($_SERVER["REDIRECT_REMOTE_USER"])){
-//		$remote_user = $_SERVER["REMOTE_USER"] ? $_SERVER["REMOTE_USER"]: $_SERVER["REDIRECT_REMOTE_USER"];
-//		$strTmp = base64_decode(substr($remote_user,6));
-//		if($strTmp) list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
-//		$log->write('Включен режим принудительной авторизации в beta версии!');
-//	}
-//}
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+	if (isset($_SERVER["REMOTE_USER"]) && isset($_SERVER["REDIRECT_REMOTE_USER"])){
+		$remote_user = $_SERVER["REMOTE_USER"] ? $_SERVER["REMOTE_USER"]: $_SERVER["REDIRECT_REMOTE_USER"];
+		$strTmp = base64_decode(substr($remote_user,6));
+		if($strTmp) list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
+		$log->write('Включен режим принудительной авторизации в beta версии!');
+	}
+}
 
 // Информация используется для поиска и отладки возможных ошибок в beta версиях
 //$sapi = php_sapi_name();

@@ -23,7 +23,9 @@
 		</div>
 	<?php } ?>
 	<div class="panel panel-default">
-		<div class="panel-heading"><h3 class="panel-title"><i class="fa fa-pencil"></i><?php echo $lang['heading_title']; ?></h3></div>
+		<div class="panel-heading">
+			<h3 class="panel-title"><i class="fa fa-pencil"></i><?php echo $lang['heading_title']; ?></h3><em> (Максимально доступно в PHP памяти для работы скрипта : <?php echo $memory_limit; ?>)</em>
+		</div>
 		<div class="panel-body">
 			<ul class="nav nav-tabs">
 				<li class="active"><a href="#tab-general" data-toggle="tab"><?php echo $lang['text_tab_general']; ?></a></li>
@@ -37,13 +39,17 @@
 					<div class="tab-pane active" id="tab-general">
 						<fieldset>
 							<legend><?php echo $lang['text_legend_store']; ?></legend>
+							<div class="alert alert-info">
+								<i class="fa fa-info-circle"></i>
+								Определяет какое название каталога из 1С в какой магазин загружать. Если не указан ни один каталог, то загружает все подряд в магазин по-умолчанию.
+							</div>
 							<div class="table-responsive">
 								<table id="exchange1c_store_id" class="table table-bordered table-hover">
 									<thead>
 										<tr>
 											<td class="text-left"><?php echo $lang['entry_catalog_1c']; ?></td>
 											<td class="text-left"><?php echo $lang['entry_store']; ?></td>
-											<td class="text-right"><?php echo $lang['entry_action']; ?></td>
+											<td class="text-right" width="10%"><?php echo $lang['entry_action']; ?></td>
 										</tr>
 									</thead>
 									<tbody>
@@ -90,16 +96,20 @@
 							<legend><?php echo $lang['text_legend_auth']; ?></legend>
 							<div class="form-group">
 								<label class="col-sm-2 control-label" for="exchange1c_username"><?php echo $lang['entry_username']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<input type="text" name="exchange1c_username" value="<?php echo $exchange1c_username; ?>" placeholder="<?php echo $exchange1c_username; ?>" id="exchange1c_username" class="form-control" />
 									<?php if ($error_exchange1c_username) { ?>
 										<div class="text-danger"><?php echo $error_exchange1c_username; ?></div>
 									<?php } ?>
 								</div>
-							</div>
-							<div class="form-group">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Если не указан логин, то выполняется обмен без проверки логин/пароль, т.е. под любым.
+									</div>
+								</div>
 								<label class="col-sm-2 control-label" for="exchange1c_password"><?php echo $lang['entry_password']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<input type="password" name="exchange1c_password" value="<?php echo $exchange1c_password; ?>" placeholder="<?php echo $exchange1c_password; ?>" id="exchange1c_password" class="form-control" />
 									<?php if ($error_exchange1c_password) { ?>
 										<div class="text-danger"><?php echo $error_exchange1c_password; ?></div>
@@ -110,9 +120,15 @@
 						<fieldset>
 							<legend><?php echo $lang['text_legend_security']; ?></legend>
 							<div class="form-group">
-								<label class="col-sm-2 control-label" for="exchange1c_allow_ip"><span data-toggle="tooltip" data-container="#tab-general" title="<?php echo $lang['help_allow_ip']; ?>"><?php echo $lang['entry_allow_ip']; ?></span></label>
-								<div class="col-sm-10">
-									<textarea name="exchange1c_allow_ip" rows="5" placeholder="<?php echo $exchange1c_allow_ip; ?>" id="exchange1c_allow_ip" class="form-control"><?php echo $exchange1c_allow_ip; ?></textarea>
+								<label class="col-sm-2 control-label" for="exchange1c_allow_ip"><?php echo $lang['entry_allow_ip']; ?></label>
+								<div class="col-sm-3">
+									<textarea name="exchange1c_allow_ip" rows="6" placeholder="<?php echo $exchange1c_allow_ip; ?>" id="exchange1c_allow_ip" class="form-control"><?php echo $exchange1c_allow_ip; ?></textarea>
+								</div>
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Указывать IP адреса переносом строки, если пусто разрешено с любых.
+									</div>
 								</div>
 							</div>
 						</fieldset>
@@ -120,7 +136,7 @@
 							<legend><?php echo $lang['text_legend_other']; ?></legend>
 							<div class="form-group">
 								<label class="col-sm-2 control-label" for="exchange1c_status"><?php echo $lang['entry_status']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<select name="exchange1c_status" id="exchange1c_status" class="form-control">
 									<?php if ($exchange1c_status) { ?>
 										<option value="1" selected="selected"><?php echo $lang['text_enabled']; ?></option>
@@ -131,10 +147,32 @@
 									<?php } ?>
 									</select>
 								</div>
-							</div>
-							<div class="form-group">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Если модуль выключен, то обмен проходить не будет. При отключенном модуле 1С будет выдавать ошибку что авторизация не пройдена!
+									</div>
+								</div>
+								<label class="col-sm-2 control-label" for="exchange1c_file_zip">Формат загрузки данных</label>
+								<div class="col-sm-3">
+									<select name="exchange1c_file_zip" id="exchange1c_file_zip" class="form-control">
+									<?php if ($exchange1c_file_zip) { ?>
+										<option value="1" selected="selected">Все в одном архиве ZIP</option>
+										<option value="0">Кадый файл по отдельности</option>
+									<?php } else { ?>
+										<option value="1">Все в одном архиве ZIP</option>
+										<option value="0" selected="selected">Кадый файл по отдельности</option>
+									<?php } ?>
+									</select>
+								</div>
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										По умолчанию каждый файл передается по отдельности, то есть, сначала закачиваются картинки, затем xml файлы. При большом количестве картинок загрузка может быть очень долгой, чем загрузка одного файла. <br />Если выбран формат загрузки <strong>архив ZIP</strong>, то начале обмена модуль сообщает 1С что хочет принять в ZIP архиве и максимальный размер загружаемого файла, в ответ 1С формирует файл архива один или несколько, если размер файла превышает максимально допустимый для загрузки на сервер.
+									</div>
+								</div>
 								<label class="col-sm-2 control-label"><?php echo $lang['entry_full_log']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<label class="radio-inline">
 										<?php if ($exchange1c_full_log) { ?>
 											<input type="radio" name="exchange1c_full_log" value="1" checked="checked" />
@@ -153,6 +191,12 @@
 											<?php echo $lang['text_no']; ?>
 										<?php } ?>
 									</label>
+								</div>
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Выводит в лог подробные записи, нужен только для отладки, т.к. расходует больше памяти и дольше выполняется обмен. При отключенной опции в лог будут выводиться только сообщения с ошибками.
+									</div>
 								</div>
 							</div>
 						</div>
@@ -221,17 +265,23 @@
 						<fieldset>
 							<legend><?php echo $lang['text_legend_cleaning']; ?></legend>
 							<div class="form-group">
+								<!-- Очищать таблицы -->
 								<label class="col-sm-2 control-label">Очищать таблицы:</label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<button id="button-clean" class="btn btn-primary" type="button" data-loading-text="Очистить таблицы">
 										<i class="fa fa-trash-o fa-lg"></i>
-										Очистить таблицы всех магазинов (товары, категории, опции, характеристики, производители, остатки, цены) 
+										Очистить данные
 									</button>
 								</div>
-							</div>
-							<div class="form-group">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Очищает товары, категории, опции, характеристики, производителей, остатки и цены <strong>во всех магазинах</strong>!
+									</div>
+								</div>
+								<!-- Сбрасывать количество товаров -->
 								<label class="col-sm-2 control-label"><?php echo $lang['entry_flush_quantity']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<label class="radio-inline">
 										<?php if ($exchange1c_flush_quantity) { ?>
 											<input type="radio" name="exchange1c_flush_quantity" value="1" checked="checked" />
@@ -251,61 +301,55 @@
 										<?php } ?>
 									</label>
 								</div>
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Перед началом обмена <strong>только у загружаемых товаров</strong> будет установлен остаток нулевой.
+									</div>
+								</div>
 							</div>
 						</fieldset>
 						<fieldset>
 							<legend><?php echo $lang['text_legend_images']; ?></legend>
 							<div class="form-group">
+								<!-- Водяные знаки -->
 								<label class="col-sm-2 control-label" for="exchange1c_apply_watermark"><?php echo $lang['entry_apply_watermark']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<a title="" class="img_thumbnail" id="thumb-image0" aria-describedby="popover" href="" data-original-title="" data-toggle="image">
 										<img src="<?php echo $thumb; ?>" data-placeholder="<?php echo $placeholder; ?>" alt="" />
 										<input name="exchange1c_watermark" id="input_image0" value="<?php echo $exchange1c_watermark; ?>" type="hidden" />
 									</a>
 								</div>
-							</div>
-						</fieldset>
-						
-						<fieldset>
-							<legend><?php echo $lang['text_legend_fields_update']; ?></legend>
-							<div class="form-group">
-								<label class="col-sm-2 control-label" for="exchange1c_apply_watermark"><?php echo $lang['entry_product_fields_update']; ?></label>
-								<div class="col-sm-10">
-									<div class="well well-sm" style="height: 150px; overflow: auto;">
-										<?php foreach ($product_fields as $field => $value) { ?>
-										<div class="checkbox">
-											<label>
-												<?php if (isset($exchange1c_product_fields_update[$field])) { ?>
-												<input name="exchange1c_product_fields_update[<?php echo $field; ?>]" type="checkbox" value="<?php echo $value; ?>" checked="checked" />
-												<?php echo $lang['text_product_field_'.$field]; ?>
-												<?php } else { ?>
-												<input name="exchange1c_product_fields_update[<?php echo $field; ?>]" type="checkbox" value="<?php echo $value; ?>" />
-												<?php echo $lang['text_product_field_'.$field]; ?>
-												<?php } ?>
-											</label>
-										</div>
-										<?php } ?>
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										При обмене на картинку товара накладывается это изображение. Изображение должно быть с прозрачным фоном, рекомендуемый формат PNG
 									</div>
 								</div>
 							</div>
-							</legend>
 						</fieldset>
-						
+
 						<fieldset>
 							<legend><?php echo $lang['text_legend_other']; ?></legend>
 							<div class="form-group">
+								<!-- Типы номенклатуры -->
 								<label class="col-sm-2 control-label"><?php echo $lang['entry_parse_only_types_item']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<?php if ($exchange1c_parse_only_types_item) { ?>
 										<input type="text" class="form-control" name="exchange1c_parse_only_types_item" value="<?php echo $exchange1c_parse_only_types_item; ?>"/>
 									<?php } else { ?>
 										<input type="text" class="form-control" name="exchange1c_parse_only_types_item" value="" />
 									<?php } ?>
 								</div>
-							</div>
-							<div class="form-group">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										В этой опции указываются какие <strong>типы номенклатуры</strong> из 1С будут обрабатываться, не путаем с <strong>видами номенклатуры</strong>. Типы номенклатуры указываются точно также как в 1С в одну строку, разделяя любым символом. Например: товар, запас, услуга
+									</div>
+								</div>
+								<!-- Заполнять родительские категории -->
 								<label class="col-sm-2 control-label"><?php echo $lang['entry_fill_parent_cats']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<label class="radio-inline">
 										<?php if ($exchange1c_fill_parent_cats) { ?>
 											<input type="radio" name="exchange1c_fill_parent_cats" value="1" checked="checked" />
@@ -325,10 +369,15 @@
 										<?php } ?>
 									</label>
 								</div>
-							</div>
-							<div class="form-group">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Заполняет связи в товаре со всеми категорями в которую входит основная. Например, товар находится в категории <strong>Категория1->Категория2->Категория3</strong>, то основная категория будет <strong>категория3</strong>, а в связях будут указаны категории <strong>Категоря1</strong> и <strong>Категория2</strong>. То есть на сайте товар будет отображаться во всех трех категориях.
+									</div>
+								</div>
+								<!-- Статус при отутствии на складе -->
 								<label class="col-sm-2 control-label" for="exchange1c_default_stock_status"><?php echo $lang['entry_default_stock_status']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<select name="exchange1c_default_stock_status" id="exchange1c_default_stock_status" class="form-control">
 										<?php foreach ($stock_statuses as $status) { ?>
 										<?php if ($exchange1c_default_stock_status == $status['stock_status_id']) { ?>
@@ -338,10 +387,15 @@
 										<?php } // foreach ?>
 									</select>
 								</div>
-							</div>
-							<div class="form-group">
-								<label class="col-sm-2 control-label"><span data-toggle="tooltip" title="<?php echo $lang['entry_product_status_disable_if_quantity_zero_help']; ?>"><?php echo $lang['entry_product_status_disable_if_quantity_zero']; ?></span></label>
-								<div class="col-sm-10">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Эксперементальная опция. Устанавливает статус у товара, если у товара остаток равен нулю.
+									</div>
+								</div>
+								<!-- Отключать товар, если остаток равен нулю -->
+								<label class="col-sm-2 control-label"><?php echo $lang['entry_product_status_disable_if_quantity_zero']; ?></label>
+								<div class="col-sm-3">
 									<label class="radio-inline">
 										<?php if ($exchange1c_product_status_disable_if_quantity_zero) { ?>
 											<input type="radio" name="exchange1c_product_status_disable_if_quantity_zero" value="1" checked="checked" />
@@ -361,10 +415,15 @@
 										<?php } ?>
 									</label>
 								</div>
-							</div>
-							<div class="form-group">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Отключает вывод товара в каталоге сайта, если при обмене этот товар выгрузился и остаток у него меньше или равен нулю.
+									</div>
+								</div>
+								<!-- Не искать товары по артикулам -->
 								<label class="col-sm-2 control-label"><?php echo $lang['entry_dont_use_artsync']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<label class="radio-inline">
 										<?php if ($exchange1c_dont_use_artsync) { ?>
 											<input type="radio" name="exchange1c_dont_use_artsync" value="1" checked="checked" />
@@ -384,10 +443,15 @@
 										<?php } ?>
 									</label>
 								</div>
-							</div>
-							<div class="form-group">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										При обмене ищется товар по внутреннему идентификатору в 1С, если такого нет (товар ранее не выгружался на сайт), при отключенной опции модуль будет искать товар по артикулу (SKU), ну если не найдет ни там и ни там, то будет создан новый товар.<br /><strong>ВНИМАНИЕ! При отключенной опции, если у товара пустые артикулы, то модуль будет находить один и тот же товар по пустому артикулу! Поэтому если нет артикулов, включите эту опцию.</strong>
+									</div>
+								</div>
+								<!-- Наименование товара брать из полей 1С -->
 								<label class="col-sm-2 control-label" for="exchange1c_product_name_or_fullname"><?php echo $lang['entry_product_name_or_fullname']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<select name="exchange1c_product_name_or_fullname" id="exchange1c_product_name_or_fullname" class="form-control">
 										<?php if ($exchange1c_product_name_or_fullname == 0) { ?>
 											<option value="0" selected="selected"><?php echo $lang['text_product_name']; ?></option>
@@ -401,15 +465,27 @@
 										<?php } ?>
 									</select>
 								</div>
-							</div>
-							<div class="form-group">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Загружает в наименование товара поле из 1С
+									</div>
+								</div>
+								<!-- Генерация SEO -->
 								<label class="col-sm-2 control-label" for="exchange1c_seo_url"><?php echo $lang['entry_seo_url']; ?></label>
-								<div class="col-sm-10">
+								<div class="col-sm-3">
 									<select name="exchange1c_seo_url" id="exchange1c_seo_url" class="form-control">
 										<?php if ($exchange1c_seo_url == 0) { ?>
 											<option value="0" selected="selected"><?php echo $lang['text_disabled']; ?></option>
 										<?php } else { ?>
 											<option value="0"><?php echo $lang['text_disabled']; ?></option>
+										<?php } ?>
+										<?php if ($enable_module_deadcow) { ?>
+										<?php if ($exchange1c_seo_url == 1) { ?>
+											<option value="1" selected="selected"><?php echo $lang['entry_seo_url_deadcow']; ?></option>
+										<?php } else { ?>
+											<option value="1"><?php echo $lang['entry_seo_url_deadcow']; ?></option>
+										<?php } ?>
 										<?php } ?>
 										<?php if ($exchange1c_seo_url == 2) { ?>
 											<option value="2" selected="selected"><?php echo $lang['entry_seo_url_translit']; ?></option>
@@ -418,10 +494,21 @@
 										<?php } ?>
 									</select>
 								</div>
-							</div>
-							<div class="form-group">
-								<label class="col-sm-2 control-label" for="exchange1c_synchronize_uuid_to_id"><span data-toggle="tooltip" data-container="#tab-product" title="<?php echo $lang['help_synchronize_uuid_to_id']; ?>"><?php echo $lang['entry_synchronize_uuid_to_id']; ?></span></label>
-								<div class="col-sm-10">
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Формирование уникального пути для товаров и категорий при включенной настройки в Opencart <strong>ЧПУ</strong>. Модуль может формировать URL через Deaadcow SEO 3.0.
+									</div>
+									<?php if (!$enable_module_deadcow) { ?>
+									<div class="alert alert-danger">
+										<i class="fa fa-warning"></i>
+										Модуль Deadcow SEO 3.0 не установлен!
+									</div>
+									<?php } ?>
+								</div>
+								<!-- Запись XML_ID в ID -->
+								<label class="col-sm-2 control-label" for="exchange1c_synchronize_uuid_to_id"><?php echo $lang['entry_synchronize_uuid_to_id']; ?></label>
+								<div class="col-sm-3">
 									<label class="radio-inline">
 										<?php if ($exchange1c_synchronize_uuid_to_id) { ?>
 											<input type="radio" name="exchange1c_synchronize_uuid_to_id" value="1" checked="checked" />
@@ -440,6 +527,12 @@
 											<?php echo $lang['text_no']; ?>
 										<?php } ?>
 									</label>
+								</div>
+								<div class="col-sm-7">
+									<div class="alert alert-info">
+										<i class="fa fa-info-circle"></i>
+										Эксперементальная опция. Модуль из файла поле <strong>Ид</strong> товара и категории пытается записать соответственно в <strong>id</strong> товара и категории Opencart. Для этого нужно чтобы 1С записывала <strong>в Ид код товара и категории</strong> без буквенных префиксов, либо будут взяты только цифры с начала поля до первой буквы. Длина этого поля <strong>не должна быть больше 11 символов</strong>, иначе эта опция игнорируется. Проверка на дубли не проверяется.
+									</div>
 								</div>
 							</div>
 						</fieldset>
@@ -546,16 +639,17 @@
 							<label class="col-sm-2 control-label" for="button-upload">
 								<span title="" data-original-title="<?php echo $lang['help_upload']; ?>" data-toggle="tooltip"><?php echo $lang['entry_upload']; ?></span>
 							</label>
-							<button id="button-upload" class="btn btn-primary" type="button" data-loading-text="<?php echo $lang['button_upload']; ?>">
+							<button id="button-upload" class="col-sm-2 btn btn-primary" type="button" data-loading-text="<?php echo $lang['button_upload']; ?>">
 								<i class="fa fa-upload"></i>
 								<?php echo $lang['button_upload']; ?>
 							</button>
+							<label class="col-sm-3 control-label">Upload max file size : <?php echo $upload_max_filesize; ?><br />Maximum size of POST data : <?php echo $post_max_size; ?></label>
 						</div>
 						<div class="form-group">
 							<label class="col-sm-2 control-label" for="button-download-orders">
 								<span title="" data-original-title="<?php echo $lang['help_download_orders']; ?>" data-toggle="tooltip"><?php echo $lang['entry_download_orders']; ?></span>
 							</label>
-							<button id="button-download-orders" class="btn btn-primary" type="button" data-loading-text="<?php echo $lang['button_download_orders']; ?>">
+							<button id="button-download-orders" class="col-sm-2 btn btn-primary" type="button" data-loading-text="<?php echo $lang['button_download_orders']; ?>">
 								<i class="fa fa-download"></i>
 								<?php echo $lang['button_download_orders']; ?>
 							</button>
@@ -655,14 +749,23 @@
 							</div>
 							<div class="col-sm-12">
 								<fieldset>
+									<legend>Изменения в версии 1.6.2.0:</legend>
+									<ul>
+										<li>Перелопачен по-новой весь код модуля.</li>
+										<li>Оптимизирована загрузка памяти, контроль за расходом памяти. В бета версии будет выводить информацию в лог.</li>
+										<li>Добавлены описания опций.</li>
+										<li>Добавлена поддержка Deadcow SEO 3.0.</li>
+										<li>Доработана загрузка zip архивов, таким образом обмен будет происходить быстрее, но файл обмена будет большим за счет содержания картинок. Содержание архива: в корне файлы *.xml <em>(названия роли не играет)</em> и папка с картинками <strong>import_files</strong>, либо в корне архива папка <strong>1cbitrix_</strong> а в ней все как в предыдущем варианте.</li>
+									</ul>
+								</fieldset>
+							</div>
+							<div class="col-sm-12">
+								<fieldset>
 									<legend>Ожидаемые изменения в следующих версиях:</legend>
 									<ul>
-										<li>Будет добавлена инструкция.</li>
 										<li>Скачивание заказов, для ручной загрузки в 1С.</li>
 										<li>Загрузка заказов из 1С.</li>
-										<li>Смена статусов заказов на сайте при загрузке из 1С.</li>
 										<li>Загрузка в режиме связанных опций.</li>
-										<li>Генерация Тегов и мета-полей для SEO.</li>
 										<li>При загрузке предложений выбор по опциям что обновлять(остатки, цены, опции).</li>
 									</ul>
 								</fieldset>

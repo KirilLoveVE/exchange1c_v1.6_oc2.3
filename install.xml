@@ -1,6 +1,6 @@
 <modification>
 	<name>Exchange Module for OpenCart 2.x</name>
-	<version>1.6.1.13</version>
+	<version>1.6.2.0</version>
 	<id>OpenCart Exchange</id> 
 	<author>KirilLoveVE</author>
 	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
@@ -41,4 +41,15 @@
 		</operation>
 	</file>
 
+	<file path="system/library/image.php">
+		<operation>
+			<search><![CDATA[$mime = $this->info['mime'];]]></search>
+			<add position="replace"><![CDATA[$info = getimagesize($image);
+		$mime = isset($info['mime']) ? $info['mime'] : '';]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[imagecopy($this->image, $watermark, $watermark_pos_x, $watermark_pos_y, 0, 0, 120, 40);]]></search>
+			<add position="replace"><![CDATA[imagecopy($this->image, $watermark, $watermark_pos_x, $watermark_pos_y, 0, 0, $watermark_width, $watermark_height);]]></add>
+		</operation>
+	</file>
 </modification>
