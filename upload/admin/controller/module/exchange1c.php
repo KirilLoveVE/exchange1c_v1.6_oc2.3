@@ -499,7 +499,7 @@ class ControllerModuleExchange1c extends Controller {
 							`1c_id` varchar(255) NOT NULL,
 							KEY (`product_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (product_id) REFERENCES '. DB_PREFIX .'product(product_id) ON DELETE CASCADE
+							FOREIGN KEY (`product_id`) REFERENCES `'. DB_PREFIX .'product`(`product_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
@@ -514,7 +514,7 @@ class ControllerModuleExchange1c extends Controller {
 							`1c_id` varchar(255) NOT NULL,
 							KEY (`category_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (category_id) REFERENCES '. DB_PREFIX .'category(category_id) ON DELETE CASCADE
+							FOREIGN KEY (`category_id`) REFERENCES `'. DB_PREFIX .'category`(`category_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
@@ -529,7 +529,7 @@ class ControllerModuleExchange1c extends Controller {
 							`1c_id` varchar(255) NOT NULL,
 							KEY (`attribute_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (attribute_id) REFERENCES '. DB_PREFIX .'attribute(attribute_id) ON DELETE CASCADE
+							FOREIGN KEY (`attribute_id`) REFERENCES `'. DB_PREFIX .'attribute`(`attribute_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
@@ -544,7 +544,7 @@ class ControllerModuleExchange1c extends Controller {
 							`1c_id` varchar(255) NOT NULL,
 							KEY (`option_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (option_id) REFERENCES '. DB_PREFIX .'option(option_id) ON DELETE CASCADE
+							FOREIGN KEY (`option_id`) REFERENCES `'. DB_PREFIX .'option`(`option_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
@@ -559,7 +559,7 @@ class ControllerModuleExchange1c extends Controller {
 							`1c_id` varchar(255) NOT NULL,
 							KEY (`manufacturer_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (manufacturer_id) REFERENCES '. DB_PREFIX .'manufacturer(manufacturer_id) ON DELETE CASCADE
+							FOREIGN KEY (`manufacturer_id`) REFERENCES `'. DB_PREFIX .'manufacturer`(`manufacturer_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
@@ -574,7 +574,7 @@ class ControllerModuleExchange1c extends Controller {
 							`1c_id` varchar(255) NOT NULL,
 							KEY (`store_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (store_id) REFERENCES '. DB_PREFIX .'store(store_id) ON DELETE CASCADE
+							FOREIGN KEY (`store_id`) REFERENCES `'. DB_PREFIX .'store`(`store_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
