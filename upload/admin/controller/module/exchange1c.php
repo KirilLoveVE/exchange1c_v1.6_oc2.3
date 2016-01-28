@@ -15,7 +15,7 @@ class ControllerModuleExchange1c extends Controller {
 	/**
 	 * Выводит сообщение
 	 */
-	private function echo_message($ok, $message) {
+	private function echo_message($ok, $message="") {
 		if ($ok) {
 			echo "success\n";
 			$this->log("[ECHO] success");
@@ -634,6 +634,7 @@ class ControllerModuleExchange1c extends Controller {
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "manufacturer_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "store_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_quantity`");
+		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "warehouse`");
 		
 		// Удаляем и файлы
 //		if (is_file($_SERVER['DOCUMENT_ROOT'].'/export/exchange1c.php'))
@@ -1061,7 +1062,7 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	public function modeOrdersChangeStatus(){
 		if (!$this->checkAuthKey(true)) exit;
-		$this->log("[F] Изменение статусов заказов");
+		$this->log(">>> Изменение статусов заказов");
 		$this->load->model('tool/exchange1c');
 
 		$result = $this->model_tool_exchange1c->queryOrdersStatus(array(
@@ -1078,7 +1079,7 @@ class ControllerModuleExchange1c extends Controller {
 			$this->model_setting_setting->editSetting('exchange1c', $config);
 		}
 
-		$this->echo($result);
+		$this->echo_message(1,$result);
 	}
 
 
