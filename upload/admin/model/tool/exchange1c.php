@@ -1977,8 +1977,8 @@ class ModelToolExchange1c extends Model {
 	public function update($old_version) {
 		
 		$message = "";
-		if (version_compare($old_version, '1.6.2.b3', '<=')) {
-			$message .= $this->update162b3();
+		if (version_compare($old_version, '1.6.2.b4', '<')) {
+			$message .= $this->update162b4();
 		}
 		
 		$this->setEvents();
@@ -1990,12 +1990,11 @@ class ModelToolExchange1c extends Model {
 	/**
 	 * Устанавливает обновления
 	 */
-	public function update162b3() {
+	public function update162b4() {
 		// Добавление таблицы manufacturer_to_1c
-		$old_version = '1.6.2.b3';
 		$new_version = '1.6.2.b4';
 
-		$message = "[UPDATE] Обновление модуля с версии " . $old_version . " до версии " . $new_version . "<br>\n";
+		$message = "[UPDATE] Обновление модуля до версии " . $new_version . "<br>\n";
 		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "manufacturer_to_1c'");
 		if(!$query->num_rows) {
 			$this->db->query(

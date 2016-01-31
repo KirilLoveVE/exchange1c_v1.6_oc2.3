@@ -503,7 +503,7 @@ class ControllerModuleExchange1c extends Controller {
 //		);
 	
 		// Связь товаров с 1С
-		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'product_to_1c`');
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "product_to_1c'");
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
@@ -518,7 +518,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		// Связь категорий с 1С
-		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'category_to_1c`');
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "category_to_1c'");
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
@@ -533,7 +533,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 	
 		// Свойства из 1С
-		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'attribute_to_1c`');
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "attribute_to_1c'");
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
@@ -548,7 +548,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		// Характеристики из 1С
-		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'option_to_1c`');
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "option_to_1c'");
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
@@ -563,7 +563,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		
 		// Привязка производителя к каталогу 1С
-		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'manufacturer_to_1c`');
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "manufacturer_to_1c'");
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
@@ -578,7 +578,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		
 		// Привязка магазина к каталогу 1С
-		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'store_to_1c`');
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "store_to_1c'");
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
@@ -593,7 +593,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		
 		// остатки по складам
-		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'product_quantity"');
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "product_quantity'");
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
@@ -608,7 +608,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		// склады
-		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'warehouse`');
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "warehouse'");
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
