@@ -17,7 +17,7 @@ class ModelToolExchange1c extends Model {
 	 *
 	 */
 	public function version() {
-		return "1.6.2.b3";
+		return "1.6.2.b4";
 	} // version()
 	
 
@@ -185,7 +185,7 @@ class ModelToolExchange1c extends Model {
 	/**
 	 * Удаляет связи XML_ID -> id
 	 */
-	public function ProductLinkDelete($product_id) {
+	public function deleteLinkProduct($product_id) {
 		// Удаляем линк
 		if ($product_id){
 			$this->db->query("DELETE FROM `" .  DB_PREFIX . "product_to_1c` WHERE product_id = '" . $product_id . "'");
@@ -208,20 +208,44 @@ class ModelToolExchange1c extends Model {
 				$this->log("Удален файл: " . $image['image']);
 			}
 		}
-	} // ProductLinkDelete()
+	} // deleteLinkProduct()
 	
 
 	/**
 	 * Удаляет связи XML_ID -> id
 	 */
-	public function CategoryLinkDelete($category_id) {
+	public function deleteLinkCategory($category_id) {
 		// Удаляем линк
 		if ($category_id){
 			$this->db->query("DELETE FROM `" .  DB_PREFIX . "category_to_1c` WHERE category_id = '" . $category_id . "'");
 			$this->log("Удалена связь категории XML_ID с id: " . $category_id);
 		}
-	} //  CategoryLinkDelete()
+	} //  deleteLinkCategory()
 	
+
+	/**
+	 * Удаляет связи XML_ID -> id
+	 */
+	public function deleteLinkManufacturer($manufacturer_id) {
+		// Удаляем линк
+		if ($manufacturer_id){
+			$this->db->query("DELETE FROM `" .  DB_PREFIX . "manufacturer_to_1c` WHERE manufacturer_id = '" . $manufacturer_id . "'");
+			$this->log("Удалена связь производителя XML_ID с id: " . $manufacturer_id);
+		}
+	} //  deleteLinkManufacturer()
+
+
+	/**
+	 * Удаляет связи XML_ID -> id
+	 */
+	public function deleteLinkOption($option_id) {
+		// Удаляем линк
+		if ($option_id){
+			$this->db->query("DELETE FROM `" .  DB_PREFIX . "option_to_1c` WHERE option_id = '" . $option_id . "'");
+			$this->log("Удалена связь опции XML_ID с id: " . $option_id);
+		}
+	} //  deleteLinkOption()
+
 
 	/**
 	 * Создает события
@@ -237,6 +261,10 @@ class ModelToolExchange1c extends Model {
 		$this->model_extension_event->addEvent('exchange1c', 'pre.admin.product.delete', 'module/exchange1c/eventDeleteProduct');
 		// Добавим удаление связей при удалении категории
 		$this->model_extension_event->addEvent('exchange1c', 'pre.admin.category.delete', 'module/exchange1c/eventDeleteCategory');
+		// Добавим удаление связей при удалении Производителя
+		$this->model_extension_event->addEvent('exchange1c', 'pre.admin.manufacturer.delete', 'module/exchange1c/eventDeleteManufacturer');
+		// Добавим удаление связей при удалении Характеристики
+		$this->model_extension_event->addEvent('exchange1c', 'pre.admin.option.delete', 'module/exchange1c/eventDeleteOption');
 	} // setEvents()
 
 
@@ -266,6 +294,8 @@ class ModelToolExchange1c extends Model {
 				return false;
 			}
 		}
+		// проверка полей таблиц
+		
 		return true;
 	} // checkDB()
 
@@ -345,6 +375,27 @@ class ModelToolExchange1c extends Model {
 		$query = $this->db->query('SELECT 1c_id FROM ' . DB_PREFIX . 'product_to_1c WHERE `product_id` = ' . $product_id);
 		return isset($query->row['1c_id']) ? $query->row['1c_id'] : '';
 	} // getXMLIDByProductId()
+
+
+	/**
+	 * Проверка на существование поля в таблице
+	 */
+	private function existFiled($table, $field, $value="") {
+		$query = $this->db->query("SHOW COLUMNS FROM " . DB_PREFIX . $table . " WHERE `field` = '" . $field . "'");
+		if ($query->num_rows) {
+			if (!empty($value)) {
+				return ", " . $field . " = '" . $value . "'";
+			} else {
+				return 1;
+			}
+			
+		}
+		if (!empty($value)) {
+			return "";
+		} else {
+			return 0;
+		}
+	} // existFiled()
 
 
 	/**
@@ -537,7 +588,7 @@ class ModelToolExchange1c extends Model {
 
 		// SEO
 		if (isset($data['seo_url'])) {
-			$this->setSeoURL('category_id', $category_id, $data['seo_url']);
+			$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
 		}
 		
 		$this->cache->delete('category');
@@ -649,11 +700,7 @@ class ModelToolExchange1c extends Model {
 		$this->db->query($sql);
 		
 		// категории продукта
-		$main_category = "";
-		$query = $this->db->query("SHOW COLUMNS FROM " . DB_PREFIX . "product_to_category WHERE `field` = 'main_category'");
-		if ($query->num_rows) {
-			$main_category = ", main_category = 1";	// значение по умолчанию
-		}
+		$main_category = $this->existFiled("product_to_category", "main_category", 1);
 		
 		if (isset($data['product_category'])) {
 			foreach ($data['product_category'] as $category_id) {
@@ -708,13 +755,8 @@ class ModelToolExchange1c extends Model {
 		$this->updateProductDescription($data, $product_id);
 		
 		// категории
-		$main_category = "";
-		$query = $this->db->query("SHOW COLUMNS FROM " . DB_PREFIX . "product_to_category WHERE `field` = 'main_category'");
-//		$this->log($query->num_rows);
-		if ($query->num_rows) {
-			$main_category = ", main_category = 1";	// значение по умолчанию
-		}
-
+		$main_category = $this->existFiled("product_to_category", "main_category", 1);
+		
 		if (isset($data['product_category'])) {
 			$this->db->query("DELETE FROM " . DB_PREFIX . "product_to_category WHERE product_id = '" . (int)$product_id . "'");
 			foreach ($data['product_category'] as $category_id) {
@@ -743,7 +785,7 @@ class ModelToolExchange1c extends Model {
  	private function setProduct($data) {
  		// Ищем товар...
  		$product_id = $this->getProductByXMLID($data['xml_id']);
-		if (!$this->config->get('exchange1c_dont_use_artsync') && !$product_id) {
+		if (!$this->config->get('exchange1c_dont_use_artsync') && !$product_id && isset($data['sku'])) {
 			$product_id = $this->getProductBySKU($data['sku']);
  		}
  		// Можно добавить поиск по наименованию или другим полям...
@@ -759,6 +801,7 @@ class ModelToolExchange1c extends Model {
  		} else {
  			$this->updateProduct($data, $product_id);
  		}
+ 		//$this->log($this->db->query("SELECT product_id, manufacturer_id FROM " . DB_PREFIX . "product WHERE product_id = '" . (int)$product_id . "'"));
  		return $product_id; 
  	} // setProduct()
 
@@ -787,8 +830,8 @@ class ModelToolExchange1c extends Model {
 						$data['name'] = $requisite->Значение ? htmlspecialchars((string)$requisite->Значение) : '';
 					}
 				break;
-				default:
-					$this->log("[?] Неиспользуемый реквизит: " . (string)$requisite->Наименование. " = " . (string)$requisite->Значение);
+//				default:
+//					$this->log("[?] Неиспользуемый реквизит: " . (string)$requisite->Наименование. " = " . (string)$requisite->Значение);
 			}
 		}
 //		$this->log($data);
@@ -1042,7 +1085,8 @@ class ModelToolExchange1c extends Model {
 
 			if ($name == 'Производитель' && !empty($value)) {
 				$manufacturer_id = $this->setManufacturer($value, $xml_id);
-				$sql = "UPDATE " . DB_PREFIX . "product SET manufacturer_id = '" . $manufacturer_id. "'";
+				$sql = "UPDATE " . DB_PREFIX . "product SET manufacturer_id = '" . $manufacturer_id. "' WHERE product_id = '" . (int)$product_id . "'";
+//				$this->log($sql);
 				$this->db->query($sql);
 				$this->log("> Производитель (из свойства): " . $value);
 				continue;
@@ -1083,7 +1127,7 @@ class ModelToolExchange1c extends Model {
 		if (isset($data['seo_url'])) {
 			$this->setSeoURL('manufacturer_id', $manufacturer_id, $data['seo_url']);
 		}
-		
+		$this->log("> Производитель '" . $data['name'] . "' обновлен");
 	} // updateManufacturer()
 	
 
@@ -1101,7 +1145,8 @@ class ModelToolExchange1c extends Model {
 
 		$manufacturer_id = $this->db->getLastId();
 
-		if (version_compare(VERSION,"2.0.3.1")) {
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "manufacturer_description'");
+		if ($query->num_rows) {
 			$sql	= " manufacturer_id = '" . (int)$manufacturer_id . "'";
 			$sql   .= ", language_id = '" . (int)$this->LANG_ID . "'";
 			$sql   .= ", meta_title = '" . $this->db->escape($data['description']) . "'";
@@ -1109,14 +1154,14 @@ class ModelToolExchange1c extends Model {
 			$sql   .= ", meta_description = '" . $this->db->escape($data['description']) . "'";
 			$sql   .= ", meta_keyword = '" . $this->db->escape($data['name']) . "'";
 			$sql = "INSERT INTO " . DB_PREFIX . "manufacturer_description SET" . $sql;
-	//		$this->log($sql);
+//			$this->log($sql);
 			$query = $this->db->query($sql);
 		}
 		
 		if (isset($data['xml_id'])) {
 			// добавляем связь
 			$sql 	= "INSERT INTO " . DB_PREFIX . "manufacturer_to_1c SET 1c_id = '" . $this->db->escape($data['xml_id']) . "', manufacturer_id = '" . (int)$manufacturer_id . "'";
-	//		$this->log($sql);
+//			$this->log($sql);
 			$query = $this->db->query($sql);
 		}
 
@@ -1129,6 +1174,7 @@ class ModelToolExchange1c extends Model {
 //		$this->log($sql);
 		$query = $this->db->query($sql);
 		
+		$this->log("> Производитель '" . $data['name'] . "' добавлен");
 		return $manufacturer_id; 
 	} // addManufacturer()
 
@@ -1145,15 +1191,14 @@ class ModelToolExchange1c extends Model {
 		$data['description'] 	= 'Производитель ' . $data['name'];
 		$data['sort_order']		= 1;
 
-		$query = $this->db->query("SHOW COLUMNS FROM " . DB_PREFIX . "manufacturer WHERE `field` = 'noindex'");
-		if ($query->num_rows) {
+		if ($this->existFiled("manufacturer", "noindex")) {
 			$data['noindex'] = 1;	// значение по умолчанию
 		}
 
 		if (isset($data['xml_id'])) {
 			// Поиск изготовителя по 1C Ид
 			$sql 	= "SELECT manufacturer_id FROM `" . DB_PREFIX . "manufacturer_to_1c` WHERE 1c_id = '" . $this->db->escape($data['xml_id']) . "'";
-	//		$this->log($sql);
+//			$this->log($sql);
 			$query = $this->db->query($sql);
 			if ($query->num_rows) {
 				$manufacturer_id = $query->row['manufacturer_id'];
@@ -1183,8 +1228,7 @@ class ModelToolExchange1c extends Model {
 			$this->updateManufacturer($manufacturer_id, $data);
 		}
 
-		$this->log("> Производитель: '" . $data['name'] . "'");
-
+//		$this->log("> Производитель: '" . $data['name'] . "'");
 		return $manufacturer_id;
 	} // setManufacturer()
 
@@ -1193,8 +1237,7 @@ class ModelToolExchange1c extends Model {
 	 * Обрабатывает товары
 	 */
 	private function parseProducts($xml, $classifier) {
-		$query = $this->db->query("SHOW COLUMNS FROM " . DB_PREFIX . "product WHERE `field` = 'noindex'");
-		if ($query->num_rows) {
+		if ($this->existFiled("product", "noindex")) {
 			$noindex = 1;
 		}
 		$default_stock_status = $this->config->get('exchange1c_default_stock_status');
@@ -1203,11 +1246,16 @@ class ModelToolExchange1c extends Model {
 				$data = array();
 				$data['xml_id']				= (string)$product->Ид;
 				$data['name']				= htmlspecialchars((string)$product->Наименование);
-				$data['sku']				= htmlspecialchars((string)$product->Артикул);
-				$data['model']				= htmlspecialchars((string)$product->Артикул);
+				if ($product->Артикул) {
+					$data['model']			= htmlspecialchars((string)$product->Артикул);
+					$data['sku']			= htmlspecialchars((string)$product->Артикул);
+				}
+				if ($product->Штрихкод) {
+					$data['ean']			= ((string)$product->Штрихкод);
+				}
 				$data['status']				= 1;
 				if (isset($noindex)) {
-					$data['noindex']			= 1; // не во всех версиях
+					$data['noindex']		= 1; // не во всех версиях
 				}
 //				$this->log($data);
 				$this->log("Товар '" . $data['name'] . "'");
@@ -1277,6 +1325,8 @@ class ModelToolExchange1c extends Model {
 						return false;
 					}
 				}
+//$this->log($this->db->query("SELECT product_id, manufacturer_id FROM " . DB_PREFIX . "product WHERE product_id = '" . (int)$product_id . "'"));
+
 				unset($product);
 			}
 		}
@@ -1452,7 +1502,7 @@ class ModelToolExchange1c extends Model {
 	 		if ($index == 0){
 	 			// Обновляем основную цену в товаре
 	 			$sql = "UPDATE " . DB_PREFIX . "product SET price = '" . $price . "' WHERE product_id = '" . (int)$product_id . "'";
-	 			//$this->log($sql);
+//$this->log($sql);
 	 			$this->db->query($sql);
 		 		$this->log("> Основная цена: " . $price);
 	 		} else {
@@ -1461,7 +1511,7 @@ class ModelToolExchange1c extends Model {
 	 				$price_type = $offers_pack['price_types'][$xml_id];
 					$this->db->query("DELETE FROM " . DB_PREFIX . "product_discount WHERE product_id = '" . (int)$product_id . "'");
 		 			$sql = "INSERT INTO " . DB_PREFIX . "product_discount SET product_id = '" . (int)$product_id . "', customer_group_id = '" . (int)$price_type['customer_group_id'] . "', quantity = '" . (int)$price_type['quantity'] . "', priority = '" . (int)$price_type['priority'] . "', price = '" . (float)$price . "', date_start = '', date_end = ''";
-		 			//$this->log($sql);
+//$this->log($sql);
 					$this->db->query($sql);
 			 		$this->log("> Цена '" . $price_type['keyword'] . "': " . $price);
 	 			}
@@ -1483,7 +1533,6 @@ class ModelToolExchange1c extends Model {
 			$data = array();
 			$data['xml_id']	= (string)$offer->Ид;
 			$data['name']	= isset($offer->Наименование) ? (string)$offer->Наименование : '';
-//			$data['sku']	= isset($offer->Артикул) ? (string)$offer->Артикул : '';
 			$product_id		= $this->getProductByXMLID($data['xml_id']); 		
 			if (!$product_id)  {
 				continue;
@@ -1580,7 +1629,7 @@ class ModelToolExchange1c extends Model {
 				$this->log("> Изменен статус заказа #" . $orders_data['order_id']);
 				// Добавляем историю в заказ
 				$sql = "INSERT INTO " . DB_PREFIX . "order_history SET order_id = '" . $orders_data['order_id'] . "', comment = 'Ваш заказ обрабатывается', order_status_id = '" . $params['new_status'] . "', notify = '0', date_added = NOW()";
-//				$this->log($sql);
+//$this->log($sql);
 				$query = $this->db->query($sql);
 				$this->log("> Добавлена история в заказ #" . $orders_data['order_id']);
 			}
@@ -1606,7 +1655,7 @@ class ModelToolExchange1c extends Model {
 			// Иначе выгружаем заказы с последей выгрузки, если не определа то все
 			$query = $this->db->query("SELECT order_id FROM `" . DB_PREFIX . "order` WHERE `date_added` >= '" . $params['from_date'] . "'");
 		}
-//		$this->log($query);
+//$this->log($query);
 		$document = array();
 		$document_counter = 0;
 
@@ -1854,7 +1903,7 @@ class ModelToolExchange1c extends Model {
 //$this->log($importFile);			
 		// Функция будет сама определять что за файл загружается
 		$this->log("==== Начата загрузка данных ====");
-		$this->log("[i] Всего доступно памяти для работы: " . sprintf("%.3f", memory_get_peak_usage() / 1024 / 1024));
+		$this->log("[i] Всего доступно памяти: " . sprintf("%.3f", memory_get_peak_usage() / 1024 / 1024) . " Mb");
 		
 		$this->log(">>> Начинается чтение XML");
 		// Конвертируем XML в массив

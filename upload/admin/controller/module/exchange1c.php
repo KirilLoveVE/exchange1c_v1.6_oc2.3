@@ -490,91 +490,91 @@ class ControllerModuleExchange1c extends Controller {
 //		);
 	
 		// Связь товаров с 1С
-		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'product_to_1c"');
+		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'product_to_1c`');
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
 						`' . DB_PREFIX . 'product_to_1c` (
 							`product_id` int(11) NOT NULL,
 							`1c_id` varchar(255) NOT NULL,
-							KEY (`product_id`),
+							PRIMARY KEY (`product_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (product_id) REFERENCES '. DB_PREFIX .'product(product_id) ON DELETE CASCADE
+							FOREIGN KEY (`product_id`) REFERENCES `'. DB_PREFIX .'product`(`product_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
 
 		// Связь категорий с 1С
-		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'category_to_1c"');
+		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'category_to_1c`');
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
 						`' . DB_PREFIX . 'category_to_1c` (
 							`category_id` int(11) NOT NULL,
 							`1c_id` varchar(255) NOT NULL,
-							KEY (`category_id`),
+							PRIMARY KEY (`category_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (category_id) REFERENCES '. DB_PREFIX .'category(category_id) ON DELETE CASCADE
+							FOREIGN KEY (`category_id`) REFERENCES `'. DB_PREFIX .'category`(`category_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
 	
 		// Свойства из 1С
-		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'attribute_to_1c"');
+		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'attribute_to_1c`');
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
 						`' . DB_PREFIX . 'attribute_to_1c` (
 							`attribute_id` int(11) NOT NULL,
 							`1c_id` varchar(255) NOT NULL,
-							KEY (`attribute_id`),
+							PRIMARY KEY (`attribute_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (attribute_id) REFERENCES '. DB_PREFIX .'attribute(attribute_id) ON DELETE CASCADE
+							FOREIGN KEY (`attribute_id`) REFERENCES `'. DB_PREFIX .'attribute`(`attribute_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
 
 		// Характеристики из 1С
-		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'option_to_1c"');
+		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'option_to_1c`');
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
 						`' . DB_PREFIX . 'option_to_1c` (
 							`option_id` int(11) NOT NULL,
 							`1c_id` varchar(255) NOT NULL,
-							KEY (`option_id`),
+							PRIMARY KEY (`option_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (option_id) REFERENCES '. DB_PREFIX .'option(option_id) ON DELETE CASCADE
+							FOREIGN KEY (`option_id`) REFERENCES `'. DB_PREFIX .'option`(`option_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
 		
 		// Привязка производителя к каталогу 1С
-		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'manufacturer_to_1c"');
+		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'manufacturer_to_1c`');
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
 						`' . DB_PREFIX . 'manufacturer_to_1c` (
 							`manufacturer_id` int(11) NOT NULL,
 							`1c_id` varchar(255) NOT NULL,
-							KEY (`manufacturer_id`),
+							PRIMARY KEY (`manufacturer_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (manufacturer_id) REFERENCES '. DB_PREFIX .'manufacturer(manufacturer_id) ON DELETE CASCADE
+							FOREIGN KEY (`manufacturer_id`) REFERENCES `'. DB_PREFIX .'manufacturer`(`manufacturer_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
 		
 		// Привязка магазина к каталогу 1С
-		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'store_to_1c"');
+		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'store_to_1c`');
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
 						`' . DB_PREFIX . 'store_to_1c` (
 							`store_id` int(11) NOT NULL,
 							`1c_id` varchar(255) NOT NULL,
-							KEY (`store_id`),
+							PRIMARY KEY (`store_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (store_id) REFERENCES '. DB_PREFIX .'store(store_id) ON DELETE CASCADE
+							FOREIGN KEY (`store_id`) REFERENCES `'. DB_PREFIX .'store`(`store_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
@@ -588,14 +588,14 @@ class ControllerModuleExchange1c extends Controller {
 						`product_id` int(11) NOT NULL,
 						`warehouse_id` int(11) NOT NULL,
 						`quantity` int(10) DEFAULT 0,
-						KEY (`product_id`),
+						PRIMARY KEY (`product_id`),
 						KEY (`warehouse_id`)                            
 					) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
 
 		// склады
-		$query = $this->db->query('SHOW TABLES LIKE "' . DB_PREFIX . 'warehouse"');
+		$query = $this->db->query('SHOW TABLES LIKE `' . DB_PREFIX . 'warehouse`');
 		if(!$query->num_rows) {
 			$this->db->query(
 					'CREATE TABLE
@@ -1150,16 +1150,37 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	public function eventProductDelete($product_id) {
 		$this->load->model('tool/exchange1c');
-		$this->model_tool_exchange1c->ProductLinkDelete($product_id);
+		$this->model_tool_exchange1c->deleteLinkProduct($product_id);
 	} // eventProductDelete()
 	
+
 	/**
 	 * События
 	 */
 	public function eventCategoryDelete($category_id) {
 		$this->load->model('tool/exchange1c');
-		$this->model_tool_exchange1c->CategoryLinkDelete($category_id);
+		$this->model_tool_exchange1c->deleteLinkCategory($category_id);
 	} // eventCategoryDelete()
+
+
+	/**
+	 * События
+	 */
+	public function eventManufacturerDelete($manufacturer_id) {
+		$this->load->model('tool/exchange1c');
+		$this->model_tool_exchange1c->deleteLinkManufacturer($manufacturer_id);
+	} // eventProductDelete()
+
+
+	/**
+	 * События
+	 */
+	public function eventOptionDelete($option_id) {
+		$this->load->model('tool/exchange1c');
+		$this->model_tool_exchange1c->deleteLinkOption($option_id);
+	} // eventProductDelete()
+
+
 	
 
 }
