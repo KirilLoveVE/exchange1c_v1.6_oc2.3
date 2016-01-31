@@ -5,6 +5,7 @@ $this->model_user_user_group->addPermission($this->user->getId(), 'modify', 'mod
 
 // Обновим версию
 $this->load->model('tool/exchange1c');
-$this->model_tool_exchange1c->update();
+$this->load->model('setting/setting');
+$this->model_tool_exchange1c->update($this->config->get('exchange1c_version'));
 
 ?>

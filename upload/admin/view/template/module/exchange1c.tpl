@@ -22,6 +22,18 @@
 			<button type="button" class="close" data-dismiss="alert">&times;</button>
 		</div>
 	<?php } ?>
+	<?php if ($warning) { ?>
+		<div class="alert alert-danger">
+			<i class="fa fa-warning"></i>
+			<?php echo $warning; ?>
+		</div>
+	<?php } ?>
+	<?php if ($update) { ?>
+		<div class="alert alert-info">
+			<i class="fa fa-info-circle"></i>
+			<?php echo $update; ?>
+		</div>
+	<?php } ?>
 	<div class="panel panel-default">
 		<div class="panel-heading">
 			<h3 class="panel-title"><i class="fa fa-pencil"></i><?php echo $lang['heading_title']; ?></h3><em> (Максимально доступно в PHP памяти для работы скрипта : <?php echo $memory_limit; ?>)</em>
@@ -158,7 +170,7 @@
 									<select name="exchange1c_file_zip" id="exchange1c_file_zip" class="form-control">
 									<?php if ($exchange1c_file_zip) { ?>
 										<option value="1" selected="selected">Все в одном архиве ZIP</option>
-										<option value="0">Кадый файл по отдельности</option>
+										<option value="0">Каждый файл по отдельности</option>
 									<?php } else { ?>
 										<option value="1">Все в одном архиве ZIP</option>
 										<option value="0" selected="selected">Кадый файл по отдельности</option>
@@ -304,7 +316,7 @@
 								<div class="col-sm-7">
 									<div class="alert alert-info">
 										<i class="fa fa-info-circle"></i>
-										Перед началом обмена <strong>только у загружаемых товаров</strong> будет установлен остаток нулевой.
+										Перед началом обмена <strong>только у загружаемых товаров из каталога</strong> (файл import.xml) будет установлен остаток нулевой.
 									</div>
 								</div>
 							</div>
@@ -531,7 +543,7 @@
 								<div class="col-sm-7">
 									<div class="alert alert-info">
 										<i class="fa fa-info-circle"></i>
-										Эксперементальная опция. Модуль из файла поле <strong>Ид</strong> товара и категории пытается записать соответственно в <strong>id</strong> товара и категории Opencart. Для этого нужно чтобы 1С записывала <strong>в Ид код товара и категории</strong> без буквенных префиксов, либо будут взяты только цифры с начала поля до первой буквы. Длина этого поля <strong>не должна быть больше 11 символов</strong>, иначе эта опция игнорируется. Проверка на дубли не проверяется.
+										В ЭТОЙ ВЕРСИИ НЕ РАБОТАЕТ! Эксперементальная опция. Модуль из файла поле <strong>Ид</strong> товара и категории пытается записать соответственно в <strong>id</strong> товара и категории Opencart. Для этого нужно чтобы 1С записывала <strong>в Ид код товара и категории</strong> без буквенных префиксов, либо будут взяты только цифры с начала поля до первой буквы. Длина этого поля <strong>не должна быть больше 11 символов</strong>, иначе эта опция игнорируется. Проверка на дубли не проверяется.
 									</div>
 								</div>
 							</div>

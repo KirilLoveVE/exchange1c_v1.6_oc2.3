@@ -46,12 +46,25 @@ class ControllerModuleExchange1c extends Controller {
 
 		$this->load->model('setting/setting');
 			
+		$data['update'] = "";
+		$this->load->model('tool/exchange1c');
 		if  (!$this->config->get('exchange1c_version')) {
 			$this->install();
 			$this->load->model('extension/extension');
 			$this->model_extension_extension->install('module', 'exchange1c');
+		} else {
+//			var_dump("config version: " . $this->config->get('exchange1c_version'));
+//			var_dump("new version: " . $this->model_tool_exchange1c->version());
+			$old_version = $this->config->get('exchange1c_version');
+			$new_version = $this->model_tool_exchange1c->version();
+			if (version_compare($old_version, $new_version, '<')) {
+//				var_dump("Update!");
+				$data['update'] = $this->model_tool_exchange1c->update($old_version);
+			}
 		}
-		
+		// Проверка базы данных
+		$data['warning'] = $this->model_tool_exchange1c->checkDB();
+
 		// настройки сохраняются только для первого магазина
 		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
 
@@ -158,7 +171,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		// Группы
-		if(version_compare(VERSION, '2.0.3.1', '>')) {
+		if (version_compare(VERSION, '2.0.3.1', '>')) {
 			$this->load->model('customer/customer_group');
 			$data['customer_groups'] = $this->model_customer_customer_group->getCustomerGroups();
 		} else {
@@ -1001,13 +1014,8 @@ class ControllerModuleExchange1c extends Controller {
 			return 0;
 		}
 
-		// Проверка базы данных
-		$this->load->model('tool/exchange1c');
-		if (!$this->model_tool_exchange1c->checkDB()) {
-			if (!$manual) $this->echo_message(0, "Failure Database validation");
-			return 0;
-		}
 		// Определяем текущую локаль
+		$this->load->model('tool/exchange1c');
 		$language_id = $this->model_tool_exchange1c->getLanguageId($this->config->get('config_language'));
 
 		// Загружаем файл
@@ -1062,7 +1070,6 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	public function modeOrdersChangeStatus(){
 		if (!$this->checkAuthKey(true)) exit;
-		$this->log(">>> Изменение статусов заказов");
 		$this->load->model('tool/exchange1c');
 
 		$result = $this->model_tool_exchange1c->queryOrdersStatus(array(

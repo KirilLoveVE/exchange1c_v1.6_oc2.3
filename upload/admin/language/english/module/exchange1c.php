@@ -47,13 +47,14 @@ $_['entry_flush_manufacturer']				= 'Flush manufacturers:';
 $_['entry_flush_quantity']					= 'Flush quantity:';
 $_['entry_flush_attribute']					= 'Flush attributes:';
 $_['entry_fill_parent_cats']				= 'Fill parent categories:';
-$_['entry_seo_url']							= 'Generate SEO URL';
-$_['entry_seo_url_translit']				= 'Transliterate';
 $_['entry_product_status_disable_if_quantity_zero'] = 'Does not show items on the site if the balance is equal to or less than zero.';
 $_['entry_parse_only_types_item']			= 'Parse only types of items:';
 $_['entry_synchronize_uuid_to_id']			= 'Write the object ID from 1C ID in opencart';
 $_['entry_product_name_or_fullname']		= 'The name of the product taken from:';
-
+// SEO
+$_['entry_seo_url']							= 'Generate SEO URL';
+$_['entry_seo_url_translit']				= 'Transliterate';
+$_['entry_seo_url_deadcow']					= 'Deadcow SEO 3.x';
 
 $_['entry_full_log']						= 'Enable log';
 $_['entry_apply_watermark']					= 'Apply watermark';

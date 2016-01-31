@@ -46,10 +46,12 @@ $_['entry_flush_manufacturer']				= 'Сбрасывать производите
 $_['entry_flush_quantity']					= 'Сбрасывать количество товаров:';
 $_['entry_flush_attribute']					= 'Сбрасывать атрибуты:';
 $_['entry_fill_parent_cats']				= 'Заполнять родительские категории:';
-$_['entry_seo_url']							= 'Генерировать SEO URL';
-$_['entry_seo_url_translit']				= 'Транслитерация';
 $_['entry_product_status_disable_if_quantity_zero']  = 'Отключать товар, если остаток меньше единицы';
 $_['entry_synchronize_uuid_to_id']			= 'Запись Ид объекта из 1С в ID opencart';
+// SEO
+$_['entry_seo_url']							= 'Генерировать SEO URL';
+$_['entry_seo_url_translit']				= 'Транслитерация';
+$_['entry_seo_url_deadcow']					= 'Deadcow SEO 3.x';
 
 $_['entry_full_log']						= 'Включить подробный лог загрузки';
 $_['entry_apply_watermark']					= 'Накладывать водяные знаки при загрузке';

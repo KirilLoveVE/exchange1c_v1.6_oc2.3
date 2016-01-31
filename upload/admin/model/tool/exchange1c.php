@@ -286,33 +286,20 @@ class ModelToolExchange1c extends Model {
 	 * Проверяет таблицы модуля
 	 */
 	public function checkDB() {
-		$tables_module = array("product_to_1c","product_quantity","category_to_1c","warehouse","option_to_1c","store_to_1c","attribute_to_1c");
+		$tables_module = array("product_to_1c","product_quantity","category_to_1c","warehouse","option_to_1c","store_to_1c","attribute_to_1c","manufacturer_to_1c");
 		foreach ($tables_module as $table) {
 			$query = $this->db->query("SHOW TABLES FROM " . DB_DATABASE . " LIKE '" . DB_PREFIX . "%" . $table . "'");
 			if (!$query->rows) {
-				$this->log("[ERROR] Таблица " . $table . " в базе отсутствует, переустановите модуль!");
-				return false;
+				$error = "[ERROR] Таблица " . $table . " в базе отсутствует, переустановите модуль! Все связи будут потеряны!";
+				$this->log($error);
+				return $error;
 			}
 		}
 		// проверка полей таблиц
 		
-		return true;
+		return "";
 	} // checkDB()
 
-
-	/**
-	 * Устанавливает обновления
-	 */
-	public function update() {
-		$this->load->model('setting/setting');
-		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
-		if (isset($settings['exchange1c_version'])) {
-			$settings['exchange1c_version'] = $this->version();
-			$this->model_setting_setting->editSetting('exchange1c', $settings);
-		}
-		$this->setEvents();
-	} // update()
-	
 
 	/**
 	 * Устанавливает SEO URL (ЧПУ) для заданного товара
@@ -854,7 +841,7 @@ class ModelToolExchange1c extends Model {
 //			$this->log($info);
 			// Создаем объект картинка из водяного знака и получаем информацию о картинке
 			$image = new Image($fullname);
-			if (version_compare(VERSION,"2.0.3.1")) {
+			if (version_compare(VERSION, '2.0.3.1', '>')) {
 				$image->watermark(new Image($wm_fullname));
 			} else  {
 				$image->watermark($wm_fullname);
@@ -1113,7 +1100,7 @@ class ModelToolExchange1c extends Model {
 //		$this->log($sql);
 		$query = $this->db->query($sql);
 		
-		if (version_compare(VERSION,"2.0.3.1")) {
+		if (version_compare(VERSION,'2.0.3.1', '<')) {
 			$sql    = " meta_title = '" . $this->db->escape($data['description']) . "'";
 			$sql   .= ", meta_h1 = '" . $this->db->escape($data['description']) . "'";
 			$sql   .= ", meta_description = '" . $this->db->escape($data['description']) . "'";
@@ -1145,8 +1132,9 @@ class ModelToolExchange1c extends Model {
 
 		$manufacturer_id = $this->db->getLastId();
 
-		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "manufacturer_description'");
-		if ($query->num_rows) {
+		if (version_compare(VERSION, '2.0.3.1', '<')) {
+//		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "manufacturer_description'");
+//		if ($query->num_rows) {
 			$sql	= " manufacturer_id = '" . (int)$manufacturer_id . "'";
 			$sql   .= ", language_id = '" . (int)$this->LANG_ID . "'";
 			$sql   .= ", meta_title = '" . $this->db->escape($data['description']) . "'";
@@ -1621,7 +1609,7 @@ class ModelToolExchange1c extends Model {
 		} else {
 			$query = $this->db->query("SELECT order_id FROM " . DB_PREFIX . "order WHERE date_added >= '" . $params['from_date'] . "'");
 		}
-		$this->log("> Поиск заказов со статусом id: " . $params['exchange_status']);
+//		$this->log("> Поиск заказов со статусом id: " . $params['exchange_status']);
 		if ($query->num_rows) {
 			foreach ($query->rows as $orders_data) {
 				// Меняем статус
@@ -1643,10 +1631,14 @@ class ModelToolExchange1c extends Model {
 	 */
 	public function queryOrders($params) {
 		$this->log("==== Выгрузка заказов ====");
-		$this->log($params);
+//		$this->log($params);
 
 		$this->load->model('sale/order');
-		$this->load->model('sale/customer_group');
+		if (version_compare(VERSION, '2.0.3.1', '<')) {
+			$this->load->model('sale/customer_group');
+		} else {
+			$this->load->model('customer/customer_group');
+		}
 		
 		if ($params['exchange_status'] != 0) {
 			// Если указано с каким статусом выгружать заказы
@@ -1661,10 +1653,15 @@ class ModelToolExchange1c extends Model {
 
 		if ($query->num_rows) {
 			foreach ($query->rows as $orders_data) {
+				$this->log("> Выгружается заказ #" . $order['order_id']);
 				$order = $this->model_sale_order->getOrder($orders_data['order_id']);
 				$date = date('Y-m-d', strtotime($order['date_added']));
 				$time = date('H:i:s', strtotime($order['date_added']));
-				$customer_group = $this->model_sale_customer_group->getCustomerGroup($order['customer_group_id']);
+				if (version_compare(VERSION, '2.0.3.1', '<')) {
+					$customer_group = $this->model_sale_customer_group->getCustomerGroup($order['customer_group_id']);
+				} else {
+					$customer_group = $this->model_customer_customer_group->getCustomerGroup($order['customer_group_id']);
+				}
 				$document['Документ' . $document_counter] = array(
 					 'Ид'          => $order['order_id']
 					,'Номер'       => $order['order_id']
@@ -1972,4 +1969,69 @@ class ModelToolExchange1c extends Model {
 		$this->log("==== Окончена загрузка данных ====");
 		return 1;
 	}
+
+
+	/**
+	 * Устанавливает обновления
+	 */
+	public function update($old_version) {
+		
+		$message = "";
+		if (version_compare($old_version, '1.6.2.b3', '<=')) {
+			$message .= $this->update162b3();
+		}
+		
+		$this->setEvents();
+		return $message;
+		
+	} // update()
+
+
+	/**
+	 * Устанавливает обновления
+	 */
+	public function update162b3() {
+		// Добавление таблицы manufacturer_to_1c
+		$old_version = '1.6.2.b3';
+		$new_version = '1.6.2.b4';
+
+		$message = "[UPDATE] Обновление модуля с версии " . $old_version . " до версии " . $new_version . "<br>\n";
+		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "manufacturer_to_1c'");
+		if(!$query->num_rows) {
+			$this->db->query(
+					'CREATE TABLE
+						`' . DB_PREFIX . 'manufacturer_to_1c` (
+							`manufacturer_id` int(11) NOT NULL,
+							`1c_id` varchar(255) NOT NULL,
+							PRIMARY KEY (`manufacturer_id`),
+							KEY `1c_id` (`1c_id`),
+							FOREIGN KEY (`manufacturer_id`) REFERENCES `'. DB_PREFIX .'manufacturer`(`manufacturer_id`) ON DELETE CASCADE
+						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
+			);
+			$message .= "Создана таблица manufacturer_to_1c<br>\n";
+		}
+
+		if (!$this->existFiled('category_to_1c', '1c_id')) {
+			$this->db->query("ALTER TABLE " . DB_PREFIX . "category_to_1c CHANGE 1c_category_id 1c_id VARCHAR(255)");
+			$message .= "Изменено название поля в таблице category_to_1c<br>\n";
+		}
+		
+		if (!$this->existFiled('attribute_to_1c', '1c_id')) {
+			$this->db->query("ALTER TABLE " . DB_PREFIX . "attribute_to_1c CHANGE 1c_attribute_id 1c_id VARCHAR(255)");
+			$message .= "Изменено название поля в таблице attribute_to_1c<br>\n";
+		}
+
+		$this->load->model('setting/setting');
+		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
+		if (isset($settings['exchange1c_version'])) {
+			$settings['exchange1c_version'] = $new_version;
+			$this->model_setting_setting->editSetting('exchange1c', $settings);
+		}
+		$this->log($message);
+		return $message;
+	}
+	
+	
+	
 }
+
