@@ -340,7 +340,30 @@
 								</div>
 							</div>
 						</fieldset>
-
+						<fieldset>
+							<legend><?php echo $lang['text_legend_fields_update']; ?></legend>
+							<div class="form-group">
+								<label class="col-sm-2 control-label" for="exchange1c_apply_watermark"><?php echo $lang['entry_product_fields_update']; ?></label>
+								<div class="col-sm-10">
+									<div class="well well-sm" style="height: 150px; overflow: auto;">
+										<?php foreach ($product_fields as $field) { ?>
+										<div class="checkbox">
+											<label>
+												<?php if (isset($exchange1c_product_fields_update[$field['value']])) { ?>
+												<input type="checkbox" name="exchange1c_product_fields_update[<?php echo $field['value']; ?>]" value="1" checked="checked" />
+												<?php echo $field['text']; ?>
+												<?php } else { ?>
+												<input type="checkbox" name="exchange1c_product_fields_update[<?php echo $field['value']; ?>]" value="1" />
+												<?php echo $field['text']; ?>
+												<?php } ?>
+											</label>
+										</div>
+										<?php } ?>
+									</div>
+								</div>
+							</div>
+							</legend>
+						</fieldset>
 						<fieldset>
 							<legend><?php echo $lang['text_legend_other']; ?></legend>
 							<div class="form-group">

@@ -68,6 +68,7 @@ class ControllerModuleExchange1c extends Controller {
 				$this->install();
 				$this->load->model('extension/extension');
 				$this->model_extension_extension->install('module', 'exchange1c');
+				$data['update'] = "Модуль установлен";
 			} else {
 				// Нужно ли обновлять
 				if (version_compare($settings['exchange1c_version'], $this->model_tool_exchange1c->version(), '<')) {
