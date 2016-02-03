@@ -104,7 +104,10 @@ $_['text_legend_export_orders']				= 'Export Orders to 1C';
 $_['text_legend_import_orders']				= 'Import Orders from 1C';
 $_['text_legend_fields_update']				= 'Updating fields when importing';
 
-$_['text_product_field_column']				= 'Column';
-$_['text_product_field_sort_order']			= 'Sort order';
+$_['text_product_field_column']				= 'Product column';
+$_['text_product_field_images']				= 'Product images';
+$_['text_product_field_sort_order']			= 'Product sort order';
+$_['text_product_field_category']			= 'Product category';
+$_['text_product_field_name']				= 'Product name';
 
 $_['text_in_developing']					= 'In Developing';

@@ -106,7 +106,10 @@ $_['text_legend_export_orders']				= 'Выгрузка заказов в 1С';
 $_['text_legend_import_orders']				= 'Загрузка заказов из 1С';
 $_['text_legend_fields_update']				= 'Обновление полей при импорте';
 
-$_['text_product_field_column']				= 'Колонки';
+$_['text_product_field_column']				= 'Колонки товара';
 $_['text_product_field_sort_order']			= 'Порядок сортировки';
+$_['text_product_field_images']				= 'Картинки товара';
+$_['text_product_field_category']			= 'Категории товара';
+$_['text_product_field_name']				= 'Название товара';
 
 $_['text_in_developing']					= 'В разработке';

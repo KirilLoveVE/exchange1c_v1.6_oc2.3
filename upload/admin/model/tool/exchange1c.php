@@ -17,7 +17,7 @@ class ModelToolExchange1c extends Model {
 	 *
 	 */
 	public function version() {
-		return "1.6.2.b4";
+		return "1.6.2.b5";
 	} // version()
 	
 
@@ -35,8 +35,12 @@ class ModelToolExchange1c extends Model {
 			} else {
 				list ($di) = debug_backtrace();
 				$line = sprintf("%04s",$di["line"]);
-				//die ($this->log->write("Ошибка произошла в файле - " . $di["file"] . ", в строке - " .  $di["line"]));
-				$this->log->write($memory . " Mb | " . $line . " | " . $message);
+				if (isset($memory)) {
+					$this->log->write( $memory . " Mb | " . $line . " | " . $message);
+				} else {
+					$this->log->write($line . " | " . $message);
+				}
+				
 			} 
 	} // log()
 
@@ -718,13 +722,17 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function updateProductDescription($data, $product_id) {
 		// описание (пока только для одного языка)
-		$sql = "language_id = " . (int)$this->LANG_ID . ", meta_title = '" . $this->db->escape($data['name']) . "'";
+		$sql  = isset($data['name'])		? ", meta_title = '" . $this->db->escape($data['name']) . "'"				: "";
 		$sql .= isset($data['name']) 		? ", name = '" . $this->db->escape($data['name']) . "'" 					: "";
 		$sql .= isset($data['description']) ? ", description = '" . $this->db->escape($data['description']) . "'" 		: "";
 		$sql .= isset($data['full_name']) 	? ", meta_description = '" . $this->db->escape($data['full_name']) . "'" 	: "";
-		$sql = "UPDATE " . DB_PREFIX . "product_description SET " . $sql . " WHERE product_id = '" . (int)$product_id . "'";
-//		$this->log($sql);
-		$this->db->query($sql);
+		if ($sql){
+			$sql = "UPDATE " . DB_PREFIX . "product_description SET language_id = '" . (int)$this->LANG_ID . "'" . $sql . " WHERE product_id = '" . (int)$product_id . "'";
+//			$this->log($sql);
+			$this->db->query($sql);
+		} else {
+			$this->log("[i] Описание товара не нуждается в обновлении");
+		}
 
 	} // updateProductDescription()
 	
@@ -734,10 +742,26 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function updateProduct($data, $product_id) {
 //		$this->log($data);
+
+		$update_filelds = $this->config->get('exchange1c_product_fields_update');
+		// Удаление полей которые обновлять не нужно
+		if (!isset($update_filelds['NAME'])) {
+			unset($data['name']);
+			$this->log("[i] Обновление названия отключено");
+		}
+		if (!isset($update_filelds['CATEGORY'])) {
+			unset($data['product_category']);
+			$this->log("[i] Обновление категорий отключено");
+		}
+
 		$sql = $this->prepareQueryProduct($data);
-		$sql = "UPDATE " . DB_PREFIX . "product SET date_modified = NOW()" . $sql . " WHERE product_id = '" . (int)$product_id . "'";
-//		$this->log($sql);
-		$this->db->query($sql);
+		if ($sql) {
+			$sql = "UPDATE " . DB_PREFIX . "product SET date_modified = NOW()" . $sql . " WHERE product_id = '" . (int)$product_id . "'";
+			//$this->log($sql);
+			$this->db->query($sql);
+		} else {
+			$this->log("[i] Товар не нуждается в обновлении");
+		}
 		
 		$this->updateProductDescription($data, $product_id);
 		
@@ -749,6 +773,8 @@ class ModelToolExchange1c extends Model {
 			foreach ($data['product_category'] as $category_id) {
 				$this->db->query("INSERT INTO " . DB_PREFIX . "product_to_category SET product_id = '" . (int)$product_id . "', category_id = '" . (int)$category_id . "'" . $main_category);
 			}
+		} else {
+			$this->log("[i] Категории товара не нуждаются в обновлении");
 		}
 		
 		// магазин
@@ -777,10 +803,12 @@ class ModelToolExchange1c extends Model {
  		}
  		// Можно добавить поиск по наименованию или другим полям...
  		
- 		// SEO
- 		if ($this->config->get('exchange1c_seo_url') == 2) {
- 			$data['seo_url'] = $data['name'];
-		}
+ 		// SEO обновляем если только задано имя
+ 		if (isset($data['name'])) {
+			if ($this->config->get('exchange1c_seo_url') == 2) {
+	 			$data['seo_url'] = $data['name'];
+			}
+ 		}
  		
  		// Если не найден товар...
  		if (!$product_id) {
@@ -891,6 +919,14 @@ class ModelToolExchange1c extends Model {
 	private function parseImages($xml, $product_id) {
 		$watermark = $this->config->get('exchange1c_watermark');
 		$index = 0;
+		
+		// Нужно ли обновлять картинки товара
+		$update_filelds = $this->config->get('exchange1c_product_fields_update');
+		if (!isset($update_filelds['IMAGES'])) {
+			$this->log("[i] Обновление картинок отключено!");
+			return true;
+		}
+		
 		$this->db->query("DELETE FROM " . DB_PREFIX . "product_image WHERE product_id = '" . (int)$product_id . "'");
 		foreach ($xml as $image) {
 			
@@ -1229,11 +1265,13 @@ class ModelToolExchange1c extends Model {
 			$noindex = 1;
 		}
 		$default_stock_status = $this->config->get('exchange1c_default_stock_status');
+
 		foreach ($xml->Товар as $product){
 			if (isset($product->Ид) && isset($product->Наименование) ){
 				$data = array();
 				$data['xml_id']				= (string)$product->Ид;
 				$data['name']				= htmlspecialchars((string)$product->Наименование);
+
 				if ($product->Артикул) {
 					$data['model']			= htmlspecialchars((string)$product->Артикул);
 					$data['sku']			= htmlspecialchars((string)$product->Артикул);
@@ -1653,8 +1691,8 @@ class ModelToolExchange1c extends Model {
 
 		if ($query->num_rows) {
 			foreach ($query->rows as $orders_data) {
-				$this->log("> Выгружается заказ #" . $order['order_id']);
 				$order = $this->model_sale_order->getOrder($orders_data['order_id']);
+				$this->log("> Выгружается заказ #" . $order['order_id']);
 				$date = date('Y-m-d', strtotime($order['date_added']));
 				$time = date('H:i:s', strtotime($order['date_added']));
 				if (version_compare(VERSION, '2.0.3.1', '<')) {
@@ -1693,9 +1731,9 @@ class ModelToolExchange1c extends Model {
 					//---
 					,'Роль'               => 'Покупатель'
 					,'ПолноеНаименование' => $username
-					,'Фамилия'            => $user[0]
-					,'Имя'			      => $user[1]
-					,'Отчество'		      => $user[2]
+					,'Фамилия'            => isset($user[0]) ? $user[0] : ''
+					,'Имя'			      => isset($user[1]) ? $user[1] : ''
+					,'Отчество'		      => isset($user[2]) ? $user[2] : ''
 					,'АдресРегистрации' => array(
 						'Представление'	=> $order['shipping_address_1'].', '.$order['shipping_city'].', '.$order['shipping_postcode'].', '.$order['shipping_country']
 					)
@@ -1974,14 +2012,30 @@ class ModelToolExchange1c extends Model {
 	/**
 	 * Устанавливает обновления
 	 */
-	public function update($old_version) {
+	public function update($settings) {
+		$version = $settings['exchange1c_version'];
+		$update = false;
 		
-		$message = "";
-		if (version_compare($old_version, '1.6.2.b4', '<')) {
-			$message .= $this->update162b4();
+		$message = "Модуль в обновлении не нуждается";
+		if (version_compare($version, '1.6.2.b4', '<')) {
+			if ($this->update162b4()) {
+				$version = '1.6.2.b4';
+				$update = true;
+			}
 		}
 		
-		$this->setEvents();
+		if (version_compare($version, '1.6.2.b5', '<')) {
+			$version = '1.6.2.b5';
+			$update = true;
+		}
+		
+		if ($update) {
+			$this->setEvents();
+			$settings['exchange1c_version'] = $version;
+			$this->model_setting_setting->editSetting('exchange1c', $settings);
+			$message = "Модуль успешно обновлен до версии " . $version;
+		}
+		
 		return $message;
 		
 	} // update()
@@ -1994,7 +2048,6 @@ class ModelToolExchange1c extends Model {
 		// Добавление таблицы manufacturer_to_1c
 		$new_version = '1.6.2.b4';
 
-		$message = "[UPDATE] Обновление модуля до версии " . $new_version . "<br>\n";
 		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "manufacturer_to_1c'");
 		if(!$query->num_rows) {
 			$this->db->query(
@@ -2007,27 +2060,16 @@ class ModelToolExchange1c extends Model {
 							FOREIGN KEY (`manufacturer_id`) REFERENCES `'. DB_PREFIX .'manufacturer`(`manufacturer_id`) ON DELETE CASCADE
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
-			$message .= "Создана таблица manufacturer_to_1c<br>\n";
 		}
 
 		if (!$this->existFiled('category_to_1c', '1c_id')) {
 			$this->db->query("ALTER TABLE " . DB_PREFIX . "category_to_1c CHANGE 1c_category_id 1c_id VARCHAR(255)");
-			$message .= "Изменено название поля в таблице category_to_1c<br>\n";
 		}
 		
 		if (!$this->existFiled('attribute_to_1c', '1c_id')) {
 			$this->db->query("ALTER TABLE " . DB_PREFIX . "attribute_to_1c CHANGE 1c_attribute_id 1c_id VARCHAR(255)");
-			$message .= "Изменено название поля в таблице attribute_to_1c<br>\n";
 		}
-
-		$this->load->model('setting/setting');
-		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
-		if (isset($settings['exchange1c_version'])) {
-			$settings['exchange1c_version'] = $new_version;
-			$this->model_setting_setting->editSetting('exchange1c', $settings);
-		}
-		$this->log($message);
-		return $message;
+		return 1;
 	}
 	
 	

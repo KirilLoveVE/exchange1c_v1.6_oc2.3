@@ -46,36 +46,37 @@ class ControllerModuleExchange1c extends Controller {
 
 		$this->load->model('setting/setting');
 			
-		$data['update'] = "";
-		$this->load->model('tool/exchange1c');
-		if  (!$this->config->get('exchange1c_version')) {
-			$this->install();
-			$this->load->model('extension/extension');
-			$this->model_extension_extension->install('module', 'exchange1c');
-		} else {
-//			var_dump("config version: " . $this->config->get('exchange1c_version'));
-//			var_dump("new version: " . $this->model_tool_exchange1c->version());
-			$old_version = $this->config->get('exchange1c_version');
-			$new_version = $this->model_tool_exchange1c->version();
-			if (version_compare($old_version, $new_version, '<')) {
-//				var_dump("Update!");
-				$data['update'] = $this->model_tool_exchange1c->update($old_version);
-			}
-		}
-		// Проверка базы данных
-		$data['warning'] = $this->model_tool_exchange1c->checkDB();
-
-		// настройки сохраняются только для первого магазина
-		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
-
 		if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
-			$this->request->post['exchange1c_order_date'] = $this->config->get('exchange1c_order_date');
-			$settings = array_merge($settings, $this->request->post);
+			// При нажатии кнопки сохранить
+			$settings = $this->request->post;
+			$settings['exchange1c_version'] = $this->config->get('exchange1c_version');
+			$settings['exchange1c_order_date'] = $this->config->get('exchange1c_order_date');
+			
 			$this->model_setting_setting->editSetting('exchange1c', $settings);
 			$this->session->data['success'] = $this->language->get('text_success');
 			$this->response->redirect($this->url->link('extension/module', 'token=' . $this->session->data['token'], 'SSL'));
+		} else {
+			$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
+			$data['update'] = "";
+			
+			// Проверка базы данных
+			$this->load->model('tool/exchange1c');
+			$data['warning'] = $this->model_tool_exchange1c->checkDB();
+
+			if (!isset($settings['exchange1c_version'])) {
+				// Чистая установка
+				$this->install();
+				$this->load->model('extension/extension');
+				$this->model_extension_extension->install('module', 'exchange1c');
+			} else {
+				// Нужно ли обновлять
+				if (version_compare($settings['exchange1c_version'], $this->model_tool_exchange1c->version(), '<')) {
+					$data['update'] = $this->model_tool_exchange1c->update($settings);
+				}
+			}
 		}
 
+		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
 		$data['version'] = $settings['exchange1c_version'];
 
 		$data['lang']['text_max_filesize'] = sprintf($this->language->get('text_max_filesize'), @ini_get('max_file_uploads'));
@@ -416,24 +417,30 @@ class ControllerModuleExchange1c extends Controller {
 		}
 		// Магазины
 
-		// Список полей, которые загружаются при импорте товаров
-		$data['product_fields'] = array(
-			'column'		=> 0,
-			'sort_order'	=> 0,
-		);
-
 		if (isset($this->request->post['exchange1c_product_fields_update'])) {
 			$data['exchange1c_product_fields_update'] = $this->request->post['exchange1c_product_fields_update'];
-		} elseif (isset($this->request->get['exchange1c_product_fields_update'])) {
-			$data['exchange1c_product_fields_update'] = $this->request->get['exchange1c_product_fields_update'];
+		} elseif ($this->config->has('exchange1c_product_fields_update')) {
+			$data['exchange1c_product_fields_update'] = $this->config->get('exchange1c_product_fields_update');
 		} else {
-			if (isset($settings['exchange1c_product_fields_update'])) {
-				$data['exchange1c_product_fields_update'] = $settings['exchange1c_product_fields_update'];
-			} else {
-				$data['exchange1c_product_fields_update'] = $data['product_fields'];
-			}
+			$data['exchange1c_product_fields_update'] = array();
 		}
+
 		// Список полей, которые загружаются при импорте товаров
+		$data['product_fields'] = array();
+
+		$data['product_fields'][] = array(
+			'text'  => $this->language->get('text_product_field_images'),
+			'value' => 'IMAGES'
+		);
+		$data['product_fields'][] = array(
+			'text'  => $this->language->get('text_product_field_category'),
+			'value' => 'CATEGORY'
+		);
+		$data['product_fields'][] = array(
+			'text'  => $this->language->get('text_product_field_name'),
+			'value' => 'NAME'
+		);
+
 		
 		$this->load->model('localisation/order_status');
 
