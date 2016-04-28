@@ -8,7 +8,7 @@ class ControllerModuleExchange1c extends Controller {
 	 * @param	string,array()	Сообщение или объект
 	 */
 	private function log($message) {
-		if ($this->config->get('exchange1c_full_log')) $this->log->write(print_r($message,true));
+		if ($this->config->gmaet('exchange1c_full_log')) $this->log->write(print_r($message,true));
 	} // log()
 
 
@@ -741,32 +741,26 @@ class ControllerModuleExchange1c extends Controller {
 
 			$filename = basename(html_entity_decode($this->request->files['file']['name'], ENT_QUOTES, 'UTF-8'));
 			$zip = new ZipArchive;
-			if ($zip->open($this->request->files['file']['tmp_name']) === true) {
-				$max_size_file = $this->modeCatalogInit(array(),false);
+			if ($zip->open($this->request->files['file']['tmp_name']) === TRUE) {
+				$max_size_file = $this->modeCatalogInit(array(),FALSE);
 				//$this->log($this->request->files['file']);
 				
-					$zip->extractTo($cache);
-					//ищем папку с папкой import_files, если ее нет, т.е.не выгружаются картинки, путь CACHE не меняется
-					$cache = $this->findFolder(DIR_CACHE, 'import_files');
+				$xmlfiles = $this->extractArchive($zip);
+				$zip->close();
+				//unlink($this->request->files['file']['tmp_name']);
 					
-					$this->MoveImages($cache, DIR_IMAGE);
-//					rename($cache . 'import_files', DIR_IMAGE . 'import_files');
-					$files = scandir($cache);
-					foreach ($files as $file) {
-						if (is_file($cache . $file)) {
-							$no_error = $this->modeImport($cache . $file);
-						}
+				foreach ($xmlfiles as $file) {
+					if (is_file($cache . $file)) {
+						$no_error = $this->modeImport($cache . $file);
 					}
-					if (is_dir($cache . '1cbitrix_/import_files')) {
-						rmdir($cache . '1cbitrix_/import_files');
-					}
+				}
 			}
 			else {
 				$import_file = $cache . $this->request->files['file']['name'];
 				move_uploaded_file($this->request->files['file']['tmp_name'], $import_file);
 				$this->log("Загружен файл: " . $this->request->files['file']['name']);
 				$no_error = $this->modeImport($import_file);
-				unlink($import_file);
+				//unlink($import_file);
 			}
 		}
 		if ($no_error) {
@@ -774,8 +768,11 @@ class ControllerModuleExchange1c extends Controller {
 		} else {
 			$json['error'] = $this->language->get('text_upload_error');
 		}
-		//$this->cleanCacheDir();
+		
+		$this->cleanCacheDir();
+		$this->cache->delete('product');
 		$this->response->setOutput(json_encode($json));
+
 	} // manualImport()
 
 
@@ -839,7 +836,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		if ($echo) {
-			if ($this->config->get('exchange1c_file_zip')) {
+			if ($this->config->get('exchange1c_file_zip') == 'zip') {
 				echo "zip=yes\n";
 			} else {
 				echo "zip=no\n";
@@ -855,7 +852,7 @@ class ControllerModuleExchange1c extends Controller {
 	 * Обрабатывает команду инициализации продаж
 	 */
 	public function modeSaleInit() {
-		if ($this->config->get('exchange1c_file_zip')) {
+		if ($this->config->get('exchange1c_file_zip') == 'zip') {
 			echo "zip=yes\n";
 		} else {
 			echo "zip=no\n";
@@ -865,19 +862,43 @@ class ControllerModuleExchange1c extends Controller {
 	
 
 	/**
-	 * Проверяем на наличие архива и распаковка
+	 * Распаковываем содержимое архива по "полочкам"
 	 */
-	private function extractArchive($filename) {
-		$cache = DIR_CACHE . 'exchange1c/';
-		$zip = new ZipArchive;
-		if ($zip->open($filename) === true) {
-			$zip->extractTo($cache);
-			unlink($filename);
-			// переносим папку import_files в картинки
-			$this->MoveImages($cache . 'import_files', DIR_IMAGE);
-			//rename($cache . 'import_files', DIR_IMAGE . 'import_files');
+	private function extractArchive($zip) {
+		
+		$cache = DIR_CACHE . 'exchange1c';
+
+		$xmlfiles = array();
+		$imgfiles = array();
+
+		for($i = 0; $i < $zip->numFiles; $i++) {
+			$entry = $zip->getNameIndex($i);
+			if (strpos($entry, "mport_files/")) {
+				$imgfiles[] = $entry;
+				$this->log("Картинка: " . $entry);
+				continue;
+			}
+			$this->log("XML файл: " . $entry);
+			$xmlfiles[] = $entry;
 		}
+
+		if (count($xmlfiles)) {
+			$this->log("Распаковка *.xml в папку " . $cache . "...");
+			if ($zip->extractTo($cache, $xmlfiles) === TRUE) {
+				$this->log("XML успешно распакованы");
+			}
+		}
+
+		if (count($imgfiles)) {
+			$this->log("Распаковка картинок в папку " . DIR_IMAGE . "...");
+			if ($zip->extractTo(DIR_IMAGE, $imgfiles) === TRUE) {
+				$this->log("Картинки успешно распакованы");
+			}
+		}
+		return $xmlfiles;
+		
 	} // extractArchive()
+
 
 	/**
 	 * Обрабатывает загруженный файл на сервер
@@ -904,6 +925,14 @@ class ControllerModuleExchange1c extends Controller {
 			$uplod_file = $cache . $this->request->get['filename'];
 			$this->checkUploadFileTree(dirname($this->request->get['filename']) , $cache);
 		}
+		
+		// Проверка на запись файлов в кэш
+		$cache = DIR_CACHE . 'exchange1c/';
+		if (!is_writable($cache)) {
+			$this->log('Папка ' . $cache . ' не доступна для записи');
+			$this->echo_message(0, "The folder " . $cache . " is not writable!");
+			exit;
+		}
 
 		// Получаем данные
 		$data = file_get_contents("php://input");
@@ -913,9 +942,14 @@ class ControllerModuleExchange1c extends Controller {
 			if ($fp = fopen($uplod_file, "wb")) {
 				$result = fwrite($fp, $data);
 				if ($result === strlen($data)) {
-					chmod($uplod_file , 0777);
+					chmod($uplod_file , 0664);
 					$this->echo_message(1, "The file " . $this->request->get['filename'] . " has been successfully uploaded");
-					$this->extractArchive($uplod_file);
+					$zip = new ZipArchive;
+					if ($zip->open($uplod_file) === TRUE) {
+						$xmlfiles = $this->extractArchive($zip);
+						$zip->close();
+					}
+					//unlink($uplod_file);
 				}
 				else {
 					$this->echo_message(0, "Empty file " . $this->request->get['filename']);
@@ -926,9 +960,11 @@ class ControllerModuleExchange1c extends Controller {
 			}
 		}
 		else {
-			$this->echo_message(0, "No data in file " . $this->request->get['filename']);
+			$this->echo_message(0, "No data" . $this->request->get['filename']);
 		}
+
 	} // modeFile()
+
 
 	/**
 	 * Обрабатывает *.XML файлы
@@ -1082,7 +1118,7 @@ class ControllerModuleExchange1c extends Controller {
 	/**
 	 * События
 	 */
-	public function eventProductDelete($product_id) {
+	public function eventDeleteProduct($product_id) {
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->deleteLinkProduct($product_id);
 	} // eventProductDelete()
@@ -1091,7 +1127,7 @@ class ControllerModuleExchange1c extends Controller {
 	/**
 	 * События
 	 */
-	public function eventCategoryDelete($category_id) {
+	public function eventDeleteCategory($category_id) {
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->deleteLinkCategory($category_id);
 	} // eventCategoryDelete()
@@ -1100,7 +1136,7 @@ class ControllerModuleExchange1c extends Controller {
 	/**
 	 * События
 	 */
-	public function eventManufacturerDelete($manufacturer_id) {
+	public function eventDeleteManufacturer($manufacturer_id) {
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->deleteLinkManufacturer($manufacturer_id);
 	} // eventProductDelete()
@@ -1109,7 +1145,7 @@ class ControllerModuleExchange1c extends Controller {
 	/**
 	 * События
 	 */
-	public function eventOptionDelete($option_id) {
+	public function eventDeleteOption($option_id) {
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->deleteLinkOption($option_id);
 	} // eventProductDelete()
