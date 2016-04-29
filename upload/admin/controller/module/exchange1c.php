@@ -8,7 +8,7 @@ class ControllerModuleExchange1c extends Controller {
 	 * @param	string,array()	Сообщение или объект
 	 */
 	private function log($message) {
-		if ($this->config->gmaet('exchange1c_full_log')) $this->log->write(print_r($message,true));
+		if ($this->config->get('exchange1c_full_log')) $this->log->write(print_r($message,true));
 	} // log()
 
 
