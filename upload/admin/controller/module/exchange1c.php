@@ -687,10 +687,22 @@ class ControllerModuleExchange1c extends Controller {
 	 * Импорт файла через админ-панель
 	 */
 	public function manualImport() {
+
 		$this->load->language('module/exchange1c');
 		$cache = DIR_CACHE . 'exchange1c/';
 		$json = array();
 		$no_error = 0;
+
+		// Разрешен ли IP
+		if ($this->config->get('exchange1c_allow_ip') != '') {
+			$ip = $_SERVER['REMOTE_ADDR'];
+			$allow_ips = explode("\r\n", $this->config->get('exchange1c_allow_ip'));
+			if (!in_array($ip, $allow_ips)) {
+				$json['error'] = "Ваш IP адрес " . $ip . " не найден в списке разрешенных";
+				$this->response->setOutput(json_encode($json));
+				return;
+			}
+		}
 
 		if (!empty($this->request->files['file']['name']) && is_file($this->request->files['file']['tmp_name'])) {
 
