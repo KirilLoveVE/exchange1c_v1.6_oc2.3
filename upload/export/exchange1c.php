@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 // Configuration
 require_once('../admin/config.php');
@@ -285,8 +285,12 @@ if (isset($request->get['module'])) {
 			$action = new Action('module/exchange1c/modeExportModule');
 		break;
 		
+		case 'remove':
+			$action = new Action('module/exchange1c/modeRemoveModule');
+		break;
+
 		default:
-			echo "available: export";
+			echo "available: export, remove";
 	}
 	
 }

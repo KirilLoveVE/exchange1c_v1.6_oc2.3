@@ -1363,7 +1363,18 @@ class ControllerModuleExchange1c extends Controller {
 	* Формирует архив модуля для инсталляции
 	*/
 	public function modeExportModule() {
-		$this->log('Экспорт модуля');
+
+		// Разрешен ли IP
+		if ($this->config->get('exchange1c_allow_ip') != '') {
+			$ip = $_SERVER['REMOTE_ADDR'];
+			$allow_ips = explode("\r\n", $this->config->get('exchange1c_allow_ip'));
+			if (!in_array($ip, $allow_ips)) {
+				echo("Ваш IP адрес " . $ip . " не найден в списке разрешенных");
+				return false;
+			}
+		}
+
+		$this->log('Экспорт модуля ' . $this->module_name);
 		// создаем папку export в кэше
 		
 		$filename = DIR_CACHE . 'opencart2-exchange1c_' . $this->config->get('exchange1c_version') . '.ocmod.zip';
@@ -1397,6 +1408,44 @@ class ControllerModuleExchange1c extends Controller {
 		if ($fp = fopen($filename, "rb")) {
 			echo HTTP_CATALOG . 'system/storage/cache/' . substr($filename, strlen(DIR_CACHE));
 		}
+		
+	}
+
+
+	/**
+	* Удаляет модуль
+	*/
+	public function modeRemoveModule() {
+
+		// Разрешен ли IP
+		if ($this->config->get('exchange1c_allow_ip') != '') {
+			$ip = $_SERVER['REMOTE_ADDR'];
+			$allow_ips = explode("\r\n", $this->config->get('exchange1c_allow_ip'));
+			if (!in_array($ip, $allow_ips)) {
+				echo("Ваш IP адрес " . $ip . " не найден в списке разрешенных");
+				return false;
+			}
+		}
+
+		$this->log('Удаление модуля ' . $this->module_name);
+		// создаем папку export в кэше
+		
+		$this->uninstall();
+		
+		$files = array();
+		$files[] = DIR_APPLICATION . 'controller/module/exchange1c.php';
+		$files[] = DIR_APPLICATION . 'language/english/module/exchange1c.php';
+		$files[] = DIR_APPLICATION . 'language/russian/module/exchange1c.php';
+		$files[] = DIR_APPLICATION . 'model/tool/exchange1c.php';
+		$files[] = DIR_APPLICATION . 'view/template/module/exchange1c.tpl';
+		$files[] = substr(DIR_APPLICATION, 0, strlen(DIR_APPLICATION) - 6) . 'export/exchange1c.php';
+		foreach ($files as $file) {
+			if (is_file($file)) {
+				unlink($file);
+			}
+		}
+		
+		echo "Модуль успешно удален!";
 		
 	}
 

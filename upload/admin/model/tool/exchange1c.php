@@ -820,7 +820,7 @@ class ModelToolExchange1c extends Model {
 				$sql = "UPDATE IGNORE `" . DB_PREFIX . "category_description` SET category_id = '" . (int)$data['category_id'] . "', language_id = '" . (int)$this->LANG_ID . "'" . $sql;
 				$this->log($sql);
 				$query = $this->db->query($sql);
-				// Обновляем дату категории
+				// Обновляем дату модификации категории
 				$sql = "UPDATE `" . DB_PREFIX . "category` SET date_modified = NOW() WHERE category_id = '" . (int)$data['category_id'] . "'";
 				$this->log($sql);
 				$query = $this->db->query($sql);
@@ -1511,7 +1511,7 @@ class ModelToolExchange1c extends Model {
 	 * в стадии разработки
 	 */
 	private function parseUnit($xml) {
-		$this->log($xml, 'parseUnit()');
+		//$this->log($xml, 'parseUnit()');
 		return array();
 	}
 
