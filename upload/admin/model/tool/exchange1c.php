@@ -812,11 +812,12 @@ class ModelToolExchange1c extends Model {
 		//$this->log($sql);
 		$query = $this->db->query($sql);
 		if ($query->num_rows) {
+			$this->log('Новое название категории: ' . $data['name']);
 			$name = $query->row['name'];
 			if ($data['name'] <> $name) {
-				$data['name'] = $name;
+				//$data['name'] = $name;
 				$sql = $this->prepareStrQueryCategoryDesc($data);
-				$sql = "UPDATE `" . DB_PREFIX . "category_description` SET category_id = '" . (int)$data['category_id'] . "', language_id = '" . (int)$this->LANG_ID . "'" . $sql;
+				$sql = "UPDATE IGNORE `" . DB_PREFIX . "category_description` SET category_id = '" . (int)$data['category_id'] . "', language_id = '" . (int)$this->LANG_ID . "'" . $sql;
 				$this->log($sql);
 				$query = $this->db->query($sql);
 			}
