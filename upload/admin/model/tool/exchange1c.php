@@ -815,17 +815,16 @@ class ModelToolExchange1c extends Model {
 			$this->log('Новое название категории: ' . $data['name']);
 			$name = $query->row['name'];
 			if ($data['name'] <> $name) {
-				//$data['name'] = $name;
+				// Изменилось название категории
 				$sql = $this->prepareStrQueryCategoryDesc($data);
 				$sql = "UPDATE IGNORE `" . DB_PREFIX . "category_description` SET category_id = '" . (int)$data['category_id'] . "', language_id = '" . (int)$this->LANG_ID . "'" . $sql;
 				$this->log($sql);
 				$query = $this->db->query($sql);
+				// Обновляем дату категории
+				$sql = "UPDATE `" . DB_PREFIX . "category` SET date_modified = NOW() WHERE category_id = '" . (int)$data['category_id'] . "'";
+				$this->log($sql);
+				$query = $this->db->query($sql);
 			}
-		}
-
-		// SEO
-		if (isset($data['seo_url'])) {
-			$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
 		}
 
 		$this->cache->delete('category');
