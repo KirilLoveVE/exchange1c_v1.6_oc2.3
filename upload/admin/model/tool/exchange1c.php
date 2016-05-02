@@ -28,17 +28,17 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function log($message, $title='') {
 		if ($this->config->get('exchange1c_full_log'))
-			$memory = sprintf("%.3f", memory_get_usage() / 1024 / 1024);
+			$memory_usage = sprintf("%.3f", memory_get_usage() / 1024 / 1024);
 			if (is_array($message) || is_object($message)) {
-				$this->log->write($memory);
+				$this->log->write($memory_usage);
 				if ($title) $this->log->write($title.':');
 				$this->log->write(print_r($message,true));
 			} else {
 				list ($di) = debug_backtrace();
 				$line = sprintf("%04s",$di["line"]);
-				if (isset($memory)) {
+				if (isset($memory_usage)) {
 					if ($title) $this->log->write($title.':');
-					$this->log->write( $memory . " Mb | " . $line . " | " . $message);
+					$this->log->write( $memory_usage . " Mb | " . $line . " | " . $message);
 				} else {
 					if ($title) $this->log->write($title.':');
 					$this->log->write($line . " | " . $message);
