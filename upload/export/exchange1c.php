@@ -274,9 +274,21 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 	}
 
 
-} else {
-	echo "success\n<br>";
-	exit;
+//} else {
+//	echo "success\n<br>";
+//	exit;
+}
+
+if (isset($request->get['module'])) {
+	switch ($request->get['module']) {
+		case 'export':
+			$action = new Action('module/exchange1c/modeExportModule');
+		break;
+		
+		default:
+			echo "available: export";
+	}
+	
 }
 
 // Dispatch

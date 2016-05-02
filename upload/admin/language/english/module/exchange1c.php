@@ -46,6 +46,12 @@ $_['desc_apply_watermark']					= 'When sharing a picture of the product is super
 // update
 $_['entry_product_fields_update']			= 'To update the product fields when importing:';
 $_['desc_product_fields_update']			= 'If this option is selected it will be updated';
+// product options
+$_['text_legend_product_options']			= 'Product options';
+$_['entry_product_option_mode']				= 'Product options mode:';
+$_['desc_product_option_mode']				= 'This setting configures how to download characteristics of the 1C or all the features in one option, either individually (selecting each option), but you want to link options. <strong>Attention! Not always unloads characteristics 1C with additional details!</strong> Before downloading on the website check the.XML file.';
+$_['text_product_option_combine']			= 'Combine all features';
+$_['text_product_option_related']			= 'Related options';
 // item
 $_['entry_parse_only_types_item']			= 'Parse only types of items:';
 $_['desc_parse_only_types_item']			= 'This option specifies which <strong>item types</strong> from 1C will be processed, not to be confused with <strong>item types</strong>. The types of items listed just like in 1C in one line, separated by any character. For example: merchandise, supplies, service';

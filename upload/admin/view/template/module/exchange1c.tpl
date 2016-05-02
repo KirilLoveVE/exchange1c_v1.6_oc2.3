@@ -179,7 +179,7 @@
 								<!-- Очищать таблицы -->
 								<label class="col-sm-2 control-label"><?php echo $lang['entry_cleaning_db'] ?></label>
 								<div class="col-sm-3">
-									<button id="button-clean" class="btn btn-primary" type="button" data-loading-text="<?php echo $lang['entry_clean_button'] ?>">
+									<button id="exchange1c-button-clean" class="btn btn-primary" type="button" data-loading-text="<?php echo $lang['entry_clean_button'] ?>">
 										<i class="fa fa-trash-o fa-lg"></i>
 										<?php echo $lang['entry_clean_button'] ?>
 									</button>
@@ -215,6 +215,10 @@
 						<fieldset>
 							<legend><?php echo $lang['text_legend_fields_update']; ?></legend>
 							<?php echo $form_exchange1c_product_fields_update; ?>
+						</fieldset>
+						<fieldset>
+							<legend><?php echo $lang['text_legend_product_options']; ?></legend>
+							<?php echo $form_exchange1c_product_option_mode; ?>
 						</fieldset>
 						<fieldset>
 							<legend><?php echo $lang['text_legend_other']; ?></legend>
@@ -364,7 +368,7 @@
 							<label class="col-sm-2 control-label" for="button-upload">
 								<span title="" data-original-title="<?php echo $lang['help_upload']; ?>" data-toggle="tooltip"><?php echo $lang['entry_upload']; ?></span>
 							</label>
-							<button id="button-upload" class="col-sm-2 btn btn-primary" type="button" data-loading-text="<?php echo $lang['button_upload']; ?>">
+							<button id="exchange1c-button-upload" class="col-sm-2 btn btn-primary" type="button" data-loading-text="<?php echo $lang['button_upload']; ?>">
 								<i class="fa fa-upload"></i>
 								<?php echo $lang['button_upload']; ?>
 							</button>
@@ -482,7 +486,10 @@
 										<li>Добавлена поддержка Deadcow SEO 3.0.</li>
 										<li>Доработана загрузка zip архивов, таким образом обмен будет происходить быстрее, но файл обмена будет большим за счет содержания картинок. Содержание архива: в корне файлы *.xml <em>(названия роли не играет)</em> и папка с картинками <strong>import_files</strong>.</li>
 										<li>Добавлено встроенное SEO.</li>
-										<li>Добавлена выборочная загрузка товара</li>
+										<li>Добавлена загрузка характеристик из 1С. Режима два - первый все характеристики объединяет в одну опцию, например: "Размер: XL, Цвет: белый", а второй режим загружает каждую в отдельную опцию, например опция "Размер" и опция "Цвет" в шаблоне потребуется связывать эти опции чтобы отображались только существующие варианты.</li>
+										<li>В версии 1.6.2.b7 остатки хранятся теперь с плавающей точкой, т.е. можно хранить 0.4 единицы товара</li>
+										<li>Производители теперь загружаются из свойств или из поля "Изготовитель" в разделе "Товар" import.xml. Если есть и то и другое, то первым загружается поле "Изготовитель", а свойство "Производитель" будет пропущено.</li>
+										<li>Исправлена проблема к кнопкой "Загрузить" при выборе картинки (водяные знаки).</li>
 									</ul>
 								</fieldset>
 							</div>
@@ -523,7 +530,59 @@
 </div>
 
 <script type="text/javascript"><!--
-$('#button-clean').on('click', function() {
+$('#exchange1c-button-upload').on('click', function() {
+	$('#form-upload').remove();
+	
+	$('body').prepend('<form enctype="multipart/form-data" id="form-upload" style="display: none;"><input type="file" name="file" value="" /></form>');
+	
+	$('#form-upload input[name=\'file\']').trigger('click');
+	
+	if (typeof timer != 'undefined') {
+	clearInterval(timer);
+	}
+		
+	timer = setInterval(function() {
+		if ($('#form-upload input[name=\'file\']').val() != '') {
+			clearInterval(timer);
+			
+			$.ajax({
+				url: 'index.php?route=module/exchange1c/manualImport&token=<?php echo $token; ?>',
+				type: 'post',		
+				dataType: 'json',
+				data: new FormData($('#form-upload')[0]),
+				cache: false,
+				contentType: false,
+				processData: false,		
+				beforeSend: function() {
+					$('#button-upload i').replaceWith('<i class="fa fa-circle-o-notch fa-spin"></i>');
+					$('#button-upload').prop('disabled', true);
+				},
+				complete: function() {
+					$('#button-upload i').replaceWith('<i class="fa fa-upload"></i>');
+					$('#button-upload').prop('disabled', false);
+				},
+				success: function(json) {
+					if (json['error']) {
+						alert(json['error']);
+					}
+					
+					if (json['success']) {
+						alert(json['success']);
+						
+						$('#button-refresh').trigger('click');
+					}
+				},			
+				error: function(xhr, ajaxOptions, thrownError) {
+					alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+				}
+			});	
+		}
+	}, 500);
+});
+//--></script>
+
+<script type="text/javascript"><!--
+$('#exchange1c-button-clean').on('click', function() {
 	$('#form-clean').remove();
 	
 	$.ajax({

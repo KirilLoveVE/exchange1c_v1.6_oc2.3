@@ -277,6 +277,13 @@ class ControllerModuleExchange1c extends Controller {
 		// связанные опции
 		//$data = $this->formRadioYesNo('exchange1c_relatedoptions', $data);
 
+		// Характеристики
+		$product_option = array(
+			'combine'		=> $this->language->get('text_product_option_combine'),
+			'related'		=> $this->language->get('text_product_option_related')
+		);
+		$data = $this->formSelect('exchange1c_product_option_mode', $data, $product_option);
+
 		// синхронизировать XML_ID 1С с ID Opencart
 		$data = $this->formRadioYesNo('exchange1c_synchronize_uuid_to_id', $data);
 		
@@ -613,26 +620,6 @@ class ControllerModuleExchange1c extends Controller {
 	
 
 	/**
-	 * Выводит сообщение в лог с инструкцией, если авторизация не удалась
-	 */
-	private function authWarning() {
-		// Проверим есть ли в файле .htaccess строчки:
-		// RewriteCond %{HTTP:Authorization} ^Basic.*
-		// RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization},L]
-		$htaccess = $_SERVER['DOCUMENT_ROOT'].'/.htaccess';
-		if ($fp = fopen($htaccess, 'r')) {
-			$buffer = fread($fp, 4096);
-			fclose($fp);
-			if (!strpos($buffer, 'RewriteCond %{HTTP:Authorization} ^Basic.*')) {
-				$this->log->write("ВНИМАНИЕ! при ошибке авторизации добавьте в файл .htaccess следующие строки:");
-				$this->log->write("RewriteCond %{HTTP:Authorization} ^Basic.*");
-				$this->log->write("RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization},L]");
-			}
-		}
-	} // authWarning()
-
-
-	/**
 	 * Проверка доступа с IP адреса
 	 */
 	private function checkAccess($echo = false) {
@@ -694,38 +681,6 @@ class ControllerModuleExchange1c extends Controller {
 		
 		$this->response->setOutput(json_encode($json));
 	} // manualCleaning()
-	
-	
-	/**
-	 * Поиск папки по имени во всех вложениях в папке кэша
-	 */
-	private function findFolder($folder, $folder_name) {
-		$dir = opendir($folder);
-		while ($file_dir = readdir($dir)) {
-			if($file_dir == "." || $file_dir == "..") continue;
-			if(is_dir($folder . $file_dir)){
-				if ($file_dir == $folder_name) {
-					return $folder;
-				}
-				$found_folder = $this->findFolder($folder . $file_dir . "/", $folder_name);
-				if ($found_folder) {
-					return $found_folder;
-				}
-			}
-		}
-		closedir($dir);
-		return 0;
-	} // findFolder()
-	
-
-	/**
-	 * Импорт файла через админ-панель
-	 */
-	private function moveImages($from, $to) {
-		`cp -a $from $to`;
-		`rm -rf $from`;
-		return;
-	}
 
 
 	/**
@@ -816,23 +771,17 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	public function modeCatalogInit($param = array(), $echo = true) {
 
-		// Включена проверка на запись файлов и папок
-		$test_file = DIR_CACHE . 'exchange1c/test.php';
-		if ($fp = fopen($test_file, "w")) {
-			fclose($fp);
-			unlink($test_file);
-		} else {
-			if ($echo) $this->echo_message(0, "The folder " . DIR_CACHE . " is not writable!");
-			return 0;
+		// Проверка на запись файлов в кэш
+		$cache = DIR_CACHE . 'exchange1c/';
+		if (!is_dir($cache)) {
+			mkdir($cache);
+			$this->log('Создана директория: ' . $cache);
 		}
 
-		$test_file = DIR_IMAGE . 'import_files/test.php';
-		if ($fp = fopen($test_file, "w")) {
-			fclose($fp);
-			unlink($test_file);
-		} else {
-			if ($echo) $this->echo_message(0, "The folder " . DIR_IMAGE . " is not writable!");
-			return 0;
+		$img = DIR_IMAGE . 'import_files/';
+		if (!is_dir($img)) {
+			mkdir($img);
+			$this->log('Создана директория: ' . $img);
 		}
 
 		if ($echo) {
@@ -899,7 +848,6 @@ class ControllerModuleExchange1c extends Controller {
 		
 	} // extractArchive()
 
-
 	/**
 	 * Обрабатывает загруженный файл на сервер
 	 */
@@ -964,7 +912,6 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 	} // modeFile()
-
 
 	/**
 	 * Обрабатывает *.XML файлы
@@ -1038,7 +985,7 @@ class ControllerModuleExchange1c extends Controller {
 		$result = $this->model_tool_exchange1c->queryOrdersStatus(array(
 			'from_date' 		=> $this->config->get('exchange1c_order_date'),
 			'exchange_status'	=> $this->config->get('exchange1c_order_status_to_exchange'),
-			'new_status'		=> $this->config->get('exchange1c_order_status'),
+			'new_status'		=> $this->config->get('exchange1c_order_status_change'),
 			'notify'			=> $this->config->get('exchange1c_order_notify')
 		));
 
@@ -1139,7 +1086,7 @@ class ControllerModuleExchange1c extends Controller {
 	public function eventDeleteManufacturer($manufacturer_id) {
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->deleteLinkManufacturer($manufacturer_id);
-	} // eventProductDelete()
+	} // eventManufacturerDelete()
 
 
 	/**
@@ -1148,7 +1095,7 @@ class ControllerModuleExchange1c extends Controller {
 	public function eventDeleteOption($option_id) {
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->deleteLinkOption($option_id);
-	} // eventProductDelete()
+	} // eventOptionDelete()
 
 
 	/**
@@ -1400,6 +1347,58 @@ class ControllerModuleExchange1c extends Controller {
 		return $data;
 	}
 
+
+    public function delete($path) {
+		if (is_dir($path)) {
+			array_map(function($value) {
+				$this->delete($value);
+				rmdir($value);
+			},glob($path . '/*', GLOB_ONLYDIR));
+			array_map('unlink', glob($path."/*"));
+		}
+	}
+
+
+	/**
+	* Формирует архив модуля для инсталляции
+	*/
+	public function modeExportModule() {
+		$this->log('Экспорт модуля');
+		// создаем папку export в кэше
+		
+		$filename = DIR_CACHE . 'opencart2-exchange1c_' . $this->config->get('exchange1c_version') . '.ocmod.zip';
+		if (is_file($filename))
+			unlink($filename);
+		
+		// Пакуем в архив 
+		$zip = new ZipArchive;
+		$zip->open($filename, ZIPARCHIVE::CREATE);
+		$zip->addFile(DIR_APPLICATION . 'controller/module/exchange1c.php', 'upload/admin/controller/module/exchange1c.php');
+		$zip->addFile(DIR_APPLICATION . 'language/english/module/exchange1c.php', 'upload/admin/language/english/module/exchange1c.php');
+		$zip->addFile(DIR_APPLICATION . 'language/russian/module/exchange1c.php', 'upload/admin/language/russian/module/exchange1c.php');
+		$zip->addFile(DIR_APPLICATION . 'model/tool/exchange1c.php', 'upload/admin/model/tool/exchange1c.php');
+		$zip->addFile(DIR_APPLICATION . 'view/template/module/exchange1c.tpl', 'upload/admin/view/template/module/exchange1c.tpl');
+		$zip->addFile(substr(DIR_APPLICATION, 0, strlen(DIR_APPLICATION) - 6) . 'export/exchange1c.php', 'upload/export/exchange1c.php');
+		
+		$sql = "SELECT xml FROM " . DB_PREFIX . "modification WHERE code = 'exchange1c'";
+		$query = $this->db->query($sql);
+		if ($query->num_rows) {
+			if ($fp = fopen(DIR_CACHE . 'modification.xml', "wb")) {
+				$result = fwrite($fp, $query->row['xml']);
+				fclose($fp);
+				$zip->addFile(DIR_CACHE . 'modification.xml', 'install.xml');
+			}
+		}
+		
+		$zip->close();
+		if (is_file(DIR_CACHE . 'modification.xml'))
+			unlink(DIR_CACHE . 'modification.xml');
+		
+		if ($fp = fopen($filename, "rb")) {
+			echo HTTP_CATALOG . 'system/storage/cache/' . substr($filename, strlen(DIR_CACHE));
+		}
+		
+	}
 
 }
 ?>
