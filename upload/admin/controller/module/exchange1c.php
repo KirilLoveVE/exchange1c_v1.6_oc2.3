@@ -455,123 +455,193 @@ class ControllerModuleExchange1c extends Controller {
 //		);
 	
 		// Связь товаров с 1С
-		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "product_to_1c'");
-		if(!$query->num_rows) {
-			$this->db->query(
-					'CREATE TABLE
-						`' . DB_PREFIX . 'product_to_1c` (
-							`product_id` int(11) NOT NULL,
-							`1c_id` varchar(255) NOT NULL,
-							KEY (`product_id`),
-							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (`product_id`) REFERENCES `'. DB_PREFIX .'product`(`product_id`) ON DELETE CASCADE
-						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
-			);
-		}
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_to_1c`");
+		$this->db->query(
+			"CREATE TABLE `" . DB_PREFIX . "product_to_1c` (
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'ID товара',
+				`1c_id` 				VARCHAR(64) 	NOT NULL 				COMMENT 'Ид товара в 1С',
+				KEY (`product_id`),
+				KEY (`1c_id`),
+				FOREIGN KEY (`product_id`) 				REFERENCES `". DB_PREFIX ."product`(`product_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
 
 		// Связь категорий с 1С
-		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "category_to_1c'");
-		if(!$query->num_rows) {
-			$this->db->query(
-					'CREATE TABLE
-						`' . DB_PREFIX . 'category_to_1c` (
-							`category_id` int(11) NOT NULL,
-							`1c_id` varchar(255) NOT NULL,
-							KEY (`category_id`),
-							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (`category_id`) REFERENCES `'. DB_PREFIX .'category`(`category_id`) ON DELETE CASCADE
-						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
-			);
-		}
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "category_to_1c`");
+		$this->db->query(
+			"CREATE TABLE `" . DB_PREFIX . "category_to_1c` (
+				`category_id` 			INT(11) 		NOT NULL 				COMMENT 'ID категории',
+				`1c_id` 				VARCHAR(64) 	NOT NULL 				COMMENT 'Ид категории в 1С',
+				KEY (`category_id`),
+				KEY (`1c_id`),
+				FOREIGN KEY (`category_id`) 			REFERENCES `". DB_PREFIX ."category`(`category_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
 	
 		// Свойства из 1С
-		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "attribute_to_1c'");
-		if(!$query->num_rows) {
-			$this->db->query(
-					'CREATE TABLE
-						`' . DB_PREFIX . 'attribute_to_1c` (
-							`attribute_id` int(11) NOT NULL,
-							`1c_id` varchar(255) NOT NULL,
-							KEY (`attribute_id`),
-							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (`attribute_id`) REFERENCES `'. DB_PREFIX .'attribute`(`attribute_id`) ON DELETE CASCADE
-						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
-			);
-		}
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "attribute_to_1c`");
+		$this->db->query(
+			"CREATE TABLE `" . DB_PREFIX . "attribute_to_1c` (
+				`attribute_id` 			INT(11) 		NOT NULL 				COMMENT 'ID атрибута',
+				`1c_id`					VARCHAR(64) 	NOT NULL 				COMMENT 'Ид свойства в 1С',
+				KEY (`attribute_id`),
+				KEY (`1c_id`),
+				FOREIGN KEY (`attribute_id`) 			REFERENCES `". DB_PREFIX ."attribute`(`attribute_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
 
-		// Характеристики из 1С
-		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "option_to_1c'");
-		if(!$query->num_rows) {
-			$this->db->query(
-					'CREATE TABLE
-						`' . DB_PREFIX . 'option_to_1c` (
-							`option_id` int(11) NOT NULL,
-							`1c_id` varchar(255) NOT NULL,
-							KEY (`option_id`),
-							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (`option_id`) REFERENCES `'. DB_PREFIX .'option`(`option_id`) ON DELETE CASCADE
-						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
-			);
-		}
-		
 		// Привязка производителя к каталогу 1С
-		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "manufacturer_to_1c'");
-		if(!$query->num_rows) {
-			$this->db->query(
-					'CREATE TABLE
-						`' . DB_PREFIX . 'manufacturer_to_1c` (
-							`manufacturer_id` int(11) NOT NULL,
-							`1c_id` varchar(255) NOT NULL,
-							KEY (`manufacturer_id`),
-							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (`manufacturer_id`) REFERENCES `'. DB_PREFIX .'manufacturer`(`manufacturer_id`) ON DELETE CASCADE
-						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
-			);
-		}
+		// В Ид производителя из 1С записывается либо Ид свойства сопоставленное либо Ид элемента справочника с производителями 
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "manufacturer_to_1c`");
+		$this->db->query(
+			"CREATE TABLE `" . DB_PREFIX . "manufacturer_to_1c` (
+				`manufacturer_id` 		INT(11) 		NOT NULL 				COMMENT 'ID производителя',
+				`1c_id` 				VARCHAR(64) 	NOT NULL 				COMMENT 'Ид производителя в 1С',
+				PRIMARY KEY (`manufacturer_id`),
+				KEY (`1c_id`),
+				FOREIGN KEY (`manufacturer_id`) 		REFERENCES `". DB_PREFIX ."manufacturer`(`manufacturer_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
 		
-		// Привязка магазина к каталогу 1С
-		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "store_to_1c'");
-		if(!$query->num_rows) {
-			$this->db->query(
-					'CREATE TABLE
-						`' . DB_PREFIX . 'store_to_1c` (
-							`store_id` int(11) NOT NULL,
-							`1c_id` varchar(255) NOT NULL,
-							KEY (`store_id`),
-							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (`store_id`) REFERENCES `'. DB_PREFIX .'store`(`store_id`) ON DELETE CASCADE
-						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
-			);
-		}
+
+		// Привязка магазина к каталогу в 1С
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "store_to_1c`");
+		$this->db->query(
+			"CREATE TABLE `" . DB_PREFIX . "store_to_1c` (
+				`store_id` 				INT(11) 		NOT NULL 				COMMENT 'Код магазина',
+				`1c_id` 				VARCHAR(64) 	NOT NULL 				COMMENT 'Ид каталога в 1С',
+				KEY (`store_id`),
+				KEY (`1c_id`),
+				FOREIGN KEY (`store_id`) 				REFERENCES `". DB_PREFIX ."store`(`store_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
 		
-		// остатки по складам
-		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "product_quantity'");
-		if(!$query->num_rows) {
-			$this->db->query(
-					'CREATE TABLE
-						`' . DB_PREFIX . 'product_quantity` (
-						`product_id` int(11) NOT NULL,
-						`warehouse_id` int(11) NOT NULL,
-						`quantity` int(10) DEFAULT 0,
-						KEY (`product_id`),
-						KEY (`warehouse_id`)                            
-					) ENGINE=MyISAM DEFAULT CHARSET=utf8'
-			);
-		}
+		// Остатки товара
+		// Хранятся остатки товара как с характеристиками, так и без. 
+		// Если склады и характеристики не используются, эта таблица будет пустая
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_quantity`");
+		$this->db->query(
+			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_quantity` (
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'Ссылка на товар',
+				`product_feature_id` 	INT(11) 		DEFAULT '0' NOT NULL	COMMENT 'Ссылка на характеристику товара',
+				`warehouse_id` 			INT(11) 		DEFAULT '0' NOT NULL 	COMMENT 'Ссылка на склад',
+				`unit_id` 				INT(11) 		DEFAULT '0' NOT NULL 	COMMENT 'Ссылка на единицу измерения',
+				`quantity` 				DECIMAL(10,3) 	DEFAULT '0' 			COMMENT 'Остаток',
+				FOREIGN KEY (`product_id`) 			REFERENCES `" . DB_PREFIX . "product`(`product_id`),
+				FOREIGN KEY (`product_feature_id`) 	REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
+				FOREIGN KEY (`warehouse_id`) 		REFERENCES `" . DB_PREFIX . "warehouse`(`warehouse_id`),
+				FOREIGN KEY (`unit_id`) 			REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
 
 		// склады
-		$query = $this->db->query("SHOW TABLES LIKE '" . DB_PREFIX . "warehouse'");
-		if(!$query->num_rows) {
-			$this->db->query(
-					'CREATE TABLE
-						`' . DB_PREFIX . 'warehouse` (
-							`warehouse_id` int(11) NOT NULL AUTO_INCREMENT,
-							`name` varchar(100) NOT NULL,
-							`1c_id` varchar(255) NOT NULL,
-                            PRIMARY KEY (`warehouse_id`)
-						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
-			);
-		}
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "warehouse`");
+		$this->db->query(
+			"CREATE TABLE `" . DB_PREFIX . "warehouse` (
+				`warehouse_id` 			SMALLINT(3) 	NOT NULL AUTO_INCREMENT,
+				`name` 					VARCHAR(100) 	NOT NULL DEFAULT '' 	COMMENT 'Название склада в 1С',
+				`1c_id` 				VARCHAR(64) 	NOT NULL				COMMENT 'Ид склада в 1С',
+				PRIMARY KEY (`warehouse_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
+
+		// Характеристики товара
+		// Если характеристики не используются, эта таблица будет пустая
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature`");
+		$this->db->query(
+			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_feature` (
+				`product_feature_id` 	INT(11) 		NOT NULL AUTO_INCREMENT,
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'ID товара',
+				`ean` 					VARCHAR(14) 	NOT NULL DEFAULT '' 	COMMENT 'Штрихкод',
+				`name` 					VARCHAR(255) 	NOT NULL DEFAULT '' 	COMMENT 'Название',
+				`sku` 					VARCHAR(128) 	NOT NULL DEFAULT '' 	COMMENT 'Артикул',
+				`1c_id` 				VARCHAR(64) 	NOT NULL 				COMMENT 'Ид характеристики в 1С',
+				PRIMARY KEY (`product_feature_id`),
+				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
+	
+		// Значения характеристики товара(доп. значения)
+		// Если характеристики не используются, эта таблица будет пустая
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature_value`");
+		$this->db->query(
+			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_feature_value` (
+				`product_feature_id` 	INT(11) 		NOT NULL 				COMMENT 'ID характеристики товара',
+				`option_id` 			INT(11) 		NOT NULL 				COMMENT 'ID опции',
+				`option_value_id` 		INT(11) 		NOT NULL 				COMMENT 'ID значения опции',
+				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
+				FOREIGN KEY (`option_id`) 				REFERENCES `" . DB_PREFIX . "option`(`option_id`),
+				FOREIGN KEY (`option_value_id`) 		REFERENCES `" . DB_PREFIX . "option_value`(`option_value_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
+
+		// Цены, если характеристики не используются, эта таблица будет пустая
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_price`");
+		$this->db->query(
+			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_price` (
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'ID товара',
+				`product_feature_id` 	INT(11) 		NOT NULL DEFAULT '0' 	COMMENT 'ID характеристики товара',
+				`customer_group_id`		INT(11) 		NOT NULL DEFAULT '0'	COMMENT 'ID группы покупателя',
+				`unit_id` 				INT(11) 		NOT NULL DEFAULT '0'	COMMENT 'ID единицы измерения',
+				`price` 				DECIMAL(15,4) 	NOT NULL DEFAULT '0'	COMMENT 'Цена',
+				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`),
+				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
+				FOREIGN KEY (`unit_id`) 				REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
+
+		// Единицы измерения товара (упаковки товара)
+		// Если используются упаковки, то в эту таблицу записываются дополнительные единицы измерения
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_unit`");
+		$this->db->query(
+			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_unit` (
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'ID товара',
+				`unit_id` 				INT(11) 		DEFAULT '0' NOT NULL 	COMMENT 'ID единицы измерения',
+				`ratio` 				INT(9) 			DEFAULT '1' 			COMMENT 'Коэффициент пересчета количества',
+				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`),
+				FOREIGN KEY (`unit_id`) 				REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
+
+		// Классификатор единиц измерения
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit`");
+		$this->db->query(
+			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "unit` (
+				`unit_id` 				SMALLINT(6) 	NOT NULL AUTO_INCREMENT COMMENT 'pk',
+				`name` 					VARCHAR(255) 	NOT NULL 				COMMENT 'Наименование единицы измерения',
+				`number_code` 			VARCHAR(5) 		NOT NULL 				COMMENT 'Код',
+				`rus_name1` 			VARCHAR(50) 	DEFAULT '' NOT NULL		COMMENT 'Условное обозначение национальное',
+				`eng_name1` 			VARCHAR(50) 	DEFAULT '' NOT NULL 	COMMENT 'Условное обозначение международное',
+				`rus_name2` 			VARCHAR(50) 	DEFAULT '' NOT NULL 	COMMENT 'Кодовое буквенное обозначение национальное',
+				`eng_name2` 			VARCHAR(50) 	DEFAULT '' NOT NULL 	COMMENT 'Кодовое буквенное обозначение международное',
+				`unit_group_id`  		TINYINT(4) 		NOT NULL 				COMMENT 'Группа единиц измерения',
+				`unit_type_id` 			TINYINT(4) 		NOT NULL 				COMMENT 'Раздел/приложение в которое входит единица измерения',
+				`visible` 				TINYINT(4) 		DEFAULT '1' NOT NULL 	COMMENT 'Видимость',
+				`comment` 				VARCHAR(255) 	DEFAULT '' NOT NULL 	COMMENT 'Комментарий',
+				PRIMARY KEY (`unit_id`),
+				UNIQUE KEY number_code (`number_code`),
+  				KEY unit_group_id (`unit_group_id`),
+  				KEY unit_type_id (`unit_type_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Общероссийский классификатор единиц измерения ОКЕИ'"
+		);
+
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_group`");
+		$this->db->query(
+			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "unit_group` (
+				`unit_group_id` 		TINYINT(4) 		NOT NULL AUTO_INCREMENT COMMENT 'pk',
+				`name` 					VARCHAR(255) 	NOT NULL 				COMMENT 'Наименование группы',
+				PRIMARY KEY (`unit_group_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Группы единиц измерения'"
+		);
+
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_type`");
+		$this->db->query(
+			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "unit_type` (
+				`unit_type_id` 		TINYINT(4) 			NOT NULL AUTO_INCREMENT COMMENT 'pk',
+				`name` 				VARCHAR(255) 		NOT NULL 				COMMENT 'Наименование раздела/приложения',
+				PRIMARY KEY (`unit_type_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Разделы/приложения, в которые включены единицы измерения'"
+		);
 
 		$this->log->write("Включен модуль " . $this->module_name . " версии " . $this->model_tool_exchange1c->version());
 	} // install()
@@ -1418,7 +1488,7 @@ class ControllerModuleExchange1c extends Controller {
 			unlink(DIR_CACHE . 'modification.xml');
 		
 		if ($fp = fopen($filename, "rb")) {
-			echo HTTP_CATALOG . 'system/storage/cache/' . substr($filename, strlen(DIR_CACHE));
+			echo '<a href="' . HTTP_CATALOG . 'system/storage/cache/' . substr($filename, strlen(DIR_CACHE)) . '">' . substr($filename, strlen(DIR_CACHE)) . '</a>';
 		}
 		
 	}

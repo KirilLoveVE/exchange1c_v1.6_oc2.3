@@ -2893,7 +2893,7 @@ class ModelToolExchange1c extends Model {
 							`1c_id` varchar(255) NOT NULL,
 							PRIMARY KEY (`manufacturer_id`),
 							KEY `1c_id` (`1c_id`),
-							FOREIGN KEY (`manufacturer_id`) REFERENCES `'. DB_PREFIX .'manufacturer`(`manufacturer_id`) ON DELETE CASCADE
+							FOREIGN KEY (`manufacturer_id`) REFERENCES `'. DB_PREFIX .'manufacturer`(`manufacturer_id`)
 						) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 			);
 		}
@@ -2945,19 +2945,19 @@ class ModelToolExchange1c extends Model {
 		// Удалим старую не нужную таблицу
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "option_to_1c`");
 
-		// Характеристика товара
+		// Характеристики товара
 		// Если характеристики не используются, эта таблица будет пустая
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_feature` (
-				`product_feature_id` 	int(11) NOT NULL AUTO_INCREMENT,
-				`product_id` 			int(11) NOT NULL COMMENT 'Код товара',
-				`ean` 					varchar(14) default '' COMMENT 'Штрихкод',
-				`name` 					varchar(255) NOT NULL COMMENT 'Название',
-				`sku` 					varchar(128) NOT NULL COMMENT 'Артикул',
-				`1c_id` 				varchar(64) NOT NULL COMMENT 'Ид характеристики в 1С',
+				`product_feature_id` 	INT(11) 		NOT NULL AUTO_INCREMENT,
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'ID товара',
+				`ean` 					VARCHAR(14) 	NOT NULL DEFAULT '' 	COMMENT 'Штрихкод',
+				`name` 					VARCHAR(255) 	NOT NULL DEFAULT '' 	COMMENT 'Название',
+				`sku` 					VARCHAR(128) 	NOT NULL DEFAULT '' 	COMMENT 'Артикул',
+				`1c_id` 				VARCHAR(64) 	NOT NULL 				COMMENT 'Ид характеристики в 1С',
 				PRIMARY KEY (`product_feature_id`),
-				FOREIGN KEY (`product_id`) 			REFERENCES `" . DB_PREFIX . "product`(`product_id`)
+				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 	
@@ -2967,12 +2967,12 @@ class ModelToolExchange1c extends Model {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature_value`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_feature_value` (
-				`product_feature_id` 	int(11) NOT NULL COMMENT 'Ссылка на характеристику',
-				`option_id` 			int(11) NOT NULL COMMENT 'Ссылка на опцию',
-				`option_value_id` 		int(11) NOT NULL COMMENT 'Ссылка на значение опции',
-				FOREIGN KEY (`product_feature_id`) 	REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
-				FOREIGN KEY (`option_id`) 			REFERENCES `" . DB_PREFIX . "option`(`option_id`),
-				FOREIGN KEY (`option_value_id`) 	REFERENCES `" . DB_PREFIX . "option_value`(`option_value_id`)
+				`product_feature_id` 	INT(11) 		NOT NULL 				COMMENT 'ID характеристики товара',
+				`option_id` 			INT(11) 		NOT NULL 				COMMENT 'ID опции',
+				`option_value_id` 		INT(11) 		NOT NULL 				COMMENT 'ID значения опции',
+				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
+				FOREIGN KEY (`option_id`) 				REFERENCES `" . DB_PREFIX . "option`(`option_id`),
+				FOREIGN KEY (`option_value_id`) 		REFERENCES `" . DB_PREFIX . "option_value`(`option_value_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
@@ -2980,14 +2980,14 @@ class ModelToolExchange1c extends Model {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_price`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_price` (
-				`product_id` 			int(11) default NULL COMMENT 'Ссылка на товар',
-				`product_feature_id` 	int(11) default NULL COMMENT 'Ссылка на товар',
-				`customer_group_id`		int(11) NOT NULL COMMENT 'Ссылка на группу покупателя',
-				`unit_id` 				int(11) default NULL COMMENT 'Ссылка на единицу измерения',
-				`price` 				decimal(15,4) default '0' COMMENT 'Цена',
-				FOREIGN KEY (`product_id`) 			REFERENCES `" . DB_PREFIX . "product`(`product_id`),
-				FOREIGN KEY (`product_feature_id`) 	REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
-				FOREIGN KEY (`unit_id`) 			REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'ID товара',
+				`product_feature_id` 	INT(11) 		NOT NULL DEFAULT '0' 	COMMENT 'ID характеристики товара',
+				`customer_group_id`		INT(11) 		NOT NULL DEFAULT '0'	COMMENT 'ID группы покупателя',
+				`unit_id` 				INT(11) 		NOT NULL DEFAULT '0'	COMMENT 'ID единицы измерения',
+				`price` 				DECIMAL(15,4) 	NOT NULL DEFAULT '0'	COMMENT 'Цена',
+				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`),
+				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
+				FOREIGN KEY (`unit_id`) 				REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
@@ -2997,11 +2997,11 @@ class ModelToolExchange1c extends Model {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_quantity`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_quantity` (
-				`product_id` 			int(11) NOT NULL COMMENT 'Ссылка на товар',
-				`product_feature_id` 	int(11) default NULL COMMENT 'Ссылка на характеристику товара',
-				`warehouse_id` 			int(11) default NULL COMMENT 'Ссылка на склад',
-				`unit_id` 				int(11) default NULL COMMENT 'Ссылка на единицу измерения',
-				`quantity` 				decimal(10,3) default '0' COMMENT 'Остаток',
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'Ссылка на товар',
+				`product_feature_id` 	INT(11) 		DEFAULT '0' NOT NULL	COMMENT 'Ссылка на характеристику товара',
+				`warehouse_id` 			INT(11) 		DEFAULT '0' NOT NULL 	COMMENT 'Ссылка на склад',
+				`unit_id` 				INT(11) 		DEFAULT '0' NOT NULL 	COMMENT 'Ссылка на единицу измерения',
+				`quantity` 				DECIMAL(10,3) 	DEFAULT '0' 			COMMENT 'Остаток',
 				FOREIGN KEY (`product_id`) 			REFERENCES `" . DB_PREFIX . "product`(`product_id`),
 				FOREIGN KEY (`product_feature_id`) 	REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
 				FOREIGN KEY (`warehouse_id`) 		REFERENCES `" . DB_PREFIX . "warehouse`(`warehouse_id`),
@@ -3014,11 +3014,11 @@ class ModelToolExchange1c extends Model {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_unit`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_unit` (
-				`product_id` 			int(11) default NULL COMMENT 'Ссылка на товар',
-				`unit_id` 				int(11) NOT NULL COMMENT 'Ссылка на единицу измерения',
-				`ratio` 				int(9) default '1' COMMENT 'Коэффициент пересчета количества',
-				FOREIGN KEY (`product_id`) 			REFERENCES `" . DB_PREFIX . "product`(`product_id`),
-				FOREIGN KEY (`unit_id`) 			REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'ID товара',
+				`unit_id` 				INT(11) 		DEFAULT '0' NOT NULL 	COMMENT 'ID единицы измерения',
+				`ratio` 				INT(9) 			DEFAULT '1' NOT NULL	COMMENT 'Коэффициент пересчета количества',
+				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`),
+				FOREIGN KEY (`unit_id`) 				REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
@@ -3027,29 +3027,29 @@ class ModelToolExchange1c extends Model {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "unit` (
-				`unit_id` smallint(6) NOT NULL AUTO_INCREMENT COMMENT 'pk',
-				`name` varchar(255) NOT NULL COMMENT 'Наименование единицы измерения',
-				`number_code` varchar(5) NOT NULL COMMENT 'Код',
-				`rus_name1` varchar(50) default NULL COMMENT 'Условное обозначение национальное',
-				`eng_name1` varchar(50) default NULL COMMENT 'Условное обозначение международное',
-				`rus_name2` varchar(50) default NULL COMMENT 'Кодовое буквенное обозначение национальное',
-				`eng_name2` varchar(50) default NULL COMMENT 'Кодовое буквенное обозначение международное',
-				`unit_group_id`  tinyint(4) NOT NULL COMMENT 'Группа единиц измерения',
-				`unit_type_id` tinyint(4) NOT NULL COMMENT 'Раздел/приложение в которое входит единица измерения',
-				`visible` tinyint(4) NOT NULL default '1' COMMENT 'Видимость',
-				`comment` varchar(255) default NULL COMMENT 'Комментарий',
+				`unit_id` 				SMALLINT(6) 	NOT NULL AUTO_INCREMENT COMMENT 'pk',
+				`name` 					VARCHAR(255) 	NOT NULL 				COMMENT 'Наименование единицы измерения',
+				`number_code` 			VARCHAR(5) 		NOT NULL 				COMMENT 'Код',
+				`rus_name1` 			VARCHAR(50) 	DEFAULT '' NOT NULL		COMMENT 'Условное обозначение национальное',
+				`eng_name1` 			VARCHAR(50) 	DEFAULT '' NOT NULL 	COMMENT 'Условное обозначение международное',
+				`rus_name2` 			VARCHAR(50) 	DEFAULT '' NOT NULL 	COMMENT 'Кодовое буквенное обозначение национальное',
+				`eng_name2` 			VARCHAR(50) 	DEFAULT '' NOT NULL 	COMMENT 'Кодовое буквенное обозначение международное',
+				`unit_group_id`  		TINYINT(4) 		NOT NULL 				COMMENT 'Группа единиц измерения',
+				`unit_type_id` 			TINYINT(4) 		NOT NULL 				COMMENT 'Раздел/приложение в которое входит единица измерения',
+				`visible` 				TINYINT(4) 		DEFAULT '1' NOT NULL 	COMMENT 'Видимость',
+				`comment` 				VARCHAR(255) 	DEFAULT '' NOT NULL 	COMMENT 'Комментарий',
 				PRIMARY KEY (`unit_id`),
-				UNIQUE KEY number_code (number_code),
-  				KEY unit_group_id (unit_group_id),
-  				KEY unit_type_id (unit_type_id)
+				UNIQUE KEY number_code (`number_code`),
+  				KEY unit_group_id (`unit_group_id`),
+  				KEY unit_type_id (`unit_type_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Общероссийский классификатор единиц измерения ОКЕИ'"
 		);
 
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_group`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "unit_group` (
-				`unit_group_id` tinyint(4) NOT NULL AUTO_INCREMENT COMMENT 'pk',
-				`name` varchar(255) NOT NULL COMMENT 'Наименование группы',
+				`unit_group_id` 		TINYINT(4) 		NOT NULL AUTO_INCREMENT COMMENT 'pk',
+				`name` 					VARCHAR(255) 	NOT NULL 				COMMENT 'Наименование группы',
 				PRIMARY KEY (`unit_group_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Группы единиц измерения'"
 		);
@@ -3057,8 +3057,8 @@ class ModelToolExchange1c extends Model {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_type`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "unit_type` (
-				`unit_type_id` tinyint(4) NOT NULL AUTO_INCREMENT COMMENT 'pk',
-				`name` varchar(255) NOT NULL COMMENT 'Наименование раздела/приложения',
+				`unit_type_id` 		TINYINT(4) 			NOT NULL AUTO_INCREMENT COMMENT 'pk',
+				`name` 				VARCHAR(255) 		NOT NULL 				COMMENT 'Наименование раздела/приложения',
 				PRIMARY KEY (`unit_type_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Разделы/приложения, в которые включены единицы измерения'"
 		);
