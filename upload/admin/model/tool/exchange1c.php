@@ -720,10 +720,10 @@ class ModelToolExchange1c extends Model {
 		// Подгружаем только один раз
 		$this->load->model('catalog/product');
 		
-		$this->log($product_categories, 'product_categories');
+		//$this->log($product_categories, 'product_categories');
 		foreach ($product_categories as $category_id) {
 			$parents_id = array_merge($product_categories, $this->findParentsCategories($category_id));
-			$this->log($parents_id, 'parents_id:');
+			//$this->log($parents_id, 'parents_id:');
 			foreach ($parents_id as $parent_id) {
 				if ($parent_id != 0) {
 					//$this->log('parent_id: ' . $parent_id);
@@ -1190,7 +1190,7 @@ class ModelToolExchange1c extends Model {
 		
 		// Нужно ли обновлять картинки товара
 		$update_filelds = $this->config->get('exchange1c_product_fields_update');
-		$this->log($update_filelds);
+//		$this->log($update_filelds);
 		if (!isset($update_filelds['images'])) {
 			$this->log("[i] Обновление картинок отключено!");
 			return true;
@@ -1367,7 +1367,7 @@ class ModelToolExchange1c extends Model {
 	/**
 	 * Устанавливает свойства в товар
 	 */
-	private function setAttributes($xml, $attributes, $product_id) {
+	private function setAttributes($xml, $attributes, $product_id, $data) {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "product_attribute` WHERE product_id = '" . (int)$product_id . "'");
 		foreach ($xml->ЗначенияСвойства as $property) {
 			// если есть значения
@@ -1381,7 +1381,6 @@ class ModelToolExchange1c extends Model {
 			
 			$name 	= trim($attributes[$xml_id]['name']);
 			$value 	= trim((string)$property->Значение);
-//			$this->log($attributes[$xml_id]);
 			
 			if ($value) {
 				if ($attributes[$xml_id]) {
@@ -1393,9 +1392,11 @@ class ModelToolExchange1c extends Model {
 			}
 
 			if ($name == 'Производитель' && !empty($value)) {
+				if (isset($data['manufacturer_xmlid']))
+					continue;
 				$manufacturer_id = $this->setManufacturer($value);
 				$sql = "UPDATE `" . DB_PREFIX . "product` SET manufacturer_id = '" . $manufacturer_id. "' WHERE product_id = '" . (int)$product_id . "'";
-//				$this->log($sql);
+				$this->log($sql);
 				$this->db->query($sql);
 				$this->log("> Производитель (из свойства): " . $value);
 				continue;
@@ -1497,35 +1498,37 @@ class ModelToolExchange1c extends Model {
 	/**
 	 * Устанавливаем производителя
 	 */
-	private function setManufacturer($name) {
+	private function setManufacturer($name, $xmlid='') {
 		$data = array();
 		$data['name']			= htmlspecialchars($name);
 		$data['description'] 	= 'Производитель ' . $data['name'];
 		$data['sort_order']		= 1;
+		$data['xmlid']			= $xmlid;		
 
 		if ($this->existField("manufacturer", "noindex")) {
 			$data['noindex'] = 1;	// значение по умолчанию
 		}
 
-		if (isset($data['xmlid'])) {
-			// Поиск изготовителя по 1C Ид
-			$sql 	= "SELECT manufacturer_id FROM `" . DB_PREFIX . "manufacturer_to_1c` WHERE 1c_id = '" . $this->db->escape($data['xmlid']) . "'";
-//			$this->log($sql);
-			$query = $this->db->query($sql);
-			if ($query->num_rows) {
-				$manufacturer_id = $query->row['manufacturer_id'];
-			}
+		if ($xmlid) {
+			// Поиск (производителя) изготовителя по 1C Ид
+			$where = "mc.1c_id = '" . $this->db->escape($xmlid) . "'";
+		} else {
+			// Поиск по имени
+			$where = "m.name LIKE '" . $this->db->escape($data['name']) . "'";
 		}
+		$where .= " AND ms.store_id = '" . $this->STORE_ID . "'";
+		
+		// Если есть таблица manufacturer_description тогда нужно условие  
+		// AND language_id = '" . $this->LANG_ID . "'
 
-		// Поиск изготовителя по имени, если не нашли по Ид
-		if (!isset($manufacturer_id)) {
-			$sql 	= "SELECT manufacturer_id FROM `" . DB_PREFIX . "manufacturer` WHERE name LIKE '" . $this->db->escape($data['name']) . "'";
-//			$this->log($sql);
-			$query = $this->db->query($sql);
-			if ($query->num_rows) {
-				$manufacturer_id = $query->row['manufacturer_id'];
-			}
+		$sql 	= "SELECT m.manufacturer_id FROM `" . DB_PREFIX . "manufacturer_to_1c` mc LEFT JOIN `" . DB_PREFIX . "manufacturer_to_store` ms ON (mc.manufacturer_id = ms.manufacturer_id) LEFT JOIN `" . DB_PREFIX . "manufacturer` m ON (m.manufacturer_id = mc.manufacturer_id) WHERE " . $where;
+		$this->log($sql);
+		$query = $this->db->query($sql);
+		if ($query->num_rows) {
+			$manufacturer_id = $query->row['manufacturer_id'];
 		}
+		
+//		$this->log($data, 'Данные производителя');
 
 		if (!isset($manufacturer_id)) {
 			// Создаем
@@ -1627,8 +1630,10 @@ class ModelToolExchange1c extends Model {
 
 				// изготовитель 
 				if ($product->Изготовитель) {
+					$this->log("Загрузка производителя из реквизита Изготовитель");
 					$data['manufacturer_name'] = (string)$product->Изготовитель->Наименование;
-					$data['manufacturer_id'] = $this->setManufacturer($data['manufacturer_name']);
+					$data['manufacturer_xmlid'] = (string)$product->Изготовитель->Ид;
+					$data['manufacturer_id'] = $this->setManufacturer($data['manufacturer_name'], $data['manufacturer_xmlid']);
 				}
 
 				if ($default_stock_status) {
@@ -1651,7 +1656,7 @@ class ModelToolExchange1c extends Model {
 				
 				// Свойства
 				if ($product->ЗначенияСвойств) {
-					if (!$this->setAttributes($product->ЗначенияСвойств, $classifier['attributes'], $product_id)) {
+					if (!$this->setAttributes($product->ЗначенияСвойств, $classifier['attributes'], $product_id, $data)) {
 						$this->log('[ERROR] parseProducts(): Ошибка загрузки свойств!');
 						return false;
 					}
@@ -2211,9 +2216,30 @@ class ModelToolExchange1c extends Model {
 		
 		if (!$xml) return 0;
 		
+		// Удалим старые характеристики
+		$sql = "DELETE FROM `" . DB_PREFIX . "product_feature` WHERE product_id = '" . $product_id . "'";
+ 		$this->log($sql);
+		$query = $this->db->query($sql);
+		
+		// Удалим старые значения характеристики
+		$sql = "DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE product_id = '" . $product_id . "'";
+ 		$this->log($sql);
+		$query = $this->db->query($sql);
+
+		// Удалим старые опции
+		$sql = "DELETE FROM `" . DB_PREFIX . "product_option` WHERE product_id = '" . $product_id . "'";
+ 		$this->log($sql);
+		$query = $this->db->query($sql);
+		
+		// Удалим старые значения опции
+		$sql = "DELETE FROM `" . DB_PREFIX . "product_option_value` WHERE product_id = '" . $product_id . "'";
+ 		$this->log($sql);
+		$query = $this->db->query($sql);
+		
 		// Формируется из доп. свойств или же из названия, при отстутствии доп. свойств
 		$features = array();
 		$feature_name = '';
+		$option_name = '';
 		$options = array();
 		
 		// Обрабатываем все доп. свойства характеристики и записываем в массив, формируем название для характеристики, типа: "Наименование: Значение, Наименование: Значение, ..."
@@ -2227,25 +2253,44 @@ class ModelToolExchange1c extends Model {
 			$name = trim((string)$productFeature->Наименование);
 			$value = trim((string)$productFeature->Значение);
 
-			$feature_name .= (empty($feature_name) ? '' : ', ') . $value;
-			//$feature_name .= (empty($feature_name) ? '' : ', ') . $name . ': ' . $value;
+			// Название характеристики из значений через запятую 
+			$feature_name 	.= (empty($feature_name) ? '' : ', ') . $value;
+			// Название опции
+			$option_name 	.= (empty($option_name) ? '' : ', ') . $name;
 			
 			if ($feature_xmlid) {
 
+				// Должна быть в import - это Ид характеристики товара в offers.
+				// Встречается в версии 2.07
 				$features[$feature_xmlid] = array(
 					'name'		=> $name,
 					'value'		=> $value
 				);
 				
 			} else {
-				$options[] = array(
-					'name'		=> $name,
-					'value'		=> $value
-				);
+				
+				// Обычно так загружается из offers v2.03
+				if ($this->config->get('exchange1c_product_option_mode') == 'related') {
+					// Если связанные опции
+					$options[] = array(
+						'name'		=> $name,
+						'value'		=> $value
+					);
+				}
+				
+				 
 			}
 			
 		}
 
+		if ($this->config->get('exchange1c_product_option_mode') == 'combine') {
+			$options[] = array(
+				'name'		=> $option_name,
+				'value'		=> $feature_name
+			);
+			$this->log($options, "2271 Опция");
+		}
+			
 		if (count($features)) {
 			foreach ($features as $feature_xmlid => $feature) {
 				$data['feature_xmlid'] = $feature_xmlid;
@@ -3005,6 +3050,7 @@ class ModelToolExchange1c extends Model {
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_feature_value` (
 				`product_feature_id` 	INT(11) 		NOT NULL 				COMMENT 'ID характеристики товара',
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'ID товара',
 				`option_id` 			INT(11) 		NOT NULL 				COMMENT 'ID опции',
 				`option_value_id` 		INT(11) 		NOT NULL 				COMMENT 'ID значения опции',
 				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
@@ -3576,5 +3622,6 @@ class ModelToolExchange1c extends Model {
 
 		return 1;
 	}	
+
 }
 

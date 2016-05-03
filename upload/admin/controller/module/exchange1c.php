@@ -567,6 +567,7 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_feature_value` (
 				`product_feature_id` 	INT(11) 		NOT NULL 				COMMENT 'ID характеристики товара',
+				`product_id` 			INT(11) 		NOT NULL 				COMMENT 'ID товара',
 				`option_id` 			INT(11) 		NOT NULL 				COMMENT 'ID опции',
 				`option_value_id` 		INT(11) 		NOT NULL 				COMMENT 'ID значения опции',
 				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
