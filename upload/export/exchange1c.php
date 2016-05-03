@@ -287,6 +287,8 @@ if (isset($request->get['module'])) {
 		
 		case 'remove':
 			$action = new Action('module/exchange1c/modeRemoveModule');
+			$controller->dispatch($action, new Action('error/not_found'));
+			$action = new Action('extension/modification/refresh');
 		break;
 
 		default:

@@ -1455,6 +1455,9 @@ class ControllerModuleExchange1c extends Controller {
 				echo("Ваш IP адрес " . $ip . " не найден в списке разрешенных");
 				return false;
 			}
+		} else {
+			echo("Список IP адресов пуст, задайте адрес");
+			return false;
 		}
 
 		$this->log('Экспорт модуля ' . $this->module_name);
@@ -1508,6 +1511,9 @@ class ControllerModuleExchange1c extends Controller {
 				echo("Ваш IP адрес " . $ip . " не найден в списке разрешенных");
 				return false;
 			}
+		} else {
+			echo("Список IP адресов пуст, задайте адрес");
+			return false;
 		}
 
 		$this->log('Удаление модуля ' . $this->module_name);
@@ -1528,6 +1534,11 @@ class ControllerModuleExchange1c extends Controller {
 			}
 		}
 		
+		// Удаление модификатора
+		$this->load->model('extension/modification');
+		$modification = $this->model_extension_modification->getModificationByCode('exchange1c');
+		if ($modification) $this->model_extension_modification->deleteModification($modification['modification_id']);
+
 		echo "Модуль успешно удален!";
 		
 	}
