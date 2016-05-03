@@ -696,6 +696,7 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function prepareStrQueryManufacturerDescription($data) {
 		$sql  = isset($data['description']) 		? ", description = '" . $this->db->escape($data['description']) . "'"				: "";
+		$sql .= isset($data['name']) 				? ", name = '" . $this->db->escape($data['name']) . "'" 							: "";
 		$sql .= isset($data['meta_description']) 	? ", meta_description = '" . $this->db->escape($data['meta_description']) . "'" 	: "";
 		$sql .= isset($data['meta_keyword']) 		? ", meta_keyword = '" . $this->db->escape($data['meta_keyword']) . "'"				: "";
 		$sql .= isset($data['meta_title']) 			? ", meta_title = '" . $this->db->escape($data['meta_title']) . "'"					: "";
@@ -953,9 +954,10 @@ class ModelToolExchange1c extends Model {
 		// категории продукта
 		$main_category = $this->existField("product_to_category", "main_category", 1);
 		
-		if (isset($data['product_category'])) {
-			foreach ($data['product_category'] as $category_id) {
+		if (isset($data['product_categories'])) {
+			foreach ($data['product_categories'] as $category_id) {
 				$this->db->query("INSERT INTO `" . DB_PREFIX . "product_to_category` SET product_id = '" . (int)$product_id . "', category_id = '" . (int)$category_id . "'" . $main_category);
+				$this->log("> Товар добавлен в категорию id: " . $category_id);
 			}
 		}
 		
@@ -1472,7 +1474,7 @@ class ModelToolExchange1c extends Model {
 			if ($sql) {
 				$sql = "INSERT INTO `" . DB_PREFIX . "manufacturer_description` SET manufacturer_id = '" . (int)$manufacturer_id . "', language_id = '" . (int)$this->LANG_ID . "'" . $sql;
 				$this->log($sql);
-				$query = $this->db->query($sql);
+				$this->db->query($sql);
 			}
 		}
 		
@@ -1487,7 +1489,7 @@ class ModelToolExchange1c extends Model {
 		$this->log($sql);
 		$this->db->query($sql);
 		
-		$this->log("> Производитель '" . $data['name'] . "' добавлен");
+		$this->log("> Производитель '" . $data['name'] . "' добавлен, id: " . $manufacturer_id);
 		return $manufacturer_id; 
 	} // addManufacturer()
 
