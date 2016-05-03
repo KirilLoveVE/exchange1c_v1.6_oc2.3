@@ -158,12 +158,17 @@ $controller = new Front($registry);
 
 // Принудительное использование HTTP авторизации, если она отключена на сервере
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
+	$log->write('PHP_AUTH_USER не определен');
 	if (isset($_SERVER["REMOTE_USER"]) && isset($_SERVER["REDIRECT_REMOTE_USER"])){
 		$remote_user = $_SERVER["REMOTE_USER"] ? $_SERVER["REMOTE_USER"]: $_SERVER["REDIRECT_REMOTE_USER"];
 		$strTmp = base64_decode(substr($remote_user,6));
 		if($strTmp) list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
-		$log->write('Включен режим принудительной авторизации в beta версии!');
+		$log->write('Включен режим принудительной авторизации!');
+	} else {
+		$log->write('REMOTE_USER и REDIRECT_REMOTE_USER не определен');
 	}
+} else {
+	$log->write('Авторизован пользователь ' . $_SERVER['PHP_AUTH_USER']);
 }
 
 // Информация используется для поиска и отладки возможных ошибок в beta версиях
@@ -177,28 +182,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 //else 
 //	$log->write('Запуск веб сервера в режиме модуля сервера '.$sapi);
 
-//$cms_info = new Action('module/exchange1c/checkCMS');
-
-// Определяем версию системы
-if ($handle = fopen($_SERVER['DOCUMENT_ROOT'].'/index.php', 'r')) {
-	$buffer = fread($handle, 2048);
-	fclose($handle);
-	
-	if (strpos($buffer, 'OCSHOP')) {
-		define('CMS', 'ocShop');
-	} elseif (strpos($buffer, 'OCSTORE')) {
-		define('CMS', 'ocStore');
-	} else {
-		define('CMS', 'OpenCart');
-	}
-	
-	if (preg_match("/[\d](\.[\d])+/", $buffer, $matches)) {
-		define('VERSION', $matches[0]);
-	} else {
-		define('VERSION', '2.0.3.1');
-	}
-}
-//$log->write("mode: " . $request->get['mode'] . ", type: " . $request->get['type']);
 // Router
 
 if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
@@ -287,8 +270,6 @@ if (isset($request->get['module'])) {
 		
 		case 'remove':
 			$action = new Action('module/exchange1c/modeRemoveModule');
-			$controller->dispatch($action, new Action('error/not_found'));
-			$action = new Action('extension/modification/refresh');
 		break;
 
 		default:

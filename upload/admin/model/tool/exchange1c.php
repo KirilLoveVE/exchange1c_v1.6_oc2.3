@@ -449,6 +449,11 @@ class ModelToolExchange1c extends Model {
 			$data['categories'] = $this->getProductCategories($data['product_id']);
 	 		$data = $this->seoGenerateProduct($data, $seo_fields);
 	 		$this->updateProduct($data, $data['product_id']);
+
+			if (isset($data['seo_url'])) {
+				$this->setSeoURL('product_id', $data['product_id'], $data['seo_url']);
+			}
+
 //	 		unset($data['description']); // временно
 //			$this->log($data);
 		}
@@ -463,6 +468,10 @@ class ModelToolExchange1c extends Model {
 		foreach ($query->rows as $data) {
 	 		$data = $this->seoGenerateCategory($data, $seo_fields);
 	 		$this->updateCategory($data);
+
+			if (isset($data['seo_url'])) {
+				$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
+			}
 		}
 		
 		// ПРОИЗВОДИТЕЛИ
@@ -473,6 +482,10 @@ class ModelToolExchange1c extends Model {
 		foreach ($query->rows as $data) {
 	 		$data = $this->seoGenerateManufacturer($data, $seo_fields);
 	 		$this->updateManufacturer($data, $data['manufacturer_id']);
+
+			if (isset($data['seo_url'])) {
+				$this->setSeoURL('manufacturer_id', $data['manufacturer_id'], $data['seo_url']);
+			}
 		}
 	} // seoGenerate()
 
@@ -1025,12 +1038,12 @@ class ModelToolExchange1c extends Model {
 		}
 		// КОНЕЦ ФИЛЬТРА
 
-//		$this->log($data);
+		$this->log($data);
 		$sql = $this->prepareQueryProduct($data);
 //		$this->log('prepareQueryProduct: '.$sql);
 		if ($sql) {
 			$sql = "UPDATE `" . DB_PREFIX . "product` SET date_modified = NOW()" . $sql . " WHERE product_id = '" . (int)$product_id . "'";
-			//$this->log($sql);
+			$this->log($sql);
 			$this->db->query($sql);
 		} else {
 			$this->log("[i] Товар не нуждается в обновлении");
@@ -1054,11 +1067,6 @@ class ModelToolExchange1c extends Model {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "product_to_store` WHERE product_id = '" . (int)$product_id . "'");
 		$this->db->query("INSERT INTO `" . DB_PREFIX . "product_to_store` SET product_id = '" . (int)$product_id . "', store_id = '" . (int)$this->STORE_ID . "'");
 		
-		// SEO
-//		if (isset($data['seo_url'])) {
-//			$this->setSeoURL('product_id', $product_id, $data['seo_url']);
-//		}
-
 		$this->cache->delete('product');
 		
 		$this->log("> Товар обновлен");
@@ -2283,6 +2291,7 @@ class ModelToolExchange1c extends Model {
 			
 		}
 
+		$feature_name = "Характеристика";
 		if ($this->config->get('exchange1c_product_option_mode') == 'combine') {
 			$options[] = array(
 				'name'		=> $option_name,
