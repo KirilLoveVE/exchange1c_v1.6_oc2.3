@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 // Configuration
 require_once('../admin/config.php');
