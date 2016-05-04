@@ -711,7 +711,10 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function prepareStrQueryManufacturerDescription($data) {
 		$sql  = isset($data['description']) 		? ", description = '" . $this->db->escape($data['description']) . "'"				: "";
-		$sql .= isset($data['name']) 				? ", name = '" . $this->db->escape($data['name']) . "'" 							: "";
+		if ($this->existField("manufacturer_description", "name")) {
+			// Пока не знаю зачем это поле было добавлено в ocStore 2.1.0.2.1, в ocShop 2.1.0.1.4 его нет
+			$sql .= isset($data['name']) 				? ", name = '" . $this->db->escape($data['name']) . "'" 							: "";
+		}
 		$sql .= isset($data['meta_description']) 	? ", meta_description = '" . $this->db->escape($data['meta_description']) . "'" 	: "";
 		$sql .= isset($data['meta_keyword']) 		? ", meta_keyword = '" . $this->db->escape($data['meta_keyword']) . "'"				: "";
 		$sql .= isset($data['meta_title']) 			? ", meta_title = '" . $this->db->escape($data['meta_title']) . "'"					: "";
@@ -1631,8 +1634,8 @@ class ModelToolExchange1c extends Model {
 				} 
 
 				// категории
+				$data['product_categories']	= array();
 				if ($product->Группы) {
-					$data['product_categories']	= array();
 					foreach ($product->Группы->Ид as $category_xml_id) {
 						$data['product_categories'][] = $this->getCategoryIdByXMLID((string)$category_xml_id);
 					}
@@ -2566,15 +2569,18 @@ class ModelToolExchange1c extends Model {
 		$this->log("==== Выгрузка заказов ====");
 //		$this->log('Параметры:');
 //		$this->log($params);
-
-		$this->load->model('sale/order');
-		if (version_compare(VERSION, '2.0.3.1', '<=')) {
+		
+		$sale_customer_group = method_exists($this->model_sale_customer_group, 'getCustomerGroup');
+		$this->log($sale_customer_group,'sale_customer_group');
+		if ($sale_customer_group) {
 			$this->log('sale/customer_group');
 			$this->load->model('sale/customer_group');
 		} else {
 			$this->log('customer/customer_group');
 			$this->load->model('customer/customer_group');
 		}
+			
+		$this->load->model('sale/order');
 		
 		if ($params['exchange_status'] != 0) {
 			// Если указано с каким статусом выгружать заказы
@@ -2595,7 +2601,7 @@ class ModelToolExchange1c extends Model {
 				$this->log("> Выгружается заказ #" . $order['order_id']);
 				$date = date('Y-m-d', strtotime($order['date_added']));
 				$time = date('H:i:s', strtotime($order['date_added']));
-				if (version_compare(VERSION, '2.0.3.1', '<=')) {
+				if ($sale_customer_group) {
 					$customer_group = $this->model_sale_customer_group->getCustomerGroup($order['customer_group_id']);
 				} else {
 					$customer_group = $this->model_customer_customer_group->getCustomerGroup($order['customer_group_id']);

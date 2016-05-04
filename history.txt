@@ -1,4 +1,6 @@
-﻿2016-05-04 [+] Доработана функция deleteLinkFeature()
+﻿2016-05-04 [!] Исправлена ошибка в функции queryOrders() при обращении к константе VERSION, т.к. эта константа не доступна при вызове данной процедуры.
+2016-05-04 [!] Исправлена ошибка: PHP Notice:  Error: Unknown column 'name' in 'field list'<br />Error No: 1054<br />INSERT INTO `oc_manufacturer_description` SET manufacturer_id = '24', language_id = '1', description = 'Производитель THERMEX', name = 'THERMEX', в функции updateManufacturer()
+2016-05-04 [+] Доработана функция deleteLinkFeature()
 2016-05-04 [!] Исправлена ошибка money_format() замен на $this->currency->format()
 2016-05-04 [!] Исправлена ошибка Error: Column 'comment' cannot be null<br />Error No: 1048<br />INSERT INTO `oc_unit` (unit_id, name, number_code, rus_name1, eng_name1, rus_name2, eng_name2, unit_group_id, unit_type_id, visible, comment) VALUES(3, 'Дециметр', '005', 'дм', 'dm', 'ДМ', 'DMT', 1, 1, 1, NULL)
 2016-05-03 [!] Исправлена ошибка с SEO
