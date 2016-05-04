@@ -1030,15 +1030,12 @@ class ModelToolExchange1c extends Model {
 		}
 
 		// ФИЛЬТР ОБНОВЛЕНИЯ
-		$update_filelds = $this->config->get('exchange1c_product_fields_update');
-		// Удаление полей которые обновлять не нужно
-//		$this->log($update_filelds);
-		if (!isset($update_filelds['name'])) {
+		if (!$this->config->get('exchange1c_import_product')) {
 			unset($data['name']);
 			$this->log("[i] Обновление названия отключено");
 		}
-		if (!isset($update_filelds['category'])) {
-			unset($data['product_category']);
+		if (!$this->config->get('exchange1c_import_categories')) {
+			unset($data['product_categories']);
 			$this->log("[i] Обновление категорий отключено");
 		}
 		// КОНЕЦ ФИЛЬТРА
@@ -1150,14 +1147,14 @@ class ModelToolExchange1c extends Model {
 //			$this->log($info);
 			// Создаем объект картинка из водяного знака и получаем информацию о картинке
 			$image = new Image($fullname);
-			if (version_compare(VERSION, '2.0.3.1', '>')) {
+			if (version_compare($this->config->get('exchange1c_CMS_version'), '2.0.3.1', '>')) {
 				$image->watermark(new Image($wm_fullname));
 			} else  {
 				$image->watermark($wm_fullname);
 			}
 
 			// Формируем название для файла с наложенным водяным знаком
-			$new_image = utf8_substr($filename, 0, utf8_strrpos($filename, '.')) . '_watermark.' . $extension;
+			$new_image = utf8_substr($filename, 0, utf8_strrpos($filename, '.')) . '_wm.' . $extension;
 
 			// Сохраняем картинку с водяным знаком
 			$image->save(DIR_IMAGE . $new_image);
@@ -1202,9 +1199,7 @@ class ModelToolExchange1c extends Model {
 		$index = 0;
 		
 		// Нужно ли обновлять картинки товара
-		$update_filelds = $this->config->get('exchange1c_product_fields_update');
-//		$this->log($update_filelds);
-		if (!isset($update_filelds['images'])) {
+		if (!$this->config->get('exchange1c_import_images')) {
 			$this->log("[i] Обновление картинок отключено!");
 			return true;
 		}
@@ -1858,6 +1853,11 @@ class ModelToolExchange1c extends Model {
 	private function parsePriceType($xml) {
 		$config_price_type = $this->config->get('exchange1c_price_type');
 		$data = array();
+		
+		if (!is_array($config_price_type)) {
+			$this->log("[!] ВНИМАНИЕ! Типы цен не указаны в настройках модуля, цены не будут загружены");
+			return $data;
+		}
 
 		foreach ($config_price_type as $config_type) {
 			foreach ($xml->ТипЦены as $price_type)  {
@@ -2570,14 +2570,13 @@ class ModelToolExchange1c extends Model {
 //		$this->log('Параметры:');
 //		$this->log($params);
 		
-		$sale_customer_group = method_exists($this->model_sale_customer_group, 'getCustomerGroup');
-		$this->log($sale_customer_group,'sale_customer_group');
-		if ($sale_customer_group) {
-			$this->log('sale/customer_group');
-			$this->load->model('sale/customer_group');
-		} else {
+		$version = $this->config->get('exchange1c_CMS_version');
+		if (version_compare($version, '2.0.3.1', '>')) {
 			$this->log('customer/customer_group');
 			$this->load->model('customer/customer_group');
+		} else {
+			$this->log('sale/customer_group');
+			$this->load->model('sale/customer_group');
 		}
 			
 		$this->load->model('sale/order');
@@ -2601,10 +2600,10 @@ class ModelToolExchange1c extends Model {
 				$this->log("> Выгружается заказ #" . $order['order_id']);
 				$date = date('Y-m-d', strtotime($order['date_added']));
 				$time = date('H:i:s', strtotime($order['date_added']));
-				if ($sale_customer_group) {
-					$customer_group = $this->model_sale_customer_group->getCustomerGroup($order['customer_group_id']);
-				} else {
+				if (version_compare($version, '2.0.3.1', '>')) {
 					$customer_group = $this->model_customer_customer_group->getCustomerGroup($order['customer_group_id']);
+				} else {
+					$customer_group = $this->model_sale_customer_group->getCustomerGroup($order['customer_group_id']);
 				}
 				$document['Документ' . $document_counter] = array(
 					 'Ид'          => $order['order_id']

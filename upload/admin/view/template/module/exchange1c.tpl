@@ -213,8 +213,10 @@
 							</div>
 						</fieldset>
 						<fieldset>
-							<legend><?php echo $lang['text_legend_fields_update']; ?></legend>
-							<?php echo $form_exchange1c_product_fields_update; ?>
+							<legend><?php echo $lang['text_legend_import']; ?></legend>
+							<?php echo $form_exchange1c_import_product; ?>
+							<?php echo $form_exchange1c_import_categories; ?>
+							<?php echo $form_exchange1c_import_images; ?>
 						</fieldset>
 						<fieldset>
 							<legend><?php echo $lang['text_legend_product_options']; ?></legend>

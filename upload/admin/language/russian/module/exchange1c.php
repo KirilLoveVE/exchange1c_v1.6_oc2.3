@@ -44,8 +44,15 @@ $_['desc_flush_quantity']					= 'Перед началом обмена <strong>
 $_['entry_apply_watermark']					= 'Накладывать водяные знаки при загрузке';
 $_['desc_apply_watermark']					= 'При обмене на картинку товара накладывается это изображение. Изображение должно быть с прозрачным фоном, рекомендуемый формат PNG';
 // Обновление
-$_['entry_product_fields_update']			= 'Обновлять поля товара при импорте:';
-$_['desc_product_fields_update']			= 'Если опция выбрана то будет обновлено';
+$_['entry_import_product']					= 'Обновлять товар:';
+$_['entry_import_categories']				= 'Обновлять категории:';
+$_['entry_import_images']					= 'Обновлять картинки:';
+$_['text_legend_import']					= 'Загружать при обмене';
+$_['desc_import_product']					= 'Если отключено - не будет обновлять у товара поля: наименование';
+$_['desc_import_categories']				= 'Если отключено - не будет менять категории';
+$_['desc_import_images']					= 'Если отключено - не будет менять картинку';
+
+
 // Опции товара
 $_['text_legend_product_options']			= 'Опции';
 $_['entry_product_option_mode']				= 'Режим загрузки опций:';
@@ -191,7 +198,6 @@ $_['text_legend_cleaning_db']				= 'Очистка базы данных';
 $_['text_legend_images']					= 'Картинки';
 $_['text_legend_export_orders']				= 'Выгрузка заказов в 1С';
 $_['text_legend_import_orders']				= 'Загрузка заказов из 1С';
-$_['text_legend_fields_update']				= 'Обновление полей при импорте';
 
 $_['text_product_field_column']				= 'Колонки товара';
 $_['text_product_field_sort_order']			= 'Порядок сортировки';

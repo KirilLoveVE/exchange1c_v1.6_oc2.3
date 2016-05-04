@@ -1,4 +1,8 @@
-﻿2016-05-04 [!] Исправлена ошибка в функции queryOrders() при обращении к константе VERSION, т.к. эта константа не доступна при вызове данной процедуры.
+﻿2016-05-05 [!] Исправлена функция applyWatermark(), номер версии CMS теперь получаем так: $this->config->get('exchange1c_CMS_version')
+2016-05-05 [+] Изменены элементы в разделе обмен товарами, обновление полей заменено на "Загружать при обмене", не нашел причины по которой старая не работала в OpenCart 2.0.3.1. По этой же причине не будет в этой версии загружать цены, завтра разберусь.
+2016-05-05 [+] Добавлена в регистр значение exchange1c_CMS_version, которая используется в контроллере во время обмена с 1С
+2016-05-04 [!] Исправлена ошибка PHP Notice:  Use of undefined constant VERSION - assumed 'VERSION' in /var/www/vhosts/ptr-print.ru/ptr-print.ru/httpdocs/subdomains/ocshop21014/admin/model/tool/exchange1c.php on line 1153, в функции applyWatermark(). Константа VERSION тут недоступна.
+2016-05-04 [!] Исправлена ошибка в функции queryOrders() при обращении к константе VERSION, т.к. эта константа не доступна при вызове данной процедуры.
 2016-05-04 [!] Исправлена ошибка: PHP Notice:  Error: Unknown column 'name' in 'field list'<br />Error No: 1054<br />INSERT INTO `oc_manufacturer_description` SET manufacturer_id = '24', language_id = '1', description = 'Производитель THERMEX', name = 'THERMEX', в функции updateManufacturer()
 2016-05-04 [+] Доработана функция deleteLinkFeature()
 2016-05-04 [!] Исправлена ошибка money_format() замен на $this->currency->format()

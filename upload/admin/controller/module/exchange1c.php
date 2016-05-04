@@ -52,6 +52,7 @@ class ControllerModuleExchange1c extends Controller {
 			$settings = $this->request->post;
 			$settings['exchange1c_version'] = $this->config->get('exchange1c_version');
 			$settings['exchange1c_order_date'] = $this->config->get('exchange1c_order_date');
+			$settings['exchange1c_CMS_version'] = VERSION;
 			
 			$this->model_setting_setting->editSetting('exchange1c', $settings);
 			$this->session->data['success'] = $this->language->get('text_success');
@@ -238,6 +239,14 @@ class ControllerModuleExchange1c extends Controller {
 		);
 		// товары - чтение настроек
 		$data = $this->formCheckBox('exchange1c_product_fields_update', $data, $product_fields);
+
+		// Импортировать картинки
+		$data = $this->formRadioYesNo('exchange1c_import_images', $data);
+		// Импортировать категории
+		$data = $this->formRadioYesNo('exchange1c_import_categories', $data);
+		// Обновлять товар
+		$data = $this->formRadioYesNo('exchange1c_import_product', $data);
+
 
 		// ПРОЧЕЕ
 		
@@ -440,8 +449,9 @@ class ControllerModuleExchange1c extends Controller {
 		$this->load->model('setting/setting');
 		$this->model_setting_setting->editSetting('exchange1c',
 			array(
-				'exchange1c_version'	=> $module_version,
-				'exchange1c_name'		=> 'Exchange 1C 8.x for OpenCart 2.x'
+				'exchange1c_version'		=> $module_version,
+				'exchange1c_name'			=> 'Exchange 1C 8.x for OpenCart 2.x',
+				'exchange1c_CMS_version'	=> VERSION
 			)
 		);
 
