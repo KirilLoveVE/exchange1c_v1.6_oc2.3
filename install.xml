@@ -1,6 +1,6 @@
 <modification>
 	<name>Exchange Module for OpenCart 2.x</name>
-	<version>1.6.2.0</version>
+	<version>1.6.2.8</version>
 	<id>OpenCart Exchange</id> 
 	<author>KirilLoveVE</author>
 	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
@@ -52,4 +52,145 @@
 			<add position="replace"><![CDATA[imagecopy($this->image, $watermark, $watermark_pos_x, $watermark_pos_y, 0, 0, $watermark_width, $watermark_height);]]></add>
 		</operation>
 	</file>
+
+	<file path="catalog/controller/product/product.php">
+		<operation>
+			<search><![CDATA[$product_option_value_data[] = array(]]></search>
+			<add position="before"><![CDATA[						if (!(float)$product_info['price']) {
+							$product_info['price'] = (float)$option_value['price'];
+							$data['price'] = $this->currency->format($this->tax->calculate($product_info['price'], $product_info['tax_class_id'], $this->config->get('config_tax')));
+						}]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[foreach ($option['product_option_value'] as $option_value) {]]></search>
+			<add position="after"><![CDATA[					$group_id = $this->customer->getGroupId() ? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
+					if ($option_value['price']) {
+						$option_value['price_prefix'] = $option_value['quantity'] . " шт. по ";
+					} else {
+						$option_value['price_prefix'] = $product_info['quantity'] . " шт. по ";
+					}
+]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA['option_value_id'         => $option_value['option_value_id'],]]></search>
+			<add position="after"><![CDATA[							'product_feature_id'      => $option_value['product_feature_id'],
+							'product_quantity'        => $this->model_catalog_product->getQuantity($this->request->get['product_id'], $option_value['product_feature_id']),]]></add>
+		</operation>
+
+	</file>
+
+	<file path="catalog/controller/product/category.php">
+		<operation>
+			<search><![CDATA['option_value_id'         => $option_value['option_value_id'],]]></search>
+			<add position="after"><![CDATA[	   						'product_feature_id'      => $option_value['product_feature_id'],
+							'product_quantity'        => $this->model_catalog_product->getQuantity($this->request->get['product_id'], $option_value['product_feature_id']),]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$data['products'][] = array(]]></search>
+			<add position="replace"><![CDATA[$quantity_warehouse = $this->model_catalog_product->getQuantity($result['product_id']);
+				$quantity = 0;
+				foreach ($quantity_warehouse as $quantity_data) {
+					$quantity += $quantity_data['quantity'];
+				}
+				if (!(float)$result['price']) {
+					$options = $this->model_catalog_product->getProductOptions($result['product_id']);
+					if (isset($options[0]['product_option_value'][0]['price'])) {
+						$price = $this->currency->format($this->tax->calculate($options[0]['product_option_value'][0]['price'], $result['tax_class_id'], $this->config->get('config_tax')));
+					}
+				}
+				$data['products'][] = array(
+					'quantity'    => $quantity,]]></add>
+		</operation>
+
+	</file>
+  
+	<file path="catalog/view/theme/*/template/product/category.tpl">
+		<operation>
+			<search><![CDATA[<?php if ($product['price']) { ?>]]></search>
+			<add position="before"><![CDATA[                <?php if ($product['quantity']) { ?>
+                	<ul class="list-unstyled">
+					  <li>Доступно: <?php echo $product['quantity'] ?> шт.</li>
+				    </ul>
+                <?php } ?>]]></add>
+		</operation>
+	</file>
+
+  
+	<file path="catalog/view/theme/*/template/product/product.tpl">
+		<operation>
+			<search><![CDATA[<option value=""><?php echo $text_select; ?></option>]]></search>
+			<add position="replace"><![CDATA[]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<li><?php echo $text_stock; ?> <?php echo $stock; ?></li>]]></search>
+			<add position="replace"><![CDATA[<li id="quantity"><?php echo $text_stock; ?> <?php echo $stock; ?></li>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<h2><?php echo $price; ?></h2>]]></search>
+			<add position="replace"><![CDATA[<h2 id="price"><?php echo $price; ?></h2>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<h2><?php echo $special; ?></h2>]]></search>
+			<add position="replace"><![CDATA[<h2 id="special"><?php echo $special; ?></h2>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$(document).ready(function() {]]></search>
+			<add position="after" offset="8"><![CDATA[			// +++ KirilLoveVE
+
+	quantity = [];
+	prices = [];
+
+	<?php foreach ($options as $option) { ?>
+ 	<?php if (sizeof($option['product_option_value'])) { ?>
+
+	<?php foreach ($option['product_option_value'] as $option_value) { ?>
+	price[<?php echo $option_value['product_option_value_id']?>] = '<?php echo $option_value['price']?>';
+	<?php foreach ($option_value['product_quantity'] as $quantity) { ?>
+	quantity[<?php echo $quantity['product_feature_id']?>] = '<?php echo $quantity['quantity']?>';
+	<?php } // foreach ($option['product_option_value']) ?>
+	<?php } // foreach ($option_value['product_quantity']) ?>
+
+	$('#input-option<?php echo $option['product_option_id'] ?>').change(function () {
+	var productOptionId = $('#input-option<?php echo $option['product_option_id'] ?> :selected').val();
+	$('#price').html(price[productOptionId]);
+
+	<?php } // if (sizeof($option['product_option_value'])) ?>
+	<?php } // foreach ($options as $option) ?>
+});
+	// --- KirilLoveVE
+]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/model/catalog/product.php">
+		<operation>
+			<search><![CDATA[$product_option_value_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_option_value pov LEFT JOIN " . DB_PREFIX . "option_value ov ON (pov.option_value_id = ov.option_value_id) LEFT JOIN " . DB_PREFIX . "option_value_description ovd ON (ov.option_value_id = ovd.option_value_id) WHERE pov.product_id = '" . (int)$product_id . "' AND pov.product_option_id = '" . (int)$product_option['product_option_id'] . "' AND ovd.language_id = '" . (int)$this->config->get('config_language_id') . "' ORDER BY ov.sort_order");]]></search>
+			<add position="replace"><![CDATA[// +++ KirilLoveVE
+			$group_id = $this->customer->getGroupId() ? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
+			$product_option_value_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_option_value pov LEFT JOIN " . DB_PREFIX . "option_value ov ON (pov.option_value_id = ov.option_value_id) LEFT JOIN " . DB_PREFIX . "option_value_description ovd ON (ov.option_value_id = ovd.option_value_id) WHERE pov.product_id = '" . (int)$product_id . "' AND pov.product_option_id = '" . (int)$product_option['product_option_id'] . "' AND ovd.language_id = '" . (int)$this->config->get('config_language_id') . "' AND pov.customer_group_id = '" . $group_id . "' ORDER BY ov.sort_order");
+			if (!$product_option_value_query->num_rows) {
+				$product_option_value_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_option_value pov LEFT JOIN " . DB_PREFIX . "option_value ov ON (pov.option_value_id = ov.option_value_id) LEFT JOIN " . DB_PREFIX . "option_value_description ovd ON (ov.option_value_id = ovd.option_value_id) WHERE pov.product_id = '" . (int)$product_id . "' AND pov.product_option_id = '" . (int)$product_option['product_option_id'] . "' AND ovd.language_id = '" . (int)$this->config->get('config_language_id') . "' ORDER BY ov.sort_order");
+			}
+			// --- KirilLoveVE]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA['option_value_id'         => $product_option_value['option_value_id'],]]></search>
+			<add position="after"><![CDATA['product_feature_id'       => $product_option_value['product_feature_id'],]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[public function getTotalProductSpecials() {]]></search>
+			<add position="after" offset="8"><![CDATA[
+	public function getQuantity($product_id, $product_feature_id=0) {
+		if ($product_feature_id) {
+			$group_id = $this->customer->getGroupId() ? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
+			return $this->db->query("SELECT `pq`.`quantity`,`pq`.`warehouse_id`,`pq`.`product_feature_id` FROM `" . DB_PREFIX . "product_quantity` `pq` LEFT JOIN `" . DB_PREFIX . "product_option_value` `pov` ON `pq`.`product_feature_id` = `pov`.`product_feature_id` WHERE `pq`.`product_id` = " . (int)$product_id . " AND `pq`.`product_feature_id` = " . (int)$product_feature_id . " AND `pov`.`customer_group_id` = " . (int)$group_id)->rows;
+		} else {
+			return $this->db->query("SELECT `warehouse_id`,SUM(`quantity`) as `quantity` FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . (int)$product_id . " GROUP BY `warehouse_id`")->rows;
+		}
+	}
+]]></add>
+		</operation>
+
+	</file>
+
 </modification>

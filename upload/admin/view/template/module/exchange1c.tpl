@@ -45,7 +45,7 @@
 							<legend><?php echo $lang['text_legend_store']; ?></legend>
 							<div class="alert alert-info">
 								<i class="fa fa-info-circle"></i>
-								Определяет какое название каталога из 1С в какой магазин загружать. Если не указан ни один каталог, то загружает все подряд в магазин по-умолчанию.
+								<?php echo $lang['desc_legend_store']; ?>
 							</div>
 							<div class="table-responsive">
 								<table id="exchange1c_store_id" class="table table-bordered table-hover">
@@ -108,8 +108,9 @@
 						<fieldset>
 							<legend><?php echo $lang['text_legend_other']; ?></legend>
 							<?php echo $form_exchange1c_status; ?>
-							<?php echo $form_exchange1c_file_zip; ?>
-							<?php echo $form_exchange1c_full_log; ?>
+							<?php echo $form_exchange1c_file_exchange; ?>
+							<?php echo $form_exchange1c_log_level; ?>
+							<?php echo $form_exchange1c_flush_log; ?>
 						</div>
 					</fieldset>
 		
@@ -224,6 +225,9 @@
 						</fieldset>
 						<fieldset>
 							<legend><?php echo $lang['text_legend_other']; ?></legend>
+							<?php echo $form_exchange1c_new_product_status_off; ?>
+							<?php echo $form_exchange1c_new_category_status_off; ?>
+							<?php echo $form_exchange1c_description_html; ?>
 							<?php echo $form_exchange1c_parse_only_types_item; ?>
 							<?php echo $form_exchange1c_fill_parent_cats; ?>
 							<?php echo $form_exchange1c_default_stock_status; ?>
@@ -497,6 +501,20 @@
 							</div>
 							<div class="col-sm-12">
 								<fieldset>
+									<legend>Изменения в версии 1.6.2.b8 от 12.05.2016:</legend>
+									<ul>
+										<li>Добавлена загрузка свойств: Вес, Ширина, Высота, Длина, Модель, Производитель в стандартные поля товара</li>
+										<li>Оптимизировано обновление товаров и категорий</li>
+										<li>Добавлена опция "Описание в формате HTML", которая правильно форматирует текст</li>
+										<li>При загрузке характеристик с 1С, цены хранятся в таблице <strong>product_price</strong>, а остатки <strong>product_quantity</strong>. Характеристику теперь можно выбрать в товаре, там же отображается остаток и цена (это без правки шаблона, пока так сделал). Кстати характеристики не удаляются при удалении их с 1С! В будущем реализую эту возможность.</li>
+										<li>Добавлены опции отключающие товар и/или категорию при добавлении в каталог</li>
+										<li>Исправлена ошибка в ранних версиях opencart 2.x (2.0.3.1) не читалась настройка цен и цены не грузились. Причина в хранении настроек, раньше применялась упаковка через serialise и unserialize, а в последующих json_encode и json_decode</li>
+										<li>Пока еще версия остается бетой, еще много работы...</li>
+									</ul>
+								</fieldset>
+							</div>
+							<div class="col-sm-12">
+								<fieldset>
 									<legend>Ожидаемые изменения в следующих версиях:</legend>
 									<ul>
 										<li>Скачивание заказов, для ручной загрузки в 1С.</li>
@@ -511,9 +529,10 @@
 									<legend>Если Вас заинтересуют какие-нибудь еще возможности модуля, пишите, рассмотрю все варианты.</legend>
 									<p>Демонстрационные сервера (логин/пароль: demo/demo):</p>
 									<ul>
-										<li><a href="http://ocshop21014.ptr-print.ru">OCSHOP.PRO 2.1.0.1.4</a></li>
+										<li><a href="http://ocshop21014.ptr-print.ru">OCSHOP.PRO 2.1.0.1.4 (русская сборка)</a></li>
 										<li><a href="http://opencart2101.ptr-print.ru">OPENCART 2.1.0.1 (english)</a></li>
 										<li><a href="http://opencart2031.ptr-print.ru">OPENCART 2.0.3.1 (русская сборка)</a></li>
+										<li><a href="http://ocstore21021.ptr-print.ru">OCSTORE 2.1.0.2.1 (русская сборка)</a></li>
 									</ul>
 									
 								</fieldset>
