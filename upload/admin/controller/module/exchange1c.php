@@ -68,11 +68,14 @@ class ControllerModuleExchange1c extends Controller {
 	/**
 	 * Определяет значение переменной
 	 */
-	private function getParam($param) {
+	private function getParam($param, $default='') {
 		if (isset($this->request->post['exchange1c_'.$param])) {
 			return $this->request->post['exchange1c_'.$param];
 		} else {
-			return $this->config->get('exchange1c_'.$param);
+			if ($this->config->get('exchange1c_'.$param))
+				return $this->config->get('exchange1c_'.$param);
+			else
+				return $default;
 		}
 	} // getParam()
 
@@ -82,7 +85,7 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	private function htmlTextarea($name, $param) {
 		$value = $this->getParam($name);
-		$tmpl = '<textarea class="form-control" id=exchange1c_"'.$name.'" name=exchange1c_"'.$name.'" rows="6" placeholder=ph_"'.$name.'">'.$value.'</textarea>';
+		$tmpl = '<textarea class="form-control" id="exchange1c_'.$name.'" name="exchange1c_'.$name.'" rows="6">'.$value.'</textarea>';
 		return $tmpl;
 	} // htmlTextarea()
 
@@ -181,34 +184,6 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
-	 * Формирует форму ...
-	 */
-	private function htmlTable($name, $head, $body) {
-		$tmpl = '';
-		
-		// head 
-		$tmpl .= '<thead><tr>';
-		foreach ($head as $col) {
-			$tmpl .= '<td>' . $col['field'] . '</td>';
-		}
-		$tmpl .= '</tr></thead>';
-		
-		// body
-		$tmpl .= '<tbody><tr>';
-		foreach ($body as $rows) {
-			$tmpl .= '<tr>';
-			foreach ($rows as $col) {
-				$tmpl .= '<td>' . $col['field'] . '</td>';
-			}
-			$tmpl .= '</tr>';
-		}
-		$tmpl .= '</tr></tbody>';
-
-		return $tmpl;
-	} // htmlTable()
-
-
-	/**
 	 * Проверка разрешения на изменение 
 	 */
 	private function validate() {
@@ -300,16 +275,27 @@ class ControllerModuleExchange1c extends Controller {
 		 */
 		
 		// Магазины
-		$data['config_stores'] = $this->getParam('stores');
+		if (isset($this->request->post['exchange1c_stores'])) {
+			$data['exchange1c_stores'] = $this->request->post['exchange1c_stores'];
+		}
+		else {
+			$data['exchange1c_stores'] = $this->config->get('exchange1c_stores');
+			if(empty($data['exchange1c_stores'])) {
+				$data['exchange1c_stores'][] = array(
+					'store_id'	=> 0,
+					'name'		=> ''
+				);
+			}
+		}
+
+
+		//$data['config_stores'] = $this->getParam('stores', array());
 		//var_dump('<PRE>');var_dump($data['config_stores']);var_dump('</PRE>');
-		$data['store_name_default'] = $this->config->get('config_name');
 		$stores = $this->db->query("SELECT * FROM `" . DB_PREFIX . "store`")->rows;
 		$data['stores'] = array();
+		$data['stores'][0] = $this->config->get('config_name');
 		foreach ($stores as $store) {
-			$data['stores'][] = array(
-				'store_id'	=> $store['store_id'],
-				'name'		=> $store['name']
-			);
+			$data['stores'][$store['store_id']] = $store['name'];
 		}
 
 		// Картинки

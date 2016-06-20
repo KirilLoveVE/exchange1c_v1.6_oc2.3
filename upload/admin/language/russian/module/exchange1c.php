@@ -242,11 +242,18 @@ $_['text_image_manager']					= 'Менеджер изображений';
 $_['text_browse']							= 'Обзор';
 $_['text_clear']							= 'Очистить';
 
-$_['entry_upload']							= 'Выберите файл *.XML для загрузки';
+$_['entry_upload']							= 'Выберите файл';
 $_['entry_download_orders']					= 'Скачать orders.xml';
 $_['entry_no_image']						= 'Картинка при отсутствии:';
 
-// Error
+// Ошибка
 $_['error_permission']						= 'У Вас нет прав для управления этим модулем!';
+
+// Подтверждение
+$_['text_confirm']							= 'Вы уверены?';
+
+// Помощь
+$_['help_upload']							= 'Принимает файлы XML и ZIP архивы';
+$_['help_download_orders']					= 'Скачиваются заказы в формате XML';
 
 ?>

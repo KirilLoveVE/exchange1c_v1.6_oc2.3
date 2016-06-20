@@ -248,4 +248,12 @@ $_['entry_no_image']						= 'Image if empty:';
 // Error
 $_['error_permission']						= 'Premission denied!';
 
+// Confirm
+$_['text_confirm']							= 'You are sure?';
+
+// Help
+$_['help_upload']							= 'Takes XML files and ZIP archives';
+$_['help_download_orders']					= 'Download orders in XML format';
+
+
 ?>

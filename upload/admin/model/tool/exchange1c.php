@@ -848,7 +848,7 @@ class ModelToolExchange1c extends Model {
 		}
 		// Если ничего не заполнено - по умолчанию
 		foreach ($config_stores as $key => $config_store) {
-			if ($classifier_name == "Классификатор (" . $config_store['keyword'] . ")") {
+			if ($classifier_name == "Классификатор (" . $config_store['name'] . ")") {
 				$this->STORE_ID = $config_store['store_id'];
 			}
 		}
@@ -1908,19 +1908,19 @@ class ModelToolExchange1c extends Model {
 					}
 				break;
 				case 'Вес':
-					$data['weight'] = (float)$value;
-					$this->log("> Свойство Вес => weight",1);
+					$data['weight'] = (float)str_replace(',','.',$value);
+					$this->log("> Свойство Вес => weight = ".$data['weight'],1);
 				break;
 				case 'Ширина':
-					$data['width'] = (float)$value;
+					$data['width'] = (float)str_replace(',','.',$value);
 					$this->log("> Свойство Ширина => width",1);
 				break;
 				case 'Высота':
-					$data['height'] = (float)$value;
+					$data['height'] = (float)str_replace(',','.',$value);
 					$this->log("> Свойство Высота => height",1);
 				break;
 				case 'Длина':
-					$data['length'] = (float)$value;
+					$data['length'] = (float)str_replace(',','.',$value);
 					$this->log("> Свойство Длина => length",1);
 				break;
 				case 'Модель':
@@ -2999,9 +2999,12 @@ class ModelToolExchange1c extends Model {
 		if (!$xml)
 			return false;
 
-		if ($this->config->get('exchange1c_product_option_mode') == 'combine')
+		if ($this->config->get('exchange1c_product_options_mode') == 'combine') {
 			$this->parseProductFeatureCombine($xml, $data);
-
+		} else {
+			$this->log($this->config->get('exchange1c_product_options_mode'),2);
+			$this->log("[!] Не выбран режим загрузки характеристик",2);
+		}
 	} // parseProductFeature()
 
 
@@ -3044,6 +3047,8 @@ class ModelToolExchange1c extends Model {
 				$data['prices'] = $this->parsePrices($offer->Цены, $offers_pack);
 			}
 
+            $data['quantity'] = 0;
+            
 			// Количество по складам и общее количество
 			if ($offer->Склад) {
 				$data['quantity_warehouse'] = $this->parseQuantityWarehouse($offer->Склад, $offers_pack);

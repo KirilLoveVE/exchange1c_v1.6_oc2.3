@@ -60,27 +60,27 @@
 								</thead>
 								<tbody>
 									<?php $store_row = 0 ?>
-									<?php foreach ($config_stores as $config_store_id => $config_store) { ?>
-										<?php if ($config_store_id == 0) {?>
+									<?php foreach ($exchange1c_stores as $config_store) { ?>
+										<?php if ($config_store['store_id'] == 0) {?>
 											<tr id="exchange1c_store_row<?php echo $store_row ?>">
-												<td class="text-left"><input class="form-control" type="text" name="exchange1c_stores[<?php echo $config_store_id; ?>][keyword]" value="<?php echo $config_store['keyword']; ?>" class="form-control"/></td>
-												<td class="text-left"><?php echo $store_name_default; ?><input type="hidden" name="exchange1c_stores[<?php echo $config_store_id; ?>][store_id]" value="0" /></td>
+												<td class="text-left"><input class="form-control" type="text" name="exchange1c_stores[<?php echo $config_store['store_id'] ?>][name]" value="<?php echo $config_store['name']; ?>" class="form-control"/></td>
+												<td class="text-left"><?php echo $stores[$config_store['store_id']] ?><input type="hidden" name="exchange1c_stores[<?php echo $config_store['store_id'] ?>][store_id]" value="0" /></td>
 												<td class="text-left">&nbsp;</td>
 											</tr>
 										<?php } else { ?>
 											<tr id="exchange1c_store_row<?php echo $store_row ?>">
-												<td class="text-left"><input class="form-control" type="text" name="exchange1c_stores[<?php echo $config_store_id; ?>][keyword]" value="<?php echo $config_store['keyword']; ?>" /></td>
-												<td class="text-left"><select name="exchange1c_stores[<?php echo $config_store_id; ?>][store_id]">
-												<?php foreach ($stores as $store) { ?>
-													<?php if ($store['store_id'] == $config_store['store_id']) { ?>
-														<option value="<?php echo $store['store_id']; ?>" selected="selected"><?php echo $store['name']; ?></option>
+												<td class="text-left"><input class="form-control" type="text" name="exchange1c_stores[<?php echo $config_store['store_id'] ?>][name]" value="<?php echo $config_store['name']; ?>" /></td>
+												<td class="text-left"><select class="form-control" name="exchange1c_stores[<?php echo $config_store['store_id'] ?>][store_id]">
+												<?php foreach ($stores as $store_id => $name) { ?>
+													<?php if ($store_id == $config_store['store_id']) { ?>
+														<option value="<?php echo $store_id ?>" selected="selected"><?php echo $name ?></option>
 													<?php } else { ?>
-														<option value="<?php echo $store['store_id']; ?>"><?php echo $store['name']; ?></option>
+														<option value="<?php echo $store_id ?>"><?php echo $name ?></option>
 													<?php } ?>
 												<?php } ?>
 												</select></td>
 												<td class="text-center">
-												<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_store_row<?php echo $config_store_id; ?>').remove() : false;"><i class="fa fa-trash-o"></i></button>
+												<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_store_row<?php echo $config_store['store_id'] ?>').remove() : false;"><i class="fa fa-trash-o"></i></button>
 												</td>
 											</tr>
 										<?php } // if ?>
@@ -130,16 +130,16 @@
 									<?php foreach ($exchange1c_price_type as $obj) { ?>
 										<?php if ($price_row == 0) {?>
 											<tr id="exchange1c_price_type_row<?php echo $price_row; ?>">
-												<td class="left"><input type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" class="form-control"/></td>
-												<td class="left"><?php echo $lang['text_price_default']; ?><input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]" value="<?php echo $obj['customer_group_id']; ?>" /></td>
-												<td class="center">-<input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="1" /></td>
-												<td class="center">-<input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][priority]" value="0" /></td>
-												<td class="left">&nbsp;</td>
+												<td class="text-left"><input type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" class="form-control"/></td>
+												<td class="text-left"><?php echo $lang['text_price_default']; ?><input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]" value="<?php echo $obj['customer_group_id']; ?>" /></td>
+												<td class="text-center">-<input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="1" /></td>
+												<td class="text-center">-<input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][priority]" value="0" /></td>
+												<td class="text-left">&nbsp;</td>
 											</tr>
 										<?php } else { ?>
 											<tr id="exchange1c_price_type_row<?php echo $price_row; ?>">
-												<td class="left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" /></td>
-												<td class="left"><select name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]">
+												<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" /></td>
+												<td class="text-left"><select class="form-control" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]">
 											<?php foreach ($customer_groups as $customer_group) { ?>
 													<?php if ($customer_group['customer_group_id'] == $obj['customer_group_id']) { ?>
 														<option value="<?php echo $customer_group['customer_group_id']; ?>" selected="selected"><?php echo $customer_group['name']; ?></option>
@@ -148,9 +148,9 @@
 													<?php } ?>
 												<?php } ?>
 												</select></td>
-												<td class="center"><input type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="<?php echo $obj['quantity']; ?>" size="2" /></td>
-												<td class="center"><input type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][priority]" value="<?php echo $obj['priority']; ?>" size="2" /></td>
-												<td class="center">
+												<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="<?php echo $obj['quantity']; ?>" size="2" /></td>
+												<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][priority]" value="<?php echo $obj['priority']; ?>" size="2" /></td>
+												<td class="text-center">
 												<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_price_type_row<?php echo $price_row; ?>').remove() : false;"><i class="fa fa-trash-o"></i></button>
 												</td>
 											</tr>
@@ -162,7 +162,7 @@
 									<?php if (count($customer_groups)) { ?>
 									<tr>
 										<td colspan="4"></td>
-										<td class="left">
+										<td class="text-center">
 											<a onclick="addConfigPriceType();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></a>
 										</td>
 									</tr>
@@ -494,7 +494,7 @@ $('#exchange1c-button-upload').on('click', function() {
 <script type="text/javascript"><!--
 $('#exchange1c-button-cleaning_db').on('click', function() {
 	$('#form-clean').remove();
-	if (confirm('Вы уверены?')) {
+	if (confirm('<?php echo $lang['text_confirm'] ?>')) {
 		$.ajax({
 			url: 'index.php?route=module/exchange1c/manualCleaning&token=<?php echo $token; ?>',
 			type: 'post',		
@@ -532,15 +532,15 @@ $('#exchange1c-button-cleaning_db').on('click', function() {
 var price_row = <?php echo $price_row; ?>;
 function addConfigPriceType() {
 	html = '<tr id="exchange1c_price_type_row' + price_row + '">'; 
-	html += '<td class="left"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][keyword]" value="" /></td>';
-	html += '<td class="left"><select name="exchange1c_price_type[' + price_row + '][customer_group_id]">';
+	html += '<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][keyword]" value="" /></td>';
+	html += '<td class="text-left"><select class="form-control" name="exchange1c_price_type[' + price_row + '][customer_group_id]">';
 	<?php foreach ($customer_groups as $customer_group) { ?>
 	html += '<option value="<?php echo $customer_group['customer_group_id']; ?>"><?php echo $customer_group['name']; ?></option>';
 	<?php } ?>
 	html += '</select></td>';
-	html += '<td class="center"><input type="text" name="exchange1c_price_type[' + price_row + '][quantity]" value="1" size="2" /></td>';
-	html += '<td class="center"><input type="text" name="exchange1c_price_type[' + price_row + '][priority]" value="<?php echo $price_row+1; ?>" size="2" /></td>';
-	html += '<td class="center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_price_type_row' + price_row + '\').remove() : false;"><i class="fa fa-minus-circle"></i></button></td>';
+	html += '<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][quantity]" value="1" size="2" /></td>';
+	html += '<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][priority]" value="<?php echo $price_row+1; ?>" size="2" /></td>';
+	html += '<td class="text-center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_price_type_row' + price_row + '\').remove() : false;"><i class="fa fa-minus-circle"></i></button></td>';
 	html += '</tr>';
 	
 	$('#exchange1c_price_type_id tbody').append(html);
@@ -553,10 +553,10 @@ var store_row = <?php echo $store_row ?>;
 
 function addStore() {
 	html = '<tr id="exchange1c_store_row' + store_row + '">'; 
-	html += '<td class="text-left"><input class="form-control" type="text" name="exchange1c_stores[' + store_row + '][keyword]" value="" /></td>';
+	html += '<td class="text-left"><input class="form-control" type="text" name="exchange1c_stores[' + store_row + '][name]" value="" /></td>';
 	html += '<td class="text-left"><select name="exchange1c_stores[' + store_row + '][store_id]">';
-	<?php foreach ($stores as $store) { ?>
-	html += '<option value="<?php echo $store['store_id']; ?>"><?php echo $store['name']; ?></option>';
+	<?php foreach ($stores as $store_id => $name) { ?>
+	html += '<option value="<?php echo $store_id ?>"><?php echo $name ?></option>';
 	<?php } ?>
 	html += '</select></td>';
 	html += '<td class="text-center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_store_row' + store_row + '\').remove() : false;"><i class="fa fa-minus-circle"></i></button></td>';

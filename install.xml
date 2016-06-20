@@ -86,8 +86,9 @@
 							'product_quantity'        => $this->model_catalog_product->getQuantity($this->request->get['product_id'], $option_value['product_feature_id']),]]></add>
 		</operation>
 		<operation>
-			<search><![CDATA[$data['products'][] = array(]]></search>
-			<add position="replace"><![CDATA[$quantity_warehouse = $this->model_catalog_product->getQuantity($result['product_id']);
+			<search><![CDATA[$price = false]]></search>
+			<add position="before" offset="4"><![CDATA[
+				$quantity_warehouse = $this->model_catalog_product->getQuantity($result['product_id']);
 				$quantity = 0;
 				foreach ($quantity_warehouse as $quantity_data) {
 					$quantity += $quantity_data['quantity'];
@@ -95,13 +96,15 @@
 				if (!(float)$result['price']) {
 					$options = $this->model_catalog_product->getProductOptions($result['product_id']);
 					if (isset($options[0]['product_option_value'][0]['price'])) {
-						$price = $this->currency->format($this->tax->calculate($options[0]['product_option_value'][0]['price'], $result['tax_class_id'], $this->config->get('config_tax')));
+						$result['price'] = $options[0]['product_option_value'][0]['price'];
 					}
 				}
-				$data['products'][] = array(
-					'quantity'    => $quantity,]]></add>
+]]></add>
 		</operation>
-
+		<operation>
+			<search><![CDATA[$data['products'][] = array(]]></search>
+			<add position="after"><![CDATA[					'quantity'    => $quantity,]]></add>
+		</operation>
 	</file>
   
 	<file path="catalog/view/theme/*/template/product/category.tpl">
@@ -134,6 +137,10 @@
 			<add position="replace"><![CDATA[<h2 id="special"><?php echo $special; ?></h2>]]></add>
 		</operation>
 		<operation>
+			<search><![CDATA[<li><?php echo $text_tax; ?> <?php echo $tax; ?></li>]]></search>
+			<add position="replace"><![CDATA[<li id="tax"><?php echo $text_tax; ?> <?php echo $tax; ?></li>]]></add>
+		</operation>
+		<operation>
 			<search><![CDATA[$(document).ready(function() {]]></search>
 			<add position="after" offset="8"><![CDATA[
 	<?php foreach ($options as $option) { ?>
@@ -149,6 +156,7 @@ quantity[<?php echo $quantity['product_feature_id']?>] = '<?php echo $quantity['
 $('#input-option<?php echo $option['product_option_id'] ?>').change(function () {
 	var productOptionId = $('#input-option<?php echo $option['product_option_id'] ?> :selected').val();
 	$('#price').html(price[productOptionId]);
+	$('#tax').html();
 });
 
 	<?php } // if (sizeof($option['product_option_value'])) ?>
