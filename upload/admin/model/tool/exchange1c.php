@@ -320,7 +320,7 @@ class ModelToolExchange1c extends Model {
 		if (version_compare($this->config->get('exchange1c_version'), '1.6.2.b7', '<')) {
 			$tables_module = array("product_to_1c","product_quantity","category_to_1c","warehouse","store_to_1c","attribute_to_1c","manufacturer_to_1c");
 		} else {
-			$tables_module = array("product_to_1c","product_quantity","product_price","category_to_1c","warehouse","product_feature","product_feature_value","store_to_1c","attribute_to_1c","manufacturer_to_1c");
+			$tables_module = array("product_to_1c","product_quantity","product_price","category_to_1c","warehouse","product_feature","product_feature_value","store_to_1c","attribute_to_1c","manufacturer_to_1c","unit");
 		}
 		foreach ($tables_module as $table) {
 			$query = $this->db->query("SHOW TABLES FROM `" . DB_DATABASE . "` LIKE '" . DB_PREFIX . "%" . $table . "'");
@@ -1238,8 +1238,8 @@ class ModelToolExchange1c extends Model {
 					}
 				}
 				if (!$found) {
-	       			$sql = "INSERT INTO `" . DB_PREFIX . "product_option_value` SET product_option_id = '" . $data['product_option_id'] . "', product_id = '" . $data['product_id'] . "', option_id = '" . $data['option_id'] . "', option_value_id = '" . $data['option_value_id'] . "', customer_group_id = '" . $price_data['customer_group_id'] . "', price = '" . $price_data['value'] . "', quantity = '" . $data['quantity'] . "', product_feature_id = '" . $data['product_feature_id'] . "', price_prefix = '+', points_prefix = '+'";
-			 		$this->log($sql,2);
+					$sql = "INSERT INTO `" . DB_PREFIX . "product_option_value` SET product_option_id = '" . $data['product_option_id'] . "', product_id = '" . $data['product_id'] . "', option_id = '" . $data['option_id'] . "', option_value_id = '" . $data['option_value_id'] . "', customer_group_id = '" . $price_data['customer_group_id'] . "', price = '" . $price_data['value'] . "', quantity = '" . $data['quantity'] . "', product_feature_id = '" . $data['product_feature_id'] . "', price_prefix = '+', points_prefix = '+'";
+					$this->log($sql,2);
 					$this->db->query($sql);
 					
 					$values_id[$price_data['customer_group_id']] = $this->db->getLastId();
@@ -2671,14 +2671,16 @@ class ModelToolExchange1c extends Model {
 				// Найдена цена
 				
 				$data_price = $offers_pack['price_types'][$price_cml_id];
-				if ($data_price['rate'] <> 1 && $data_price['rate'] > 0) {
-					$data_price['value']		= round((float)$price->ЦенаЗаЕдиницу / (float)$data_price['rate'], $data_price['decimal_place']);
-				} else {
-					$data_price['value']		= (float)$price->ЦенаЗаЕдиницу;
+				$data_price['value']		= (float)$price->ЦенаЗаЕдиницу;
+				if ($this->config->get('exchange1c_currency_convert')) {
+					if ($data_price['rate'] <> 1 && $data_price['rate'] > 0) {
+						$data_price['value']		= round((float)$price->ЦенаЗаЕдиницу / (float)$data_price['rate'], $data_price['decimal_place']);
+					}
 				}
 		 		$data_price['quantity']		= (float)$price->Коэффициент;
 		 		$data_price['unit_name']	= (string)$price->Единица;
 		 		$data_price['name']			= (string)$price->Представление;
+		 		//$data_price['currency']		= (string)$price->Валюта;
 
 		 		$data_price['unit_id']		= $this->getUnitId($data_price['unit_name']); 
 		 		
@@ -2689,6 +2691,7 @@ class ModelToolExchange1c extends Model {
 		 		}
 		 		
 		 		$data[$price_cml_id] = $data_price;
+		 		$this->log($data,2);
 			} else {
 				
 				$this->log('[i] Не найдена цена, Ид: ' . $price_cml_id,1);
@@ -2931,7 +2934,7 @@ class ModelToolExchange1c extends Model {
 		
 		$this->log("==> parseFeatureCombine()",2);
 		$this->log("data-parseProductFeatureCombine-begin:",2);
-		$this->log($data,2);
+//		$this->log($data,2);
 		
 		// Название опции 
 		$feature_name	= array();
@@ -2981,7 +2984,7 @@ class ModelToolExchange1c extends Model {
 		$data['product_option_value_id'] = $this->setProductOptionValue($data);
 		
 		$this->log("data-parseProductFeatureCombine-end:",2);
-		$this->log($data,2);
+//		$this->log($data,2);
 		
 	} // parseProductFeatureCombine()
 	

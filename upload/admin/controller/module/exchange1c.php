@@ -54,6 +54,172 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
+	 * Определяет значение переменной ошибки
+	 */
+	private function setParamError(&$data, $param) {
+		if (isset($this->request->post[$param])) {
+			$data['error_'.$param] = $this->request->post[$param];
+		} else {
+			$data['error_'.$param] = '';
+		}
+	} // setParamsError()
+
+
+	/**
+	 * Определяет значение переменной
+	 */
+	private function getParam($param) {
+		if (isset($this->request->post['exchange1c_'.$param])) {
+			return $this->request->post['exchange1c_'.$param];
+		} else {
+			return $this->config->get('exchange1c_'.$param);
+		}
+	} // getParam()
+
+
+	/**
+	 * Выводит форму текстового многострочного поля
+	 */
+	private function htmlTextarea($name, $param) {
+		$value = $this->getParam($name);
+		$tmpl = '<textarea class="form-control" id=exchange1c_"'.$name.'" name=exchange1c_"'.$name.'" rows="6" placeholder=ph_"'.$name.'">'.$value.'</textarea>';
+		return $tmpl;
+	} // htmlTextarea()
+
+
+	/**
+	 * Выводит форму выбора значений
+	 */
+	private function htmlSelect($name, $param) {
+		$value = $this->getParam($name);
+		$tmpl = '<select name="exchange1c_'.$name.'" id="exchange1c_'.$name.'" class="form-control">';
+		foreach ($param['options'] as $option => $text) {
+			$selected = ($option == $value ? ' selected="selected"' : '');
+			$tmpl .= '<option value="'.$value.'"'.$selected.'>'.$text.'</option>';
+		}
+		$tmpl .= '</select>';
+		return $tmpl;
+	} // htmlSelect()
+
+
+	/**
+	 * Выводит форму переключателя "Да+Нет"
+	 */
+	private function htmlRadio($name, $param) {
+		$value = $this->getParam($name);
+		if (!$value && isset($param['default'])) {
+			$value = $param['default'];
+		}
+		$tmpl = '<label class="radio-inline">';
+		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="1"'.($value ? ' checked = "checked"' : '').'>';
+		$tmpl .= '&nbsp;'.$this->language->get('text_yes');
+		$tmpl .= '</label>';
+		$tmpl .= '<label class="radio-inline">';
+		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="0"'.($value ? '' : ' checked = "checked"').'>';
+		$tmpl .= '&nbsp;'.$this->language->get('text_no');
+		$tmpl .= '</label>';
+		return $tmpl;
+	} // htmlRadio()
+
+
+	/**
+	 * Формирует форму кнопки
+	 */
+	private function htmlButton($name) {
+		$tmpl = '<button id="exchange1c-button-'.$name.'" class="btn btn-primary" type="button" data-loading-text="' . $this->language->get('entry_button_'.$name). '">';
+		$tmpl .= '<i class="fa fa-trash-o fa-lg"></i> ' . $this->language->get('entry_button_'.$name) . '</button>';
+		return $tmpl;
+	} // htmlButton()
+
+
+	/**
+	 * Формирует форму картинки
+	 */
+	private function htmlImage($name, $param) {
+		$tmpl = '<a title="" class="img_thumbnail" id="thumb-image0" aria-describedby="popover" href="" data-original-title="" data-toggle="image">';
+		$tmpl .= '<img src="' . $param['thumb'] . '" data-placeholder="' . $param['placeholder'] . '" alt="" />';
+		$tmpl .= '<input name="exchange1c_' . $name . '" id="input_image0" value="' . $param['value'] . '" type="hidden" /></a>';
+		return $tmpl;
+	} // htmlImage()
+
+
+	/**
+	 * Формирует форму поля ввода
+	 */
+	private function htmlInput($name, $param, $type='text') {
+		$value = $this->getParam($name);
+		if (!$value && isset($param['default'])) {
+			$value = $param['default'];
+		}
+		$tmpl = '<input class="form-control" type="'.$type.'" id="exchange1c_'.$name.'" name="exchange1c_'.$name.'" value="'.$value.'">';
+		return $tmpl;
+	} // htmlInput()
+
+
+	/**
+	 * Формирует форму ...
+	 */
+	private function htmlParam($name, $text, $param, $head=false) {
+		$tmpl = '';
+		if ($head) {
+			$tmpl .= '<div class="panel-heading"><h3 class="panel-title"><i class="fa fa-pencil"></i>' . $this->language->get('legend_'.$name) . '</h3></div>';
+		}
+		//var_dump('<PRE>');var_dump($name);var_dump($param);var_dump('</PRE>');
+		$label_width = isset($param['width'][0]) ? $param['width'][0] : 2;
+		$entry_width = isset($param['width'][1]) ? $param['width'][1] : 2;
+		$desc_width = isset($param['width'][2]) ? $param['width'][2] : 8;
+		if ($label_width) {
+			$tmpl .= '<label class="col-sm-'.$label_width.' control-label">'. $this->language->get('entry_'.$name) . '</label>';
+		}
+		$tmpl .= '<div class="col-sm-'.$entry_width.'">' . $text . '</div>';
+		if ($desc_width) {
+			$tmpl .= '<div class="col-sm-'.$desc_width.'"><div class="alert alert-info"><i class="fa fa-info-circle"></i> '. $this->language->get('desc_'.$name) . '</div></div>';
+		}
+
+		return $tmpl;
+	} // HtmlParam()
+
+
+	/**
+	 * Формирует форму ...
+	 */
+	private function htmlTable($name, $head, $body) {
+		$tmpl = '';
+		
+		// head 
+		$tmpl .= '<thead><tr>';
+		foreach ($head as $col) {
+			$tmpl .= '<td>' . $col['field'] . '</td>';
+		}
+		$tmpl .= '</tr></thead>';
+		
+		// body
+		$tmpl .= '<tbody><tr>';
+		foreach ($body as $rows) {
+			$tmpl .= '<tr>';
+			foreach ($rows as $col) {
+				$tmpl .= '<td>' . $col['field'] . '</td>';
+			}
+			$tmpl .= '</tr>';
+		}
+		$tmpl .= '</tr></tbody>';
+
+		return $tmpl;
+	} // htmlTable()
+
+
+	/**
+	 * Проверка разрешения на изменение 
+	 */
+	private function validate() {
+		if (!$this->user->hasPermission('modify', 'module/exchange1c'))
+			$this->error['warning'] = $this->language->get('error_permission');
+		if (!$this->error) return true;
+		else return false;
+	} // validate()
+
+
+	/**
 	 * Основная функция 
 	 */
 	public function index() {
@@ -97,17 +263,17 @@ class ControllerModuleExchange1c extends Controller {
 		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
 		$data['version'] = $settings['exchange1c_version'];
 
-		$data = $this->setParams($data, 'config_icon');
+		$data['exchange1c_config_icon'] = $this->getParam('config_icon');
 
 		// error_warning
-		$data = $this->setParamsError($data, 'warning');
+		$this->setParamError($data, 'warning');
 
 		// Проверка базы данных
 		$data['error_warning'] .= $this->model_tool_exchange1c->checkDB();
 
-		$data = $this->setParamsError($data, 'image');
-		$data = $this->setParamsError($data, 'exchange1c_username');
-		$data = $this->setParamsError($data, 'exchange1c_password');
+		$this->setParamError($data, 'image');
+		$this->setParamError($data, 'exchange1c_username');
+		$this->setParamError($data, 'exchange1c_password');
 
 		$data['breadcrumbs'] = array();
 		$data['breadcrumbs'][] = array(
@@ -129,92 +295,191 @@ class ControllerModuleExchange1c extends Controller {
 		$data['action'] = $this->url->link('module/exchange1c', 'token=' . $this->session->data['token'], 'SSL');
 		$data['cancel'] = $this->url->link('extension/module', 'token=' . $this->session->data['token'], 'SSL');
 
-		// ОБЩИЕ
-
+		/**
+		 * ГЕНЕРАЦИЯ ШАБЛОНА
+		 */
+		
 		// Магазины
+		$data['config_stores'] = $this->getParam('stores');
+		//var_dump('<PRE>');var_dump($data['config_stores']);var_dump('</PRE>');
+		$data['store_name_default'] = $this->config->get('config_name');
+		$stores = $this->db->query("SELECT * FROM `" . DB_PREFIX . "store`")->rows;
 		$data['stores'] = array();
-		$data['store_default'] = $this->config->get('config_name');
-		$store_id = 1;
-		$result = $this->db->query("SELECT * FROM `" . DB_PREFIX . "store`")->rows;
-		foreach ($result as $store) {
+		foreach ($stores as $store) {
 			$data['stores'][] = array(
-				'store_id'	=> $store_id,
+				'store_id'	=> $store['store_id'],
 				'name'		=> $store['name']
 			);
-			$store_id++;
 		}
 
-		if (isset($this->request->post['exchange1c_stores'])) {
-			$data['exchange1c_stores'] = $this->request->post['exchange1c_stores'];
-		}
-		else {
-			$data['exchange1c_stores'] = $this->config->get('exchange1c_stores');
-			if(empty($data['exchange1c_stores'])) {
-				$data['exchange1c_stores'][] = array(
-					'keyword'		=> '',
-					'name'			=> $this->config->get('config_name'),
-					'store_id'		=> 0
-				);
-			}
-		}
+		// Картинки
+		$images = array(
+			'watermark'	=> array(
+				'placeholder'	=> $this->model_tool_image->resize('no_image.png', 100, 100),
+				'value'			=> $this->getParam('watermark'),
+				'thumb'			=> $this->getParam('watermark') ? $this->model_tool_image->resize($this->getParam('watermark'), 100, 100) : $this->model_tool_image->resize('no_image.png', 100, 100)
+			)
+		);
 
-		// АВТОРИЗАЦИЯ
-
-		// пользователь
-		$data = $this->formText('exchange1c_username', $data);
-		// пароль
-		$data = $this->formText('exchange1c_password', $data);
-
-		// БЕЗОПАСНОСТЬ
-		
-		// ip адреса
-		$data = $this->formTextarea('exchange1c_allow_ip', $data);
-
-		// ПРОЧЕЕ
-
-		// статус
-		$data = $this->formSelectEnableDisable('exchange1c_status', $data);
+		// в наименование товара загружать короткое или полное наименование с 1С		
+		// товары - список возможныйх полей
+		$product_name_fields = array(
+			'name'		=> $this->language->get('text_product_name'),
+			'fullname'	=> $this->language->get('text_product_fullname')
+		);
 
 		// Уровень записи в журнал
-		$exchange1c_log_level_list = array(
+		$log_level_list = array(
 			0	=> $this->language->get('text_log_level_0'),
 			1	=> $this->language->get('text_log_level_1'),
 			2	=> $this->language->get('text_log_level_2') 		
 		);
-		$data = $this->formSelect('exchange1c_log_level', $data, $exchange1c_log_level_list);
 
-		// очищать журнал сообщений перед обменом
-		$data = $this->formRadioYesNo('exchange1c_flush_log', $data);
-
-		$exchange1c_file_exchange_list = array(
+		$file_exchange_list = array(
 			'zip'	=> $this->language->get('text_file_exchange_zip'),
 			'files'	=> $this->language->get('text_file_exchange_files') 		
 		);
-		$data = $this->formSelect('exchange1c_file_exchange', $data, $exchange1c_file_exchange_list);
-		
-		/**
-		 * ТОВАРЫ
-		 */
-		// Загрузка товаров в разных валютах
-		$this->load->model('localisation/currency');
-		// список валют
-		$data['currencies'] = $this->model_localisation_currency->getCurrencies();
-		// валюта по-умолчанию
-		$data['currency_default'] = $this->model_localisation_currency->getCurrencyByCode($this->config->get('config_currency'));
 
-		if (isset($this->request->post['exchange1c_currency'])) {
-			$data['exchange1c_currency'] = $this->request->post['exchange1c_currency'];
+		// SEO
+		if (isset($this->request->post['exchange1c_seo_product_tags'])) {
+			$data['exchange1c_seo_product_tags'] = $this->request->post['exchange1c_seo_product_tags'];
+		} else {
+			$data['exchange1c_seo_product_tags'] = '{name}, {sku}, {brand}, {desc}, {cats}, {price}, {prod_id}, {cat_id}';
 		}
-		else {
-			$data['exchange1c_currency'] = $this->config->get('exchange1c_currency');
-			if(empty($data['exchange1c_currency'])) {
-				$data['exchange1c_currency'][] = array(
-					'currency_id'		=> $data['currency_default']['currency_id'],
-					'name1c'			=> '',
-					'code'		=> $data['currency_default']['code'] 
-				);
+
+		if (isset($this->request->post['exchange1c_seo_category_tags'])) {
+			$data['exchange1c_seo_category_tags'] = $this->request->post['exchange1c_seo_category_tags'];
+		} else {
+			$data['exchange1c_seo_category_tags'] = '{cat}, {cat_id}';
+		}
+
+		if (isset($this->request->post['exchange1c_seo_manufacturertags'])) {
+			$data['exchange1c_seo_manufacturer_tags'] = $this->request->post['exchange1c_seo_manufacturer_tags'];
+		} else {
+			$data['exchange1c_seo_manufacturer_tags'] = '{brand}, {brand_id}';
+		}
+		$list_product = array(
+			'disable'		=> $this->language->get('text_disable'),
+			'template'		=> $this->language->get('text_template')
+			//'import'		=> $this->language->get('text_import')
+		); 
+		$list_category = array(
+			'disable'		=> $this->language->get('text_disable'),
+			'template'		=> $this->language->get('text_template')
+		); 
+		$list_overwrite = array(
+			'if_empty'		=> $this->language->get('text_seo_if_empty'),
+			'overwrite'		=> $this->language->get('text_seo_overwrite')
+		);
+
+		// Статус товара по умолчанию при отсутствии
+		$this->load->model('localisation/stock_status');
+		$stock_statuses_info = $this->model_localisation_stock_status->getStockStatuses();
+		$stock_statuses = array();
+		foreach ($stock_statuses_info as $status) {
+			$stock_statuses[$status['stock_status_id']] = $status['name'];
+				
+		}
+
+		// список статусов заказов
+		$this->load->model('localisation/order_status');
+		$order_statuses_info = $this->model_localisation_order_status->getOrderStatuses();
+		$order_statuses = array();
+		$order_statuses[] = $this->language->get('text_order_status_to_exchange_not');
+		foreach ($order_statuses_info as $order_status) {
+			$order_statuses[$order_status['order_status_id']] = $order_status['name'];
+		}
+
+		$list_options = array(
+			'combine'	=> $this->language->get('text_product_options_combine')
+		);
+
+		// Генерация опций
+		$params = array(
+			'cleaning_db' 							=> array('type' => 'button')
+			,'flush_quantity'						=> array('type' => 'radio')
+			,'watermark'							=> array('type' => 'image')
+			,'allow_ip'								=> array('type' => 'textarea')
+			,'import_images'						=> array('type' => 'radio', 'default' => 1)
+			,'import_categories'					=> array('type' => 'radio', 'default' => 1)
+			,'import_product'						=> array('type' => 'radio', 'default' => 1)
+			,'new_product_status_off'				=> array('type' => 'radio')
+			,'new_category_status_off'				=> array('type' => 'radio')
+			,'description_html'						=> array('type' => 'radio')
+			,'fill_parent_cats'						=> array('type' => 'radio')
+			,'product_disable_if_zero'				=> array('type' => 'radio')
+			,'dont_use_artsync'						=> array('type' => 'radio')
+			,'synchronize_uuid_to_id'				=> array('type' => 'radio')
+			,'status'								=> array('type' => 'radio')
+			,'flush_log'							=> array('type' => 'radio')
+			,'currency_convert'						=> array('type' => 'radio', 'default' => 1)
+			,'parse_only_types_item'				=> array('type' => 'input')
+			,'username'								=> array('type' => 'input')
+			,'password'								=> array('type' => 'input')
+			,'seo_product_seo_url_import'			=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_seo_url_template'			=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_product_meta_title_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_meta_title_template'		=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_product_meta_description_import'	=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_meta_description_template'=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_product_meta_keyword_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_meta_keyword_template'	=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_category_seo_url_template'		=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_category_meta_title_template'		=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_category_meta_description_template'=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_category_meta_keyword_template'	=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_manufacturer_seo_url_template'	=> array('type' => 'input', 'width' => array(0,9,0))
+			,'order_currency'						=> array('type' => 'input')
+			,'order_notify'							=> array('type' => 'radio', 'default' => 1)
+			,'product_options_mode'					=> array('type' => 'select', 'options' => $list_options)
+			,'product_name_field'				=> array('type'	=> 'select', 'options' => $product_name_fields)
+			,'default_stock_status'				=> array('type'	=> 'select', 'options' => $stock_statuses)
+			,'log_level'						=> array('type' => 'select', 'options' => $log_level_list)
+			,'file_exchange'					=> array('type' => 'select', 'options' => $file_exchange_list)
+			,'seo_product_overwrite'			=> array('type' => 'select', 'options' => $list_overwrite, 'width' => array(1,2,9))
+			,'seo_product_seo_url'				=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_product_meta_title'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_product_meta_description'		=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_product_meta_keyword'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_category_overwrite'			=> array('type' => 'select', 'options' => $list_overwrite, 'width' => array(1,2,9))
+			,'seo_category_seo_url'				=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
+			,'seo_category_meta_title'			=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
+			,'seo_category_meta_description'	=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
+			,'seo_category_meta_keyword'		=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
+			,'seo_manufacturer_overwrite'		=> array('type' => 'select', 'options' => $list_overwrite, 'width' => array(1,2,9))
+			,'seo_manufacturer_seo_url'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'order_status_to_exchange'			=> array('type' => 'select', 'options' => $order_statuses)
+			,'order_status_change'				=> array('type' => 'select', 'options' => $order_statuses)
+			,'order_status_canceled'			=> array('type' => 'select', 'options' => $order_statuses)
+			,'order_status_completed'			=> array('type' => 'select', 'options' => $order_statuses)
+		);
+		
+		foreach ($params as $name => $param) {
+			$html = '';
+			switch ($param['type']) {
+				case 'button':
+					$html = $this->htmlButton($name, $param);
+					break;
+				case 'radio':
+					$html = $this->htmlRadio($name, $param);
+					break;
+				case 'select':
+					$html = $this->htmlSelect($name, $param);
+					break;
+				case 'image':
+					$html = $this->htmlImage($name, $images[$name]);
+					break;
+				case 'input':
+					$html = $this->htmlInput($name, $param);
+					break;
+				case 'textarea':
+					$html = $this->htmlTextarea($name, $param);
+					break;
 			}
+			if ($html)
+				$data['html_'.$name] = $this->htmlParam($name, $html, $param);
 		}
+
 
 		// Группы покупателей
 		if (version_compare(VERSION, '2.0.3.1', '>')) {
@@ -241,205 +506,17 @@ class ControllerModuleExchange1c extends Controller {
 			}
 		}
 
-		// очищать остатки
-		$data = $this->formRadioYesNo('exchange1c_flush_quantity', $data);
 
-		// КАРТИНКИ
-		
-		// водяные знаки
-		$data['placeholder'] = $this->model_tool_image->resize('no_image.png', 100, 100);
-		$data = $this->setParams($data, 'exchange1c_watermark');
-		if ($data['exchange1c_watermark']) {
-			$data['thumb'] = $this->model_tool_image->resize($data['exchange1c_watermark'], 100, 100);
-		}
-		else {
-			$data['thumb'] = $this->model_tool_image->resize('no_image.png', 100, 100);
-		}
-		
-		// ОБНОВЛЯТЬ ПРИ ИМПОРТЕ
-
-		// Импортировать картинки
-		$data = $this->formRadioYesNo('exchange1c_import_images', $data);
-		// Импортировать категории
-		$data = $this->formRadioYesNo('exchange1c_import_categories', $data);
-		// Обновлять товар
-		$data = $this->formRadioYesNo('exchange1c_import_product', $data);
-
-
-		// ПРОЧЕЕ
-		
-		// Описания в формате HTML
-		$data = $this->formRadioYesNo('exchange1c_description_html', $data);
-
-		// В новом товаре устанавливать статус "отключено"
-		$data = $this->formRadioYesNo('exchange1c_new_product_status_off', $data);
-
-		// В новой категории устанавливать статус "отключено"
-		$data = $this->formRadioYesNo('exchange1c_new_category_status_off', $data);
-
-		// загружать только типы номенклатуры
-		$data = $this->formText('exchange1c_parse_only_types_item', $data);
-		
-		// заполнять родительские категории
-		$data = $this->formRadioYesNo('exchange1c_fill_parent_cats', $data);
-		
-		// Статус товара по умолчанию при отсутствии
-		$this->load->model('localisation/stock_status');
-		$stock_statuses_info = $this->model_localisation_stock_status->getStockStatuses();
-		$stock_statuses = array();
-		foreach ($stock_statuses_info as $status) {
-			$stock_statuses[$status['stock_status_id']] = $status['name'];
-				
-		}
-		unset($stock_statuses_info);
-
-		$data = $this->formSelect('exchange1c_default_stock_status', $data, $stock_statuses);
-		
-
-		// Отключать товар если остаток меньше или равен нулю
-		$data = $this->formRadioYesNo('exchange1c_product_disable_if_zero', $data);
-
-		// не искать по артикулам
-		$data = $this->formRadioYesNo('exchange1c_dont_use_artsync', $data);
-
-		// в наименование товара загружать короткое или полное наименование с 1С		
-		// товары - список возможныйх полей
-		$product_name_fields = array(
-			'name'		=> $this->language->get('text_product_name'),
-			'fullname'	=> $this->language->get('text_product_fullname')
-		);
-		$data = $this->formSelect('exchange1c_product_name_field', $data, $product_name_fields);
-		
-		// связанные опции
-		//$data = $this->formRadioYesNo('exchange1c_relatedoptions', $data);
-
-		// Характеристики
-		$product_option = array(
-			'combine'		=> $this->language->get('text_product_option_combine')
-			//'related'		=> $this->language->get('text_product_option_related')
-		);
-		$data = $this->formSelect('exchange1c_product_option_mode', $data, $product_option);
-
-		// синхронизировать cml_id 1С с ID Opencart
-		$data = $this->formRadioYesNo('exchange1c_synchronize_uuid_to_id', $data);
-		
-
-		/**
-		 * SEO
-		 */
-		// SEO товары
-		if (isset($this->request->post['exchange1c_seo_product_tags'])) {
-			$data['exchange1c_seo_product_tags'] = $this->request->post['exchange1c_seo_product_tags'];
-		} else {
-			$data['exchange1c_seo_product_tags'] = '{name}, {sku}, {brand}, {desc}, {cats}, {price}, {prod_id}, {cat_id}';
-		}
-		$list_product = array(
-			'disable'		=> $this->language->get('text_disable'),
-			'template'		=> $this->language->get('text_template')
-			//'import'		=> $this->language->get('text_import')
-		); 
-		$list_category = array(
-			'disable'		=> $this->language->get('text_disable'),
-			'template'		=> $this->language->get('text_template')
-		); 
-		$list_overwrite = array(
-			'if_empty'		=> $this->language->get('text_seo_if_empty'),
-			'overwrite'		=> $this->language->get('text_seo_overwrite')
-		);
-		// Перезапись
-		$data = $this->formSelect('exchange1c_seo_product_overwrite', $data, $list_overwrite, array(1,2,9));
-		// поле seo-url для ЧПУ
-		$data = $this->formSelect('exchange1c_seo_product_seo_url', $data, $list_product, array(1,2,0));
-		$data = $this->setParams($data, 'exchange1c_seo_product_seo_url_import', 'seo_url');
-		$data = $this->formText('exchange1c_seo_product_seo_url_import', $data, array(0,9,0), 'hidden');
-		$data = $this->formText('exchange1c_seo_product_seo_url_template', $data, array(0,9,0));
-		// поле meta-title
-		$data = $this->formSelect('exchange1c_seo_product_meta_title', $data, $list_product, array(1,2,0));
-		$data = $this->setParams($data, 'exchange1c_seo_product_meta_title_import', 'seo_title');
-		$data = $this->formText('exchange1c_seo_product_meta_title_import', $data, array(0,9,0), 'hidden');
-		$data = $this->formText('exchange1c_seo_product_meta_title_template', $data, array(0,9,0));
-		// поле meta-description
-		$data = $this->formSelect('exchange1c_seo_product_meta_description', $data, $list_product, array(1,2,0));
-		$data = $this->setParams($data, 'exchange1c_seo_product_meta_description_import', 'seo_description');
-		$data = $this->formText('exchange1c_seo_product_meta_description_import', $data, array(0,9,0), 'hidden');
-		$data = $this->formText('exchange1c_seo_product_meta_description_template', $data, array(0,9,0));
-		// поле keywords
-		$data = $this->formSelect('exchange1c_seo_product_meta_keyword', $data, $list_product, array(1,2,0));
-		$data = $this->setParams($data, 'exchange1c_seo_product_meta_keyword_import', 'seo_keyword');
-		$data = $this->formText('exchange1c_seo_product_meta_keyword_import', $data, array(0,9,0), 'hidden');
-		$data = $this->formText('exchange1c_seo_product_meta_keyword_template', $data, array(0,9,0));
-
-		// SEO категории
-		if (isset($this->request->post['exchange1c_seo_category_tags'])) {
-			$data['exchange1c_seo_category_tags'] = $this->request->post['exchange1c_seo_category_tags'];
-		} else {
-			$data['exchange1c_seo_category_tags'] = '{cat}, {cat_id}';
-		}
-		// Перезапись
-		$data = $this->formSelect('exchange1c_seo_category_overwrite', $data, $list_overwrite, array(1,2,9));
-		// поле seo-url для ЧПУ
-		$data = $this->formSelect('exchange1c_seo_category_seo_url', $data, $list_category, array(1,2,0));
-		$data = $this->formText('exchange1c_seo_category_seo_url_template', $data, array(0,9,0));
-		// поле meta-title
-		$data = $this->formSelect('exchange1c_seo_category_meta_title', $data, $list_category, array(1,2,0));
-		$data = $this->formText('exchange1c_seo_category_meta_title_template', $data, array(0,9,0));
-		// поле meta-description
-		$data = $this->formSelect('exchange1c_seo_category_meta_description', $data, $list_category, array(1,2,0));
-		$data = $this->formText('exchange1c_seo_category_meta_description_template', $data, array(0,9,0));
-		// поле keyword
-		$data = $this->formSelect('exchange1c_seo_category_meta_keyword', $data, $list_category, array(1,2,0));
-		$data = $this->formText('exchange1c_seo_category_meta_keyword_template', $data, array(0,9,0));
-		// SEO Производители
-		// SEO товары
-		if (isset($this->request->post['exchange1c_seo_manufacturertags'])) {
-			$data['exchange1c_seo_manufacturer_tags'] = $this->request->post['exchange1c_seo_manufacturer_tags'];
-		} else {
-			$data['exchange1c_seo_manufacturer_tags'] = '{brand}, {brand_id}';
-		}
-		// Перезапись
-		$data = $this->formSelect('exchange1c_seo_manufacturer_overwrite', $data, $list_overwrite, array(1,2,9));
-		// поле seo-url для ЧПУ
-		$data = $this->formSelect('exchange1c_seo_manufacturer_seo_url', $data, $list_category, array(1,2,0));
-		$data = $this->formText('exchange1c_seo_manufacturer_seo_url_template', $data, array(0,9,0));
-
-		/**
-		 * ЗАКАЗЫ
-		 */
-		// список статусов заказов
-		$this->load->model('localisation/order_status');
-		$order_statuses_info = $this->model_localisation_order_status->getOrderStatuses();
-		$order_statuses = array();
-		$order_statuses[] = $this->language->get('text_order_status_to_exchange_not');
-		foreach ($order_statuses_info as $order_status) {
-			$order_statuses[$order_status['order_status_id']] = $order_status['name'];
-		}
-		// + 1.6.1.7
-		unset($order_statuses_info);
-
-		$data = $this->formSelect('exchange1c_order_status_to_exchange', $data, $order_statuses);
-		$data = $this->formSelect('exchange1c_order_status_change', $data, $order_statuses);
-		$data = $this->formSelect('exchange1c_order_status_canceled', $data, $order_statuses);
-		$data = $this->formSelect('exchange1c_order_status_completed', $data, $order_statuses);
-		$data = $this->formText('exchange1c_order_currency', $data);
-		$data = $this->formRadioYesNo('exchange1c_order_notify', $data);
-
-		/**
-		 * РУЧНАЯ ОБРАБОТКА
-		 */
 	 	// максимальный размер загружаемых файлов
 		$data['lang']['text_max_filesize'] = sprintf($this->language->get('text_max_filesize'), @ini_get('max_file_uploads'));
 		$data['upload_max_filesize'] = ini_get('upload_max_filesize');
 		$data['post_max_size'] = ini_get('post_max_size');
 		
 
-		/**
-		 * РАЗРАБОТКА
-		 */
 	 	// информация о памяти
 		$data['memory_limit'] = ini_get('memory_limit');
 
 		// Вывод шаблона
-		
 		$this->template = 'module/exchange1c.tpl';
 		$this->children = array(
 			'common/header',
@@ -451,17 +528,6 @@ class ControllerModuleExchange1c extends Controller {
 
 		$this->response->setOutput($this->load->view('module/exchange1c.tpl', $data));
 	} // index()
-
-
-	/**
-	 * Проверка разрешения на изменение 
-	 */
-	private function validate() {
-		if (!$this->user->hasPermission('modify', 'module/exchange1c'))
-			$this->error['warning'] = $this->language->get('error_permission');
-		if (!$this->error) return true;
-		else return false;
-	} // validate()
 
 
 	/**
@@ -1576,7 +1642,7 @@ class ControllerModuleExchange1c extends Controller {
 						$xmlfiles = $this->extractArchive($zip);
 						$zip->close();
 					}
-					unlink($uplod_file);
+					//unlink($uplod_file);
 				}
 				else {
 					$this->echo_message(0, "Empty file " . $this->request->get['filename']);
@@ -1782,283 +1848,6 @@ class ControllerModuleExchange1c extends Controller {
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->deleteLinkOption($option_id);
 	} // eventOptionDelete()
-
-
-	/**
-	 * Определяет значение переменной ошибки
-	 */
-	private function setParamsError($data, $param) {
-		if (isset($this->request->post[$param])) {
-			$data['error_'.$param] = $this->request->post[$param];
-		} else {
-			$data['error_'.$param] = '';
-		}
-		return $data;		
-	} // setParamsError()
-
-	/**
-	 * Определяет значение переменной
-	 */
-	private function setParams($data, $param, $default='') {
-		if (isset($this->request->post[$param])) {
-			$data[$param] = $this->request->post[$param];
-		} else {
-			if ($this->config->get($param)) {
-				$data[$param] = $this->config->get($param);
-			} else {
-				if ($default) {
-					$data[$param] = $default;
-				} else {
-					$data[$param] = '';
-				}
-			}
-		}
-		return $data;		
-	} // setParams()
-	
-
-	/**
-	 * Определяет значение переменной
-	 */
-	private function getParams($param) {
-		if (isset($this->request->post[$param])) {
-			return $this->request->post[$param];
-		} else {
-			return $this->config->get($param);
-		}
-	}
-	
-	
-	/**
-	 * Выводит форму переключателя "Да+Нет"
-	 */
-	private function formRadioYesNo($name, $data) {
-		$value = $this->getParams($name);
-		$param_name = substr($name,11);		
-		$description = $this->language->get('desc_'.$param_name);
-		$label_name = $this->language->get('entry_'.$param_name);
-		$tmpl = '';
-		//if ($label_name <> 'entry_'.$param_name) {
-			$tmpl .= '<label class="col-sm-2 control-label">'.$label_name.'</label>';
-		//}
-		$tmpl .= '<div class="col-sm-3">'; 
-		$tmpl .= '<label class="radio-inline">';
-		$tmpl .= '<input type="radio" name="'.$name.'" value="1"'.($value ? ' checked = "checked"' : '').'>';
-		$tmpl .= '&nbsp;'.$this->language->get('text_yes');
-		$tmpl .= '</label>';
-		$tmpl .= '<label class="radio-inline">';
-		$tmpl .= '<input type="radio" name="'.$name.'" value="0"'.($value ? '' : ' checked = "checked"').'>';
-		$tmpl .= '&nbsp;'.$this->language->get('text_no');
-		$tmpl .= '</label></div>';
-		//if ($description <> 'desc_'.$param_name) {
-			$tmpl .= '<div class="col-sm-7">';
-			$tmpl .= '<div class="alert alert-info">';
-			$tmpl .= '<i class="fa fa-info-circle"></i>';
-			$tmpl .= '&nbsp;'.$description;
-			$tmpl .= '</div></div>';
-		//}
-		$data['form_'.$name] = $tmpl;
-		return $data;
-	} // formRadioYesNo()
-	
-
-	/**
-	 * Выводит форму выбора "Да+Нет"
-	 */
-	private function formSelectYesNo($name, $data, $width_label=2, $width=3, $width_desc=7) {
-		$value = $this->getParams($name);		
-		$param_name = substr($name,11);		
-		$description = $this->language->get('desc_'.$param_name);
-		$label_name = $this->language->get('entry_'.$param_name);
-		$tmpl = '';
-		if ($label_name <> 'entry_'.$param_name) {
-			$tmpl .= '<label class="col-sm-'.$width_label.' control-label">'.$label_name.'</label>';
-		}
-		$tmpl .= '<div class="col-sm-'.$width.'">'; 
-		$tmpl .= '<select name="'.$name.'" id="'.$name.'" class="form-control">';
-		$tmpl .= '<option value="0" '.(!$value?'selected="selected"':'').'>'.$this->language->get('text_no').'</option>';
-		$tmpl .= '<option value="1" '.($value?'selected="selected"':'').'>'.$this->language->get('text_yes').'</option>';
-		$tmpl .= '</select></div>';
-		if ($description <> 'desc_'.$param_name) {
-			$tmpl .= '<div class="col-sm-'.$width_desc.'">';
-			$tmpl .= '<div class="alert alert-info">';
-			$tmpl .= '<i class="fa fa-info-circle"></i>';
-			$tmpl .= '&nbsp;'.$description;
-			$tmpl .= '</div></div>';
-		}
-		$data['form_'.$name] = $tmpl;
-		return $data;
-	} // formSelectYesNo()
-	
-
-	/**
-	 * Выводит форму выбора "Включено+Выключено"
-	 */
-	private function formSelectEnableDisable($name, $data) {
-		$value = $this->getParams($name);
-		$param_name = substr($name,11);		
-		$description = $this->language->get('desc_'.$param_name);
-		$label_name = $this->language->get('entry_'.$param_name);
-		$tmpl = '';
-		if ($label_name <> 'entry_'.$param_name) {
-			$tmpl = '<label class="col-sm-2 control-label">'.$label_name.'</label>';
-		}
-		$tmpl .= '<div class="col-sm-3">'; 
-		$tmpl .= '<select name="'.$name.'" id="'.$name.'" class="form-control">';
-		$tmpl .= '<option value="0" '.(!$value?'selected="selected"':'').'>'.$this->language->get('text_disabled').'</option>';
-		$tmpl .= '<option value="1" '.($value?'selected="selected"':'').'>'.$this->language->get('text_enabled').'</option>';
-		$tmpl .= '</select></div>';
-		if ($description <> 'desc_'.$param_name) {
-			$tmpl .= '<div class="col-sm-7">';
-			$tmpl .= '<div class="alert alert-info">';
-			$tmpl .= '<i class="fa fa-info-circle"></i>';
-			$tmpl .= '&nbsp;'.$description;
-			$tmpl .= '</div></div>';
-		}
-		$data['form_'.$name] = $tmpl;
-		return $data;
-	} // formSelectEnableDisable()
-
-
-	/**
-	 * Выводит форму текстового поля
-	 */
-	private function formText($name, $data, $width=array(), $type='text') {
-		$value = $this->getParams($name);
-		$param_name = substr($name,11);
-
-		$width_label = isset($width[0]) ? $width[0] : 2;
-		$width_text = isset($width[1]) ? $width[1] : 3;
-		$width_desc = isset($width[2]) ? $width[2] : 7;
-
-		$description = $this->language->get('desc_'.$param_name);
-		$placeholder = $this->language->get('placeholder_'.$param_name);
-		$label_name = $this->language->get('entry_'.$param_name);
-		$tmpl = '';
-		if ($width_label > 0) {
-			$tmpl .= '<label class="col-sm-'.$width_label.' control-label">'.$label_name.'</label>'; 
-		}
-		if ($placeholder <> 'placeholder_'.$param_name) $placeholder = ' placeholder="'.$placeholder.'"';
-		if ($width_text  > 0) {
-			$tmpl .= '<div class="col-sm-'.$width_text.'">';
-			$tmpl .= '<input type="'.$type.'" class="form-control"'.$placeholder.' id="'.$name.'" name="'.$name.'" value="'.$value.'"/>';
-			$tmpl .= '</div>';
-		}		
-		if ($width_desc > 0) {
-			$tmpl .= '<div class="col-sm-'.$width_desc.'">';
-			$tmpl .= '<div class="alert alert-info">';
-			$tmpl .= '<i class="fa fa-info-circle"></i>';
-			$tmpl .= '&nbsp;'.$description;
-			$tmpl .= '</div></div>';
-		}
-		$data['form_'.$name] = $tmpl;
-		return $data;
-	} // formText()
-
-	
-	/**
-	 * Выводит форму текстового многострочного поля
-	 */
-	private function formTextarea($name, $data) {
-		$value = $this->getParams($name);
-		$param_name = substr($name,11);
-		$description = $this->language->get('desc_'.$param_name);
-		$placeholder = $this->language->get('placeholder_'.$param_name);
-		$tmpl = '';
-		if ($placeholder <> 'placeholder_'.$param_name) $placeholder = ' placeholder="'.$placeholder.'"';
-		$label_name = $this->language->get('entry_'.$param_name);
-		if ($label_name <> 'entry_'.$param_name) {
-			$tmpl .= '<label class="col-sm-2 control-label">'.$label_name.'</label>'; 
-		}
-		$tmpl .= '<div class="col-sm-3">';
-		$tmpl .= '<textarea class="form-control" id="'.$name.'" name="'.$name.'" rows="6"'.$placeholder.'>'.$value.'</textarea>';
-		$tmpl .= '</div>';
-		if ($description <> 'desc_'.$param_name) {
-			$tmpl .= '<div class="col-sm-7">';
-			$tmpl .= '<div class="alert alert-info">';
-			$tmpl .= '<i class="fa fa-info-circle"></i>';
-			$tmpl .= '&nbsp;'.$description;
-			$tmpl .= '</div></div>';
-		}
-		$data['form_'.$name] = $tmpl;
-		return $data;
-	} // formTextarea()
-
-
-	/**
-	 * Выводит форму выбора значений
-	 */
-	private function formSelect($name, $data, $values, $width=array(), $alert='') {
-		$param = $this->getParams($name);
-		$param_name = substr($name,11);		
-		$description = $this->language->get('desc_'.$param_name);
-		$tmpl = '';
-		$label_name = $this->language->get('entry_'.$param_name);
-		$width_label = isset($width[0]) ? $width[0] : 2;
-		$width_select = isset($width[1]) ? $width[1] : 3;
-		$width_desc = isset($width[2]) ? $width[2] : 7;
-		if ($width_label > 0) {
-			$tmpl .= '<label class="col-sm-'.$width_label.' control-label">'.$label_name.'</label>';
-		}
-		if ($width_select > 0) {
-			$tmpl .= '<div class="col-sm-'.$width_select.'">'; 
-			$tmpl .= '<select name="'.$name.'" id="'.$name.'" class="form-control">';
-			foreach ($values as $value => $text) {
-				$selected = ($param == $value ? ' selected="selected"' : '');
-				$tmpl .= '<option value="'.$value.'"'.$selected.'>'.$text.'</option>';
-			}
-			$tmpl .= '</select></div>';
-		}
-		if ($width_desc > 0) {
-			$tmpl .= '<div class="col-sm-'.$width_desc.'">';
-			$tmpl .= '<div class="alert alert-info">';
-			$tmpl .= '<i class="fa fa-info-circle"></i>';
-			$tmpl .= '&nbsp;'.$description;
-			$tmpl .= '</div>';
-			if ($alert) {
-				$tmpl .= '<div class="alert alert-danger"><i class="fa fa-warning"></i>'.$alert.'</div>';
-			}
-			$tmpl .= '</div>';
-		}
-		$data['form_'.$name] = $tmpl;
-		return $data;
-	} // formSelect()
-
-
-	/**
-	 * Выводит форму выбора значений
-	 */
-	private function formCheckBox($name, $data, $values, $height=150) {
-		$param = $this->getParams($name);
-		$param_name = substr($name,11);
-		$description = $this->language->get('desc_'.$param_name);
-		$tmpl = '';
-		$label_name = $this->language->get('entry_'.$param_name);
-		if ($label_name <> 'entry_'.$param_name) {
-			$tmpl .= '<label class="col-sm-2 control-label" for="entry_'.$param_name.'">'.$label_name.'</label>';
-		}
-		$tmpl .= '<div class="col-sm-3">';
-		$tmpl .= '<div class="well well-sm" style="height: '.$height.'px; overflow: auto;">';
-		foreach ($values as $value => $text) {
-			$tmpl .= '<div class="checkbox">';
-			$tmpl .= '<label>';
-			$checked = (isset($param[$value]) ? ' checked="checked"' : '');
-			$tmpl .= '<input type="checkbox" name="'.$name.'['.$value.']" value="1"'.$checked.' />';
-			$tmpl .= '&nbsp;'.$text;
-			$tmpl .= '</label>';
-			$tmpl .= '</div>';
-		}
-		$tmpl .= '</div></div>';
-		if ($description <> 'desc_'.$param_name) {
-			$tmpl .= '<div class="col-sm-7">';
-			$tmpl .= '<div class="alert alert-info">';
-			$tmpl .= '<i class="fa fa-info-circle"></i>';
-			$tmpl .= '&nbsp;'.$description;
-			$tmpl .= '</div></div>';
-		}
-		$data['form_'.$name] = $tmpl;
-		return $data;
-	} // formCheckBox()
 
 
 	/**

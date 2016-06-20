@@ -135,29 +135,24 @@
 		</operation>
 		<operation>
 			<search><![CDATA[$(document).ready(function() {]]></search>
-			<add position="after" offset="8"><![CDATA[			// +++ KirilLoveVE
-
-	quantity = [];
-	prices = [];
-
+			<add position="after" offset="8"><![CDATA[
 	<?php foreach ($options as $option) { ?>
- 	<?php if (sizeof($option['product_option_value'])) { ?>
+	<?php if (sizeof($option['product_option_value'])) { ?>
 
-	<?php foreach ($option['product_option_value'] as $option_value) { ?>
-	price[<?php echo $option_value['product_option_value_id']?>] = '<?php echo $option_value['price']?>';
-	<?php foreach ($option_value['product_quantity'] as $quantity) { ?>
-	quantity[<?php echo $quantity['product_feature_id']?>] = '<?php echo $quantity['quantity']?>';
-	<?php } // foreach ($option['product_option_value']) ?>
-	<?php } // foreach ($option_value['product_quantity']) ?>
+<?php foreach ($option['product_option_value'] as $option_value) { ?>
+price[<?php echo $option_value['product_option_value_id']?>] = '<?php echo $option_value['price']?>';
+<?php foreach ($option_value['product_quantity'] as $quantity) { ?>
+quantity[<?php echo $quantity['product_feature_id']?>] = '<?php echo $quantity['quantity']?>';
+<?php } // foreach ($option['product_option_value']) ?>
+<?php } // foreach ($option_value['product_quantity']) ?>
 
-	$('#input-option<?php echo $option['product_option_id'] ?>').change(function () {
+$('#input-option<?php echo $option['product_option_id'] ?>').change(function () {
 	var productOptionId = $('#input-option<?php echo $option['product_option_id'] ?> :selected').val();
 	$('#price').html(price[productOptionId]);
+});
 
 	<?php } // if (sizeof($option['product_option_value'])) ?>
 	<?php } // foreach ($options as $option) ?>
-});
-	// --- KirilLoveVE
 ]]></add>
 		</operation>
 	</file>
