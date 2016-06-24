@@ -1414,10 +1414,30 @@ class ControllerModuleExchange1c extends Controller {
 				$zip->close();
 				unlink($this->request->files['file']['tmp_name']);
 					
+				$xmlfiles_fullpath = array();
+				//$this->log('xmlfiles:',2);
+				//$this->log($xmlfiles,2);
+				// Сначала нужно обработать import, попробуем найти его
 				foreach ($xmlfiles as $file) {
-					if (is_file($cache . $file)) {
-						$no_error = $this->modeImport($cache . $file);
+					
+					if (!file_exists($cache . $file)) {
+						continue;
+					} 
+					
+					if ($fp = fopen($cache . $file, 'r')) {
+						$buffer = fread($fp, 4096);
+						fclose($fp);
+						if (strpos($buffer, 'ПакетПредложений')) {
+							$xmlfiles_fullpath[] = $cache . $file;
+						} else {
+							 array_unshift($xmlfiles_fullpath, $cache . $file);
+						}
 					}
+					
+				}
+				///$this->log($xmlfiles_fullpath,2);
+				foreach ($xmlfiles_fullpath as $file) {
+					$no_error = $this->modeImport($file);
 				}
 			}
 			else {

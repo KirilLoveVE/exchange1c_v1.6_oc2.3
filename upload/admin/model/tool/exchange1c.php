@@ -1846,10 +1846,15 @@ class ModelToolExchange1c extends Model {
 	private function parseAttributesValues($xml) {
 		$this->log("==> parseAttributesValues()",2);
 		$data = array();
-		if ((string)$xml->ТипЗначений == "Справочник") {
-			foreach ($xml->ВариантыЗначений->Справочник as $item) {
-				$data[(string)$item->ИдЗначения] = (string)$item->Значение;
-				$this->log("> Значение: " . (string)$item->Значение,2);
+		if (!$xml) return $data;
+		
+		if (isset($xml->ВариантыЗначений)) {
+			if (isset($xml->ВариантыЗначений->Справочник)) {
+				foreach ($xml->ВариантыЗначений->Справочник as $item) {
+					$this->log($item, 2);
+					$data[(string)$item->ИдЗначения] = (string)$item->Значение;
+					$this->log("> Значение: " . (string)$item->Значение,2);
+				}
 			}
 		}
 		return $data;
@@ -2159,6 +2164,8 @@ class ModelToolExchange1c extends Model {
 		
 		$this->log("==> parseProducts()",2);
 		
+		if (!isset($xml->Товар)) return false;
+		
 		if ($this->existField("product", "noindex")) {
 			$noindex = 1;
 		}
@@ -2245,7 +2252,7 @@ class ModelToolExchange1c extends Model {
 				}
 				
 				// Читаем свойства в массив
-				if ($product->ЗначенияСвойств) {
+				if ($product->ЗначенияСвойств && isset($classifier['attributes'])) {
 					$data = $this->parseProductAttributes($product->ЗначенияСвойств, $classifier['attributes'], $data);
 				}
 				
@@ -2292,9 +2299,11 @@ class ModelToolExchange1c extends Model {
 		$directory['cml_id']		= (string)$xml->Ид;
 		$directory['name']			= (string)$xml->Наименование;
 		$directory['classifier_id']	= (string)$xml->ИдКлассификатора;
-		if ($directory['classifier_id'] <> $classifier['id']) {
-			$this->log->write("[ERROR] Каталог не соответствует классификатору");
-			return 0;
+		if (isset($classifier['id'])) {
+			if ($directory['classifier_id'] <> $classifier['id']) {
+				$this->log->write("[ERROR] Каталог не соответствует классификатору");
+				return 0;
+			}
 		}
 		
 		// Если полная выгрузка - требуется очистка для текущего магазина: товаров, остатков и пр.
@@ -3625,14 +3634,15 @@ class ModelToolExchange1c extends Model {
 			$classifier = $this->parseClassifier($xml->Классификатор);
 			unset($xml->Классификатор);
 			$this->log("<<< Классификатор загружен",2);
+		} else {
+			$classifier = array();
 		}
 		
 		if ($xml->Каталог) {
 			
 			$this->log(">>> Загрузка каталога",1);
 			if (!isset($classifier)) {
-				$this->log("[ERROR] Классификатор не загружен!");
-				return 0;
+				$this->log("[i] Классификатор не загружен! Все товары из файлов будут загружены в магазин по умолчанию!");
 			}
 			
 			if (!$this->parseDirectory($xml->Каталог, $classifier)) {
