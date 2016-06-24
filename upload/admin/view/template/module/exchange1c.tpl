@@ -1,7 +1,7 @@
 <?php echo $header; ?><?php echo $column_left; ?>
 
 <div id="content">
-  	<div class="page-header">
+	<div class="page-header">
 		<div class="container-fluid">
 			<div class="pull-right">
 				<button type="submit" form="form-1c" data-toggle="tooltip" title="<?php echo $lang['button_save']; ?>" class="btn btn-primary"><i class="fa fa-save"></i></button>
@@ -15,7 +15,6 @@
 			</ul>
 		</div>
 	</div>
-  
 	<div class="container-fluid">
 		<?php if ($error_warning) { ?>
 			<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> <?php echo $error_warning; ?>
@@ -98,17 +97,26 @@
 							</table>
 						</div> <!-- table -->
 						<legend><?php echo $lang['legend_auth']; ?></legend>
-						<?php echo $html_username; ?>
-						<?php echo $html_password; ?>
+						<div class="form-group">
+							<?php echo $html_username; ?>
+							<?php echo $html_password; ?>
+							</div>
 						<legend><?php echo $lang['legend_security']; ?></legend>
-						<?php echo $html_allow_ip; ?>
+						<div class="form-group">
+							<?php echo $html_allow_ip; ?>
+						</div>
 						<legend><?php echo $lang['legend_other']; ?></legend>
-						<?php echo $html_status; ?>
-						<?php echo $html_file_exchange; ?>
-						<?php echo $html_log_level; ?>
-						<?php echo $html_flush_log; ?>
-        			</div><!-- tab general -->
-	    			<div class="tab-pane" id="tab-product">
+						<div class="form-group">
+							<?php echo $html_cleaning_db ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_status; ?>
+							<?php echo $html_file_exchange; ?>
+							<?php echo $html_log_level; ?>
+							<?php echo $html_flush_log; ?>
+						</div>
+					</div><!-- tab general -->
+					<div class="tab-pane" id="tab-product">
 						<legend><?php echo $lang['legend_prices']; ?></legend>
 						<div class="alert alert-info">
 							<i class="fa fa-info-circle"></i>
@@ -170,32 +178,32 @@
 								</tfoot>
 							</table>
 						</div> <!-- table -->
-						<div class="form-group">
-							<?php echo $html_currency_convert ?>
-						</div>
-						<div class="form-group">
-							<?php echo $html_cleaning_db ?>
-						</div>
-						<div class="form-group">
-							<?php echo $html_flush_quantity ?>
-						</div>
-						<div class="form-group">
-							<?php echo $html_watermark ?>
-						</div>
+						<legend><?php echo $lang['legend_new_product_and_cats']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_new_product_status_off ?>
-						</div>
-						<div class="form-group">
 							<?php echo $html_new_category_status_off ?>
+							<?php echo $html_synchronize_new_product_by ?>
 						</div>
+						<legend><?php echo $lang['legend_import']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_import_product_name ?>
+							<?php echo $html_import_product_description ?>
+							<?php echo $html_import_categories ?>
+							<?php echo $html_import_images ?>
+							<?php echo $html_parse_only_types_item ?>
+						</div>
+						<legend><?php echo $lang['legend_product_options']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_product_options_mode ?>
+							<?php echo $html_product_options_name ?>
+							<?php echo $html_product_options_type ?>
+						</div>
+						<legend><?php echo $lang['legend_other']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_description_html ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_fill_parent_cats ?>
-						</div>
-						<div class="form-group">
-							<?php echo $html_parse_only_types_item ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_default_stock_status; ?>
@@ -204,27 +212,18 @@
 							<?php echo $html_product_disable_if_zero ?>
 						</div>
 						<div class="form-group">
-							<?php echo $html_dont_use_artsync ?>
-						</div>
-						<div class="form-group">
-							<?php echo $html_product_name_field ?>
-						</div>
-						<div class="form-group">
 							<?php echo $html_synchronize_uuid_to_id ?>
 						</div>
-						<legend><?php echo $lang['legend_import']; ?></legend>
 						<div class="form-group">
-							<?php echo $html_import_product ?>
+							<?php echo $html_currency_convert ?>
 						</div>
 						<div class="form-group">
-							<?php echo $html_import_categories ?>
+							<?php echo $html_flush_quantity ?>
 						</div>
 						<div class="form-group">
-							<?php echo $html_import_images ?>
+							<?php echo $html_watermark ?>
 						</div>
-						<legend><?php echo $lang['legend_product_options']; ?></legend>
-						<?php echo $html_product_options_mode ?>
-	    			</div><!-- tab product -->
+					</div><!-- tab product -->
 					<div class="tab-pane" id="tab-seo">
 						<!-- SEO товар -->
 						<legend><?php echo $lang['legend_seo_product']; ?></legend>
@@ -409,6 +408,7 @@
 								<li>Добавлена загрузка характеристик из 1С в опции, пока только в режиме - одна характеристика - одна опция. Связанные опции будут позже</li>
 								<li>Добавлен пересчет валюты в базовую при загрузке видов цен в другой валюте, по курсу в opencart. Также добавлена опция отключающая эту функцию.</li>
 								<li>Переработаны функции формирования шаблона, переписан полностью шаблон под стиль OpenCart.</li>
+								<li>Изменены настройки загрузки наименования товара, немного изменен шаблон.</li>
 							</ul>
 							<legend>Ожидаемые изменения в следующих версиях:</legend>
 							<ul>

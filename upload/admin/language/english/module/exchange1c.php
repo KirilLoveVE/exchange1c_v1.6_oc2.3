@@ -95,22 +95,39 @@ $_['legend_images']							= 'Images';
 $_['entry_watermark']						= 'Apply watermark';
 $_['desc_watermark']						= 'When sharing a picture of the product is superimposed on this image. The image should be with transparent background, PNG format recommended';
 
-$_['legend_import']							= 'Download in the exchange';
+$_['legend_import']							= 'To update the exchange';
 
 // update
-$_['entry_import_product']					= 'Update products:';
-$_['entry_import_categories']				= 'Update categories:';
-$_['entry_import_images']					= 'Update images:';
-$_['desc_import_product']					= 'If disabled it will not update the item field: name';
-$_['desc_import_categories']				= 'If disabled - will not change the category of the product, i.e. they will remain what they were, new ones will not be uploaded';
-$_['desc_import_images']					= 'If disabled - will not change the picture, i.e. what the pictures were, are, and will remain, new ones will not be uploaded';
+$_['entry_import_product_name']				= 'Product name:';
+$_['entry_import_product_description']		= 'Product description:';
+$_['entry_import_categories']				= 'Product categories:';
+$_['entry_import_images']					= 'Product images:';
+$_['desc_import_product_name']				= 'Updates the name of the product in the exchange, other than new products';
+$_['desc_import_product_description']		= 'Updates the description of the product in the exchange, other than new products';
+$_['desc_import_categories']				= 'Updates product category, if the category is disabled will remain what was, other than new products';
+$_['desc_import_images']					= 'Updates the pictures of the item if disabled, pictures will be what it was, other than new products';
+
+// Product name
+$_['text_product_name']						= 'Name';
+$_['text_product_fullname']					= 'Full name';
+$_['text_product_sku']                      = 'Product sku';
 
 // product options
 $_['legend_product_options']				= 'Product options';
-$_['entry_product_options_mode']			= 'Product options mode:';
+$_['entry_product_options_mode']			= 'Feature mode:';
 $_['desc_product_options_mode']				= 'This setting configures how to download characteristics of the 1C:Enterprise or all the features in one option, either individually (selecting each option), but you want to link options. <strong>Attention! Not always unloads characteristics 1C:Enterprise with additional details!</strong> Before downloading on the website check the.XML file.';
 $_['text_product_options_combine']			= 'Properties as one option';
 $_['text_product_options_related']			= 'Related options';
+
+$_['entry_product_options_name']			= 'Feature name:';
+$_['desc_product_options_name']				= 'Short name forms the name &quot;Feature&quot; full and will consist of the names of the properties harakteristiki separated by commas. For example, &quot;wheel Size, Color, Purpose, article, Size, Profile, rim, Number of spokes, Material&quot;';
+$_['text_product_options_short_name']		= 'Short name';
+$_['text_product_options_full_name']		= 'Full name';
+
+$_['entry_product_options_type']			= 'Display option mode:';
+$_['desc_product_options_type']				= 'The display mode options on the website';
+$_['text_product_options_type_select']		= 'Select';
+$_['text_product_options_type_radio']		= 'Radio';
 
 // item
 $_['entry_parse_only_types_item']			= 'Parse only types of items:';
@@ -132,6 +149,8 @@ $_['desc_description_html']					= 'Enable this option to description in HTML for
 $_['entry_product_disable_if_zero'] 		= 'Does not show items on the site if the balance is equal to or less than zero.';
 $_['desc_product_disable_if_zero'] 			= 'Suppresses the display of goods in the directory of the site, if in the exchange the goods were unloaded and the rest of it is less than or equal to zero.';
 
+$_['legend_new_product_and_cats']			= 'Import of new products and categories';
+
 // Disable new product
 $_['entry_new_product_status_off']			= 'Disable new product';
 $_['desc_new_product_status_off']			= 'Suppresses the display of goods in the directory of the website, if it has been added in the exchange process';
@@ -140,19 +159,13 @@ $_['desc_new_product_status_off']			= 'Suppresses the display of goods in the di
 $_['entry_new_category_status_off']			= 'Disable new category';
 $_['desc_new_category_status_off']			= 'Suppresses the display of categories in site directory, if it has been added in the exchange process';
 
-// SKU
-$_['entry_dont_use_artsync'] 				= 'Do not search products by sku:';
-$_['desc_dont_use_artsync'] 				= 'When you exchange looks for the item internal identifier in 1C:Enterprise, if this is not (the item was not previously uploaded on the website), when this option is disabled, the module will search for a product by part number (SKU), well if you can\'t find neither there nor there will be created a new product.<br /><strong>ATTENTION! When this option is disabled, if empty articles, the module will find the same product at a empty article! So if no items, enable this option.</strong>';
-
-// Product name
-$_['entry_product_name_field']				= 'Product name to read from:';
-$_['desc_product_name_field']				= 'Downloads in the name of the product from 1C:Enterprise field "Name" or "Name full"';
-$_['text_product_name']						= 'Name';
-$_['text_product_fullname']					= 'Full name';
+// Synchronize new product by
+$_['entry_synchronize_new_product_by']		= 'Sync on:';
+$_['desc_synchronize_new_product_by'] 		= 'If the item has never been synchronized with the database, it will attempt to sync for the specified field. Carefully check this option if you are sure that the field on which the search is unique. Otherwise, the goods with same field will be simply merged into one.';
 
 // xml_id - id
 $_['entry_synchronize_uuid_to_id']			= 'Record code 1C:Enterprise in ID';
-$_['desc_synchronize_uuid_to_id']			= 'the <strong>UPDATED! THE FUNCTION IS UNDER DEVELOPMENT!</strong> Now this function reads the product code of the special tag <Code>0000001</Code> only when reading the directory to <Product>. Code is converted to an integer and is written in the item ID, if the code specified for the category, it is written in the category.';
+$_['desc_synchronize_uuid_to_id']			= 'the <strong>UPDATED! THE FUNCTION IS UNDER DEVELOPMENT!</strong> Now this function reads the product code of the special tag &lt;0000001&gt; only when reading the directory to &lt;Товар&gt;. Code is converted to an integer and is written in the item ID, if the code specified for the category, it is written in the category.';
 
 //////////////////////////////// SEO ////////////////////////////////
 

@@ -85,6 +85,7 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	private function htmlTextarea($name, $param) {
 		$value = $this->getParam($name);
+		if (!$value && isset($param['default'])) $value = $param['default'];
 		$tmpl = '<textarea class="form-control" id="exchange1c_'.$name.'" name="exchange1c_'.$name.'" rows="6">'.$value.'</textarea>';
 		return $tmpl;
 	} // htmlTextarea()
@@ -95,10 +96,11 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	private function htmlSelect($name, $param) {
 		$value = $this->getParam($name);
+        if (!$value && isset($param['default'])) $value = $param['default'];
 		$tmpl = '<select name="exchange1c_'.$name.'" id="exchange1c_'.$name.'" class="form-control">';
 		foreach ($param['options'] as $option => $text) {
 			$selected = ($option == $value ? ' selected="selected"' : '');
-			$tmpl .= '<option value="'.$value.'"'.$selected.'>'.$text.'</option>';
+			$tmpl .= '<option value="'.$option.'"'.$selected.'>'.$text.'</option>';
 		}
 		$tmpl .= '</select>';
 		return $tmpl;
@@ -110,9 +112,7 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	private function htmlRadio($name, $param) {
 		$value = $this->getParam($name);
-		if (!$value && isset($param['default'])) {
-			$value = $param['default'];
-		}
+		if (!$value && isset($param['default'])) $value = $param['default'];
 		$tmpl = '<label class="radio-inline">';
 		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="1"'.($value ? ' checked = "checked"' : '').'>';
 		$tmpl .= '&nbsp;'.$this->language->get('text_yes');
@@ -151,9 +151,7 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	private function htmlInput($name, $param, $type='text') {
 		$value = $this->getParam($name);
-		if (!$value && isset($param['default'])) {
-			$value = $param['default'];
-		}
+		if (!$value && isset($param['default'])) $value = $param['default'];
 		$tmpl = '<input class="form-control" type="'.$type.'" id="exchange1c_'.$name.'" name="exchange1c_'.$name.'" value="'.$value.'">';
 		return $tmpl;
 	} // htmlInput()
@@ -307,13 +305,6 @@ class ControllerModuleExchange1c extends Controller {
 			)
 		);
 
-		// в наименование товара загружать короткое или полное наименование с 1С		
-		// товары - список возможныйх полей
-		$product_name_fields = array(
-			'name'		=> $this->language->get('text_product_name'),
-			'fullname'	=> $this->language->get('text_product_fullname')
-		);
-
 		// Уровень записи в журнал
 		$log_level_list = array(
 			0	=> $this->language->get('text_log_level_0'),
@@ -378,6 +369,28 @@ class ControllerModuleExchange1c extends Controller {
 
 		$list_options = array(
 			'combine'	=> $this->language->get('text_product_options_combine')
+			//,'related'	=> $this->language->get('text_product_options_related')
+		);
+
+		$list_options_name = array(
+			'short_name'	=> $this->language->get('text_product_options_short_name'),
+			'full_name'		=> $this->language->get('text_product_options_full_name')
+		);
+
+		$list_options_type = array(
+			'select'	=> $this->language->get('text_product_options_type_select'),
+			'radio'		=> $this->language->get('text_product_options_type_radio')
+		);
+
+		$select_import_product = array(
+			'disable'	=> $this->language->get('text_disable'),
+			'name'		=> $this->language->get('text_product_name'),
+			'fullname'	=> $this->language->get('text_product_fullname')
+		);
+
+		$select_sync_poroduct = array(
+			'sku'    	=> $this->language->get('text_product_sku'),
+			'name'		=> $this->language->get('text_product_name'),
 		);
 
 		// Генерация опций
@@ -388,13 +401,14 @@ class ControllerModuleExchange1c extends Controller {
 			,'allow_ip'								=> array('type' => 'textarea')
 			,'import_images'						=> array('type' => 'radio', 'default' => 1)
 			,'import_categories'					=> array('type' => 'radio', 'default' => 1)
-			,'import_product'						=> array('type' => 'radio', 'default' => 1)
+			,'import_product_name'					=> array('type' => 'select', 'options' => $select_import_product, 'default' => 'name')
+			,'import_product_description'			=> array('type' => 'radio', 'default' => 1)
 			,'new_product_status_off'				=> array('type' => 'radio')
 			,'new_category_status_off'				=> array('type' => 'radio')
 			,'description_html'						=> array('type' => 'radio')
 			,'fill_parent_cats'						=> array('type' => 'radio')
 			,'product_disable_if_zero'				=> array('type' => 'radio')
-			,'dont_use_artsync'						=> array('type' => 'radio')
+			,'synchronize_new_product_by'        	=> array('type' => 'select', 'options' => $select_sync_poroduct, 'default' => 'sku')
 			,'synchronize_uuid_to_id'				=> array('type' => 'radio')
 			,'status'								=> array('type' => 'radio')
 			,'flush_log'							=> array('type' => 'radio')
@@ -417,8 +431,9 @@ class ControllerModuleExchange1c extends Controller {
 			,'seo_manufacturer_seo_url_template'	=> array('type' => 'input', 'width' => array(0,9,0))
 			,'order_currency'						=> array('type' => 'input')
 			,'order_notify'							=> array('type' => 'radio', 'default' => 1)
+			,'product_options_name'					=> array('type' => 'select', 'options' => $list_options_name, 'default' => 'short_name')
 			,'product_options_mode'					=> array('type' => 'select', 'options' => $list_options)
-			,'product_name_field'				=> array('type'	=> 'select', 'options' => $product_name_fields)
+			,'product_options_type'					=> array('type' => 'select', 'options' => $list_options_type)
 			,'default_stock_status'				=> array('type'	=> 'select', 'options' => $stock_statuses)
 			,'log_level'						=> array('type' => 'select', 'options' => $log_level_list)
 			,'file_exchange'					=> array('type' => 'select', 'options' => $file_exchange_list)
