@@ -17,7 +17,7 @@ class ModelToolExchange1c extends Model {
 	 *
 	 */
 	public function version() {
-		return "1.6.2.b9";
+		return "1.6.2.b8";
 	} // version()
 	
 
@@ -513,14 +513,24 @@ class ModelToolExchange1c extends Model {
 			$fields_list[] = $field;
 		}
 		$fields	= implode($fields_list,', ');
+		if (!isset($data['name']))
+			$fields .= ", name";
 		$sql = "SELECT " . $fields . " FROM `" . DB_PREFIX . "product_description` WHERE product_id = " . $data['product_id'] . " AND language_id = " . $this->LANG_ID;
 		$this->log($sql,2);
 		$query = $this->db->query($sql);
 		if ($query->num_rows) {
 			foreach ($fields_list as $field) {
 				$data[$field] = $query->row[$field];
+				$this->log('field: '.$field,2);
 			}
 		}
+		if (!isset($data['name']) && isset($query->row['name'])) {
+			$data['name'] = $query->row['name'];
+			$tags['{name}']	= $data['name'];
+		}
+
+		$this->log($data, 2);
+		
 		// Формируем массив с замененными значениями
 		foreach ($seo_fields as $field=>$param) {
 			$template = '';
@@ -540,6 +550,7 @@ class ModelToolExchange1c extends Model {
 					$this->log("Поле '" . $field . "' не пустое", 2);
 				}
 			}
+			$this->log("Поле '" . $field . "' = '" . $data[$field] . "'", 2);
 		}
 		
 		if (isset($data['seo_url'])) {
@@ -1002,7 +1013,7 @@ class ModelToolExchange1c extends Model {
 		// Сравнивает запрос с массивом данных и формирует список измененных полей
 		$fields = $this->compareArrays($query, $data);
 
-		$this->log($fields,2);
+//		$this->log($fields,2);
 
 		// Если есть расхождения, производим обновление
 		if ($fields) {
@@ -1587,9 +1598,10 @@ class ModelToolExchange1c extends Model {
 		}
 
 		// Сравнивает запрос с массивом данных и формирует список измененных полей
-		//$this->log($query,2);
-		//$this->log($data,2);
+		$this->log($query,2);
+		$this->log($data,2);
 		$fields = $this->compareArrays($query, $data);
+		$this->log($fields,2);
 		
 		// Если есть расхождения, производим обновление
 		if ($fields) {
@@ -1614,7 +1626,7 @@ class ModelToolExchange1c extends Model {
 	private function updateProduct($data) {
 
 		$this->log("==> updateProduct()",2);
-		
+		$this->log($data,2);		
 		$update = false;
 
 		// Обнуляем остаток только у тех товаров что загружаются 
@@ -1644,8 +1656,11 @@ class ModelToolExchange1c extends Model {
 			$query = $this->db->query($sql);
 		}
 		
-		// SEO
-		$this->seoGenerateProduct($data);
+		// SEO формируем только из offers
+		if (isset($data['product_new']))
+			$this->seoGenerateProduct($data);
+		
+		//$this->log($data, 2);
 
 		// Сравнивает запрос с массивом данных и формирует список измененных полей
 		$fields = $this->compareArrays($query, $data);
@@ -2387,6 +2402,8 @@ class ModelToolExchange1c extends Model {
 				if ($product->ЗначенияСвойств && isset($classifier['attributes'])) {
 					$data = $this->parseProductAttributes($product->ЗначенияСвойств, $classifier['attributes'], $data);
 				}
+
+				//$this->log($data, 2);
 				
 				// Добавляем или обновляем товар в базе
 				$this->setProduct($data);
@@ -3922,9 +3939,9 @@ class ModelToolExchange1c extends Model {
 		
 		$message = "Модуль в обновлении не нуждается";
 
-		if ($version == '1.6.2.b8') {
-			$update = $this->update162b9();
-		}
+		//if ($version == '1.6.2.b8') {
+		//	$update = $this->update162b9();
+		//}
 
 		if ($update) {
 			$this->setEvents();
