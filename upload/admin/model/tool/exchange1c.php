@@ -399,6 +399,7 @@ class ModelToolExchange1c extends Model {
 	 * Проверка на существование поля в таблице
 	 */
 	public function existField($table, $field, $value="") {
+		if (!$this->existTable($table)) return 0;
 		$query = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . $table . "` WHERE `field` = '" . $field . "'");
 		if ($query->num_rows) {
 			if (!empty($value)) {
