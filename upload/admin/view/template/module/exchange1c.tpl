@@ -198,6 +198,12 @@
 							<?php echo $html_product_options_name ?>
 							<?php echo $html_product_options_type ?>
 						</div>
+						<legend><?php echo $lang['legend_quantity']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_default_stock_status; ?>
+							<?php echo $html_product_disable_if_zero ?>
+							<?php echo $html_flush_quantity ?>
+						</div>
 						<legend><?php echo $lang['legend_other']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_description_html ?>
@@ -206,19 +212,10 @@
 							<?php echo $html_fill_parent_cats ?>
 						</div>
 						<div class="form-group">
-							<?php echo $html_default_stock_status; ?>
-						</div>
-						<div class="form-group">
-							<?php echo $html_product_disable_if_zero ?>
-						</div>
-						<div class="form-group">
 							<?php echo $html_synchronize_uuid_to_id ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_currency_convert ?>
-						</div>
-						<div class="form-group">
-							<?php echo $html_flush_quantity ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_watermark ?>
@@ -242,6 +239,12 @@
 							<?php echo $html_seo_product_meta_title; ?>
 							<?php echo $html_seo_product_meta_title_template; ?>
 						</div>
+						<?php if(isset($html_seo_product_meta_h1)) { ?>
+						<div class="form-group">
+							<?php echo $html_seo_product_meta_h1 ?>
+							<?php echo $html_seo_product_meta_h1_template ?>
+						</div>
+						<?php } ?>
 						<div class="form-group">
 							<?php echo $html_seo_product_meta_description; ?>
 							<?php echo $html_seo_product_meta_description_template; ?>
@@ -249,6 +252,10 @@
 						<div class="form-group">
 							<?php echo $html_seo_product_meta_keyword; ?>
 							<?php echo $html_seo_product_meta_keyword_template; ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_seo_product_tag; ?>
+							<?php echo $html_seo_product_tag_template; ?>
 						</div>
 						<!-- SEO категория -->
 						<legend><?php echo $lang['legend_seo_category']; ?></legend>
@@ -267,6 +274,12 @@
 							<?php echo $html_seo_category_meta_title; ?>
 							<?php echo $html_seo_category_meta_title_template; ?>
 						</div>
+						<?php if(isset($html_seo_category_meta_h1)) { ?>
+						<div class="form-group">
+							<?php echo $html_seo_category_meta_h1 ?>
+							<?php echo $html_seo_category_meta_h1_template ?>
+						</div>
+						<?php } ?>
 						<div class="form-group">
 							<?php echo $html_seo_category_meta_description; ?>
 							<?php echo $html_seo_category_meta_description_template; ?>
@@ -287,6 +300,24 @@
 						<div class="form-group">
 							<?php echo $html_seo_manufacturer_seo_url; ?>
 							<?php echo $html_seo_manufacturer_seo_url_template; ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_seo_manufacturer_meta_title; ?>
+							<?php echo $html_seo_manufacturer_meta_title_template; ?>
+						</div>
+						<?php if(isset($html_seo_manufacturer_meta_h1)) { ?>
+						<div class="form-group">
+							<?php echo $html_seo_manufacturer_meta_h1 ?>
+							<?php echo $html_seo_manufacturer_meta_h1_template ?>
+						</div>
+						<?php } ?>
+						<div class="form-group">
+							<?php echo $html_seo_manufacturer_meta_description; ?>
+							<?php echo $html_seo_manufacturer_meta_description_template; ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_seo_manufacturer_meta_keyword; ?>
+							<?php echo $html_seo_manufacturer_meta_keyword_template; ?>
 						</div>
 					</div><!-- tab-seo -->
 					<div class="tab-pane" id="tab-order">

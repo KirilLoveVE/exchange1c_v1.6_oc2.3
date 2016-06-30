@@ -87,8 +87,6 @@ $_['entry_button_cleaning_db']				= 'Clean tables';
 $_['entry_flush_quantity']					= 'Install the balance of goods to 0:';
 $_['desc_flush_quantity']					= 'Suppresses the display of goods in the directory of the site, if in the exchange the goods were unloaded and the rest had less than or equal to zero. Works with full or partial unloading. It is not recommended to enable it in the options exchange 1C:Enterprise selection (balance > 0)';
 
-//////////////////////////////// IMAGES ////////////////////////////////
-
 $_['legend_images']							= 'Images';
 
 // Watermark
@@ -96,6 +94,7 @@ $_['entry_watermark']						= 'Apply watermark';
 $_['desc_watermark']						= 'When sharing a picture of the product is superimposed on this image. The image should be with transparent background, PNG format recommended';
 
 $_['legend_import']							= 'To update the exchange';
+$_['legend_quantity']						= 'Quantity';
 
 // update
 $_['entry_import_product_name']				= 'Product name:';
@@ -192,26 +191,40 @@ $_['entry_seo_product_overwrite']			= 'Overwrite:';
 $_['entry_seo_product_seo_url']				= 'SEO URL:';
 $_['entry_seo_product_seo_url_template']	= 'Template:';
 $_['placeholder_seo_product_url_template']	= 'Template. Sample: {prod_id}.html';
-$_['entry_seo_product_meta_title']			= 'Meta-tag Title:';
-$_['entry_seo_product_meta_description']	= 'Meta-tag Description:';
+$_['entry_seo_product_meta_title']			= 'Meta Title:';
+$_['entry_seo_product_meta_description']	= 'Meta Description:';
 $_['placeholder_seo_product_meta_description_template']	= 'Template. Sample: Товар {name}';
 $_['entry_seo_product_description']			= 'Description:';
-$_['entry_seo_product_meta_keyword']		= 'Meta-tag Keyword:';
+$_['entry_seo_product_meta_keyword']		= 'Meta Keyword:';
 $_['entry_seo_product_meta_keyword_template'] = 'Template:';
+$_['entry_seo_product_tag']					= 'Tag:';
+$_['entry_seo_product_tag_template']		= 'Template:';
+$_['entry_seo_product_meta_h1']				= 'Meta H1:';
+$_['entry_seo_product_meta_h1_template']	= 'Template:';
 
 // Category
 $_['entry_seo_category_overwrite']			= 'Overwrite:';
 $_['entry_seo_category_seo_url_template']	= 'Template:';
 $_['entry_seo_category_seo_url']			= 'SEO URL:';
-$_['entry_seo_category_meta_title']			= 'Meta-tag Title:';
-$_['entry_seo_category_meta_description']	= 'Meta-tag Description:';
+$_['entry_seo_category_meta_title']			= 'Meta Title:';
+$_['entry_seo_category_meta_description']	= 'Meta Description:';
 $_['entry_seo_category_description']		= 'Description:';
-$_['entry_seo_category_meta_keyword']		= 'Meta-tag Keyword:';
+$_['entry_seo_category_meta_keyword']		= 'Meta Keyword:';
+$_['entry_seo_category_meta_h1']			= 'Meta H1:';
+$_['entry_seo_category_meta_h1_template']	= 'Template:';
 
 // Manufacturer
-$_['entry_seo_manufacturer_overwrite']			= 'Overwrite:';
-$_['entry_seo_manufacturer_seo_url_template']	= 'Template:';
-$_['entry_seo_manufacturer_seo_url']			= 'SEO URL:';
+$_['entry_seo_manufacturer_overwrite']				= 'Overwrite:';
+$_['entry_seo_manufacturer_seo_url_template']		= 'Template:';
+$_['entry_seo_manufacturer_seo_url']				= 'SEO URL:';
+$_['entry_seo_manufacturer_meta_title_template']	= 'Шаблон:';
+$_['entry_seo_manufacturer_meta_title']				= 'Meta Title:';
+$_['entry_seo_manufacturer_meta_description_template']	= 'Template:';
+$_['entry_seo_manufacturer_meta_description']		= 'Meta Description:';
+$_['entry_seo_manufacturer_meta_keyword_template']	= 'Template:';
+$_['entry_seo_manufacturer_meta_keyword']			= 'Meta Keyword:';
+$_['entry_seo_manufacturer_meta_h1']				= 'Meta H1:';
+$_['entry_seo_manufacturer_meta_h1_template']		= 'Template:';
 
 // Orders
 $_['legend_export_orders']					= 'Export Orders';

@@ -112,13 +112,14 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	private function htmlRadio($name, $param) {
 		$value = $this->getParam($name);
+		//$this->log($name . ' = ' . $value);
 		if (!$value && isset($param['default'])) $value = $param['default'];
 		$tmpl = '<label class="radio-inline">';
-		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="1"'.($value ? ' checked = "checked"' : '').'>';
+		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="1"'.($value == 1 ? ' checked = "checked"' : '').'>';
 		$tmpl .= '&nbsp;'.$this->language->get('text_yes');
 		$tmpl .= '</label>';
 		$tmpl .= '<label class="radio-inline">';
-		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="0"'.($value ? '' : ' checked = "checked"').'>';
+		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="-1"'.($value == -1 ? ' checked = "checked"' : '').'>';
 		$tmpl .= '&nbsp;'.$this->language->get('text_no');
 		$tmpl .= '</label>';
 		return $tmpl;
@@ -390,7 +391,7 @@ class ControllerModuleExchange1c extends Controller {
 
 		$select_sync_poroduct = array(
 			'sku'    	=> $this->language->get('text_product_sku'),
-			'name'		=> $this->language->get('text_product_name'),
+			'name'		=> $this->language->get('text_product_name')
 		);
 
 		// Генерация опций
@@ -424,11 +425,19 @@ class ControllerModuleExchange1c extends Controller {
 			,'seo_product_meta_description_template'=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_product_meta_keyword_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
 			,'seo_product_meta_keyword_template'	=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_product_tag_import'				=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_tag_template'				=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_category_seo_url_template'		=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_category_meta_title_template'		=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_category_meta_description_template'=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_category_meta_keyword_template'	=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_manufacturer_seo_url_template'	=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_manufacturer_meta_title_import'	=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_manufacturer_meta_title_template'	=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_manufacturer_meta_description_import'	=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_manufacturer_meta_description_template'	=> array('type' => 'input', 'width' => array(0,9,0))
+			,'seo_manufacturer_meta_keyword_import'	=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_manufacturer_meta_keyword_template'	=> array('type' => 'input', 'width' => array(0,9,0))
 			,'order_currency'						=> array('type' => 'input')
 			,'order_notify'							=> array('type' => 'radio', 'default' => 1)
 			,'product_options_name'					=> array('type' => 'select', 'options' => $list_options_name, 'default' => 'short_name')
@@ -442,6 +451,7 @@ class ControllerModuleExchange1c extends Controller {
 			,'seo_product_meta_title'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
 			,'seo_product_meta_description'		=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
 			,'seo_product_meta_keyword'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_product_tag'					=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
 			,'seo_category_overwrite'			=> array('type' => 'select', 'options' => $list_overwrite, 'width' => array(1,2,9))
 			,'seo_category_seo_url'				=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
 			,'seo_category_meta_title'			=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
@@ -449,12 +459,31 @@ class ControllerModuleExchange1c extends Controller {
 			,'seo_category_meta_keyword'		=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
 			,'seo_manufacturer_overwrite'		=> array('type' => 'select', 'options' => $list_overwrite, 'width' => array(1,2,9))
 			,'seo_manufacturer_seo_url'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_manufacturer_meta_title'		=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_manufacturer_meta_description' => array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_manufacturer_meta_keyword'	=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
 			,'order_status_to_exchange'			=> array('type' => 'select', 'options' => $order_statuses)
 			,'order_status_change'				=> array('type' => 'select', 'options' => $order_statuses)
 			,'order_status_canceled'			=> array('type' => 'select', 'options' => $order_statuses)
 			,'order_status_completed'			=> array('type' => 'select', 'options' => $order_statuses)
 		);
 		
+		if ($this->model_tool_exchange1c->existField('product_description', 'meta_h1')) {
+			$params['seo_product_meta_h1_import']	= array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1);
+			$params['seo_product_meta_h1_template']	= array('type' => 'input', 'width' => array(0,9,0));
+			$params['seo_product_meta_h1']			= array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0));
+		}
+		if ($this->model_tool_exchange1c->existField('category_description', 'meta_h1')) {
+			$params['seo_category_meta_h1_import']	= array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1);
+			$params['seo_category_meta_h1_template']	= array('type' => 'input', 'width' => array(0,9,0));
+			$params['seo_category_meta_h1']			= array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0));
+		}
+		if ($this->model_tool_exchange1c->existField('manufacturer_description', 'meta_h1')) {
+			$params['seo_manufacturer_meta_h1_import']	= array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1);
+			$params['seo_manufacturer_meta_h1_template']	= array('type' => 'input', 'width' => array(0,9,0));
+			$params['seo_manufacturer_meta_h1']			= array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0));
+		}
+
 		foreach ($params as $name => $param) {
 			$html = '';
 			switch ($param['type']) {
@@ -1382,6 +1411,49 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
+	 * Распаковываем содержимое архива по "полочкам"
+	 */
+	private function extractArchive($zip) {
+		
+		$cache = DIR_CACHE . 'exchange1c';
+
+		$xmlfiles = array();
+		$imgfiles = array();
+
+		for($i = 0; $i < $zip->numFiles; $i++) {
+			$entry = $zip->getNameIndex($i);
+			if (strpos($entry, "mport_files/")) {
+				$imgfiles[] = $entry;
+				$this->log("> Картинка: " . $entry,2);
+				continue;
+			}
+			$this->log("> XML файл: " . $entry,2);
+			$xmlfiles[] = $entry;
+		}
+
+		if (count($xmlfiles)) {
+			$this->log("[i] Распаковка *.xml в папку " . $cache . "...",2);
+			if ($zip->extractTo($cache, $xmlfiles) === TRUE) {
+				$this->log("[i] XML успешно распакованы",1);
+			}
+		}
+
+		if (is_writable(DIR_IMAGE)) {
+			if (count($imgfiles)) {
+				$this->log("[i] Распаковка картинок в папку " . DIR_IMAGE . "...",2);
+				if ($zip->extractTo(DIR_IMAGE, $imgfiles) === TRUE) {
+					$this->log("[i] Картинки успешно распакованы",1);
+				}
+			}
+		} else {
+			$this->log("[ERROR] Папка " . DIR_IMAGE . " недоступна для записи картинок!");
+		}
+		return $xmlfiles;
+		
+	} // extractArchive()
+
+
+	/**
 	 * Импорт файла через админ-панель
 	 */
 	public function manualImport() {
@@ -1412,33 +1484,39 @@ class ControllerModuleExchange1c extends Controller {
 				
 				$xmlfiles = $this->extractArchive($zip);
 				$zip->close();
+				// Удаляем временный файл
 				unlink($this->request->files['file']['tmp_name']);
 					
-				$xmlfiles_fullpath = array();
+//				$xmlfiles_fullpath = array();
 				//$this->log('xmlfiles:',2);
 				//$this->log($xmlfiles,2);
 				// Сначала нужно обработать import, попробуем найти его
-				foreach ($xmlfiles as $file) {
+//				foreach ($xmlfiles as $file) {
 					
-					if (!file_exists($cache . $file)) {
-						continue;
-					} 
+					// Пропускаем если это не файл
+//					if (!file_exists($cache . $file)) continue; 
 					
-					if ($fp = fopen($cache . $file, 'r')) {
-						$buffer = fread($fp, 4096);
-						fclose($fp);
-						if (strpos($buffer, 'ПакетПредложений')) {
-							$xmlfiles_fullpath[] = $cache . $file;
-						} else {
-							 array_unshift($xmlfiles_fullpath, $cache . $file);
-						}
-					}
+//					if ($fp = fopen($cache . $file, 'r')) {
+//						$buffer = fread($fp, 4096);
+//						fclose($fp);
+//						if (strpos($buffer, 'ПакетПредложений')) {
+//							$xmlfiles_fullpath[] = $cache . $file;
+//						} else {
+//							 array_unshift($xmlfiles_fullpath, $cache . $file);
+//						}
+//					}
 					
-				}
+//				}
 				///$this->log($xmlfiles_fullpath,2);
-				foreach ($xmlfiles_fullpath as $file) {
-					$no_error = $this->modeImport($file);
+//				foreach ($xmlfiles_fullpath as $file) {
+//					//$no_error = $this->modeImport($file);
+//					$this->log('Обрабатывается файл: '.$file,2);
+//				}
+				foreach ($xmlfiles as $file) {
+					$this->log('Обрабатывается файл: ' . $file, 2);
+					$no_error = $this->modeImport($cache . $file);
 				}
+
 			}
 			else {
 				$import_file = $cache . $this->request->files['file']['name'];
@@ -1571,48 +1649,6 @@ class ControllerModuleExchange1c extends Controller {
 		echo "file_limit=" . $this->getPostMaxFileSize() . "\n";
 	} // modeSaleInit()
 	
-
-	/**
-	 * Распаковываем содержимое архива по "полочкам"
-	 */
-	private function extractArchive($zip) {
-		
-		$cache = DIR_CACHE . 'exchange1c';
-
-		$xmlfiles = array();
-		$imgfiles = array();
-
-		for($i = 0; $i < $zip->numFiles; $i++) {
-			$entry = $zip->getNameIndex($i);
-			if (strpos($entry, "mport_files/")) {
-				$imgfiles[] = $entry;
-				$this->log("> Картинка: " . $entry,2);
-				continue;
-			}
-			$this->log("> XML файл: " . $entry,2);
-			$xmlfiles[] = $entry;
-		}
-
-		if (count($xmlfiles)) {
-			$this->log("[i] Распаковка *.xml в папку " . $cache . "...",2);
-			if ($zip->extractTo($cache, $xmlfiles) === TRUE) {
-				$this->log("[i] XML успешно распакованы",1);
-			}
-		}
-
-		if (is_writable(DIR_IMAGE)) {
-			if (count($imgfiles)) {
-				$this->log("[i] Распаковка картинок в папку " . DIR_IMAGE . "...",2);
-				if ($zip->extractTo(DIR_IMAGE, $imgfiles) === TRUE) {
-					$this->log("[i] Картинки успешно распакованы",1);
-				}
-			}
-		} else {
-			$this->log("[ERROR] Папка " . DIR_IMAGE . " недоступна для записи картинок!");
-		}
-		return $xmlfiles;
-		
-	} // extractArchive()
 
 	/**
 	 * Обрабатывает загруженный файл на сервер
