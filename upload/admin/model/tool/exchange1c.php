@@ -17,7 +17,7 @@ class ModelToolExchange1c extends Model {
 	 *
 	 */
 	public function version() {
-		return "1.6.2.b8";
+		return "1.6.2.b9";
 	} // version()
 	
 
@@ -2168,21 +2168,12 @@ class ModelToolExchange1c extends Model {
 			$fields = $this->compareArrays($query, $data);
 	
 			if ($fields) {
-				$sql = "UPDATE `" . DB_PREFIX . "manufacturer` SET " . $fields . " WHERE manufacturer_id = '" . (int)$manufacturer_id . "'";
+				$sql = "UPDATE `" . DB_PREFIX . "manufacturer_description` SET " . $fields . " WHERE manufacturer_id = '" . (int)$manufacturer_id . "' AND language_id = " . $this->LANG_ID;
 				$this->log($sql,2);
 				$this->db->query($sql);
 				$this->log("> Обновлено описание производителя '" . $data['name'] . "'",2);
 			}
 	
-//			$sql = $this->prepareStrQueryManufacturerDescription($data);
-//			if ($sql) {
-//				$sql = "UPDATE `" . DB_PREFIX . "manufacturer_description` SET" . $sql . " WHERE manufacturer_id = '" . (int)$manufacturer_id . "' AND language_id = '" . $this->LANG_ID . "'";
-//				$this->log($sql,2);
-//				$this->db->query($sql);
-//				$this->log("> Обновлено описание производителя '" . $data['name'] . "'",2);
-//			} else {
-//				$this->log("> Не требуется обновлять описание производителя '" . $data['name'] . "'",2);
-//			} 
 		}
 		
 		return true;
@@ -2839,7 +2830,6 @@ class ModelToolExchange1c extends Model {
 		//$this->log($offers_pack,2);
 		
 		$data = array();
-		$price_default = 0;
 		
 		foreach ($xml->Цена as $price) {
 
@@ -3347,11 +3337,17 @@ class ModelToolExchange1c extends Model {
 				if (isset($offer->ХарактеристикиТовара)) {
 					// Возвращает name и value и cml_id
 					$data['feature'] = $this->parseProductFeature($offer->ХарактеристикиТовара, $data);
+				} else {
+					$data['price'] = $this->setProductPrice($data);
 				}
 
+				unset($data['name']);
+				
 			} else {
 				$data['price'] = $this->setProductPrice($data);
 			}
+			
+			$this->log($data, 2);
 			
 			if ($data['quantity']) {
 				// Устанавливает общий остаток в товаре
@@ -3926,6 +3922,10 @@ class ModelToolExchange1c extends Model {
 		
 		$message = "Модуль в обновлении не нуждается";
 
+		if ($version == '1.6.2.b8') {
+			$update = $this->update162b9();
+		}
+
 		if ($update) {
 			$this->setEvents();
 			$settings['exchange1c_version'] = $version;
@@ -3935,6 +3935,15 @@ class ModelToolExchange1c extends Model {
 		return $message;
 		
 	} // update()
+
+
+	/**
+	 * Устанавливает обновления
+	 */
+	private function update162b9() {
+		
+		return false;
+	}
 
 	
 }
