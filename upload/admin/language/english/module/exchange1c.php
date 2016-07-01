@@ -105,6 +105,8 @@ $_['desc_import_product_name']				= 'Updates the name of the product in the exch
 $_['desc_import_product_description']		= 'Updates the description of the product in the exchange, other than new products';
 $_['desc_import_categories']				= 'Updates product category, if the category is disabled will remain what was, other than new products';
 $_['desc_import_images']					= 'Updates the pictures of the item if disabled, pictures will be what it was, other than new products';
+$_['entry_import_product_manufacturer']		= 'The manufacturer in the product:';
+$_['desc_import_product_manufacturer']		= 'When exchanging updates of the manufacturer, if disabled, then the manufacturer of the product will not be changed';
 
 // Product name
 $_['text_product_name']						= 'Name';

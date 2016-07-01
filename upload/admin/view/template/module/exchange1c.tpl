@@ -189,6 +189,7 @@
 							<?php echo $html_import_product_name ?>
 							<?php echo $html_import_product_description ?>
 							<?php echo $html_import_categories ?>
+							<?php echo $html_import_product_manufacturer ?>
 							<?php echo $html_import_images ?>
 							<?php echo $html_parse_only_types_item ?>
 						</div>

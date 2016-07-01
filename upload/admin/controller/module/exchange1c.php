@@ -404,6 +404,7 @@ class ControllerModuleExchange1c extends Controller {
 			,'import_categories'					=> array('type' => 'radio', 'default' => 1)
 			,'import_product_name'					=> array('type' => 'select', 'options' => $select_import_product, 'default' => 'name')
 			,'import_product_description'			=> array('type' => 'radio', 'default' => 1)
+			,'import_product_manufacturer'			=> array('type' => 'radio', 'default' => 1)
 			,'new_product_status_off'				=> array('type' => 'radio')
 			,'new_category_status_off'				=> array('type' => 'radio')
 			,'description_html'						=> array('type' => 'radio')
