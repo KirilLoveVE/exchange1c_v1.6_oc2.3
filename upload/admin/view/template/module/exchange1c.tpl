@@ -100,7 +100,8 @@
 						<div class="form-group">
 							<?php echo $html_username; ?>
 							<?php echo $html_password; ?>
-							</div>
+							<?php echo $html_status; ?>
+						</div>
 						<legend><?php echo $lang['legend_security']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_allow_ip; ?>
@@ -110,12 +111,11 @@
 							<?php echo $html_cleaning_db ?>
 						</div>
 						<div class="form-group">
-							<?php echo $html_status; ?>
 							<?php echo $html_file_exchange; ?>
 							<?php echo $html_log_level; ?>
 							<?php echo $html_flush_log; ?>
 						</div>
-					</div><!-- tab general -->
+					</div><!-- tab general -->                                 m 
 					<div class="tab-pane" id="tab-product">
 						<legend><?php echo $lang['legend_prices']; ?></legend>
 						<div class="alert alert-info">
@@ -198,6 +198,7 @@
 							<?php echo $html_product_options_mode ?>
 							<?php echo $html_product_options_name ?>
 							<?php echo $html_product_options_type ?>
+							<?php echo $html_product_options_subtract ?>
 						</div>
 						<legend><?php echo $lang['legend_quantity']; ?></legend>
 						<div class="form-group">

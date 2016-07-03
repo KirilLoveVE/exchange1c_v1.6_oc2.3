@@ -526,7 +526,7 @@ class ModelToolExchange1c extends Model {
 		}
 		if (!isset($data['name']) && isset($query->row['name'])) {
 			$data['name'] = $query->row['name'];
-			$tags['{name}']	= $data['name'];
+		$tags['{name}']	= $data['name'];
 		}
 
 //		$this->log($data, 2);
@@ -1356,7 +1356,7 @@ class ModelToolExchange1c extends Model {
 					//$this->log("row:");
 					//$this->log($row);
 					if ($row['customer_group_id'] == $price_data['customer_group_id'] or $row['customer_group_id'] == 0 && $price_data['default']) {
-						$sql = "UPDATE `" . DB_PREFIX . "product_option_value` SET price = '" . $price_data['value'] . "', quantity = '" . $data['quantity'] . "' WHERE product_option_value_id = '" . $row['product_option_value_id'] . "'";
+						$sql = "UPDATE `" . DB_PREFIX . "product_option_value` SET price = '" . $price_data['value'] . "', quantity = '" . $data['quantity'] . "', subtract = '" . $data['option_subtract'] . "' WHERE product_option_value_id = '" . $row['product_option_value_id'] . "'";
 						$this->log($sql,2);
 						$this->db->query($sql);
 						
@@ -1365,7 +1365,7 @@ class ModelToolExchange1c extends Model {
 					}
 				}
 				if (!$found) {
-					$sql = "INSERT INTO `" . DB_PREFIX . "product_option_value` SET product_option_id = '" . $data['product_option_id'] . "', product_id = '" . $data['product_id'] . "', option_id = '" . $data['option_id'] . "', option_value_id = '" . $data['option_value_id'] . "', customer_group_id = '" . $price_data['customer_group_id'] . "', price = '" . $price_data['value'] . "', quantity = '" . $data['quantity'] . "', product_feature_id = '" . $data['product_feature_id'] . "', price_prefix = '+', points_prefix = '+'";
+					$sql = "INSERT INTO `" . DB_PREFIX . "product_option_value` SET product_option_id = '" . $data['product_option_id'] . "', product_id = '" . $data['product_id'] . "', option_id = '" . $data['option_id'] . "', option_value_id = '" . $data['option_value_id'] . "', customer_group_id = '" . $price_data['customer_group_id'] . "', price = '" . $price_data['value'] . "', quantity = '" . $data['quantity'] . "', product_feature_id = '" . $data['product_feature_id'] . "', price_prefix = '+', points_prefix = '+', subtract = '" . $data['option_subtract'] . "'";
 					$this->log($sql,2);
 					$this->db->query($sql);
 					
@@ -3192,8 +3192,9 @@ class ModelToolExchange1c extends Model {
 			return 0;
 		}
 		
-		$data['feature_name']	= $feature_name;
-		$data['feature_value']	= $feature_value;
+		$data['feature_name']		= $feature_name;
+		$data['feature_value']		= $feature_value;
+		$data['option_subtract']	= $this->config->get('exchange1c_product_options_subtract') == 1 ? $this->config->get('exchange1c_product_options_subtract') : 0;
 		
 		// Установим характеристику
 		$data['product_feature_id'] = $this->setProductFeature($data);
@@ -3269,7 +3270,7 @@ class ModelToolExchange1c extends Model {
 	
 
 	/**
-	 * Получение полей товара sku,brand,desc,cats,cat_id
+	 * Получение полей товара name,sku,brand,desc,cats,cat_id
 	 */
 	private function getProduct(&$data) {
 
@@ -3300,8 +3301,9 @@ class ModelToolExchange1c extends Model {
 		$data['categories'] = $this->getProductCategories($data['product_id']);
 		
 		// Описание товара
-		$query_desc = $this->db->query("SELECT description FROM `" . DB_PREFIX . "product_description` WHERE product_id = " . $data['product_id'] . " AND language_id = " . $this->LANG_ID);
+		$query_desc = $this->db->query("SELECT name,description FROM `" . DB_PREFIX . "product_description` WHERE product_id = " . $data['product_id'] . " AND language_id = " . $this->LANG_ID);
 		if (isset($query_desc->row['description'])) 		$data['description'] 		= $query_desc->row['description'];
+		if (isset($query_desc->row['name']))		 		$data['name'] 				= $query_desc->row['name'];
 		
 		// id категории товара
 		if ($this->existField('product_to_category', 'main_category')) {
@@ -3325,17 +3327,60 @@ class ModelToolExchange1c extends Model {
 		$this->log("==> parseOffers()",2);
 		if (!$xml->Предложение) return 1;
 		$last_product_id = 0;
+		$features = array();
 		
 		foreach ($xml->Предложение as $offer) {
 			
 			$data = array();
+			$this->log("------------------------------------------------------------",2);
 			
 			$cml_id 				= explode("#", (string)$offer->Ид);
 			$data['product_cml_id']	= $cml_id[0];
-
+			$data['feature_cml_id'] = isset($cml_id[1]) ? $cml_id[1] : '';
+			$this->log("[i] Ид товара: " . $data['product_cml_id'] . ", Ид характеристики: " . $data['feature_cml_id'], 2);
+			
 			// Если есть характеристики, то это будет названием характеристики 
-			$data['name']			= ($offer->Наименование) ? (string)$offer->Наименование : '';
+			//$data['name']			= ($offer->Наименование) ? (string)$offer->Наименование : '';
 
+			if ($data['feature_cml_id']) {
+				// Предложение с характеристикой
+				$this->log("[i] Предложение с характеристикой", 2);
+	
+				if (isset($features[$data['feature_cml_id']])) {
+					// Если это предложение относится и к предыдущему товару
+				}
+			} else {
+				$this->log("[i] Предложение без характеристики", 2);
+				// Предложение без характеристики
+			}
+			
+
+			// Предыдущее предложение было характеристикой
+			if (isset($features[$data['feature_cml_id']])) {
+				// Если текущая характеристика уже другая, пересчитываем цену
+				if ($features[$data['feature_cml_id']]['cml_id'] <> $data['feature_cml_id']) {
+					if ($data['feature_cml_id']) {
+						// Это предложения является характеристикой
+						$this->log("[i] Новая характеристика", 2);
+						// Обработать предыдущую характеристику
+						// читаем характеристику
+						$features = array();
+						$features[$data['feature_cml_id']] = array(
+							'cml_id'		=> $data['feature_cml_id'],
+							'name'			=> $data['name']
+						);
+						$this->log("[i] Наименование характеристики: " . $features[$data['feature_cml_id']]['name'], 2);
+					} else {
+						$this->log("[i] Предложение без характеристики, предыдущая была с характеристикой", 2);
+					}
+					
+				} else {
+					$this->log("[i] Предложение c предыдущей характеристикой", 2);
+				}
+			} else {
+				$this->log("[i] Предложение предыдущее без характеристики", 2);
+			}
+			
 			// Штрихкод
 			if (($offer->Штрихкод))
 				$data['ean'] 		=  (string)$offer->Штрихкод;
@@ -3351,7 +3396,6 @@ class ModelToolExchange1c extends Model {
 			else
 				$data['product_new'] = false;
 			
-			$this->log("------------------------------",2);
 			$this->log("Товар '" . $data['name'] . "'",1);
 			
 			if ($offer->Цены) {
@@ -3404,8 +3448,8 @@ class ModelToolExchange1c extends Model {
 			$this->updateProduct($data);
 			
 			$last_product_id = $data['product_id'];
-			//$this->log("data-end-offers:",2);
-			//$this->log($data,2);
+			$this->log("data-end-offers:",2);
+			$this->log($data,2);
 			
 		} // foreach()
 		

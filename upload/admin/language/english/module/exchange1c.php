@@ -130,6 +130,9 @@ $_['desc_product_options_type']				= 'The display mode options on the website';
 $_['text_product_options_type_select']		= 'Select';
 $_['text_product_options_type_radio']		= 'Radio';
 
+$_['entry_product_options_subtract']		= 'Subtract from stock:';
+$_['desc_product_options_subtract']			= 'When placing the order balance will decrease';
+
 // item
 $_['entry_parse_only_types_item']			= 'Parse only types of items:';
 $_['desc_parse_only_types_item']			= 'This option specifies which <strong>item types</strong> from 1C:Enterprise will be processed, not to be confused with <strong>item types</strong>. The types of items listed just like in 1C:Enterprise in one line, separated by any character. For example: merchandise, supplies, service';

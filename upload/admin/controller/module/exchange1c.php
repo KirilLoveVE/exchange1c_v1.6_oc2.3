@@ -54,6 +54,15 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
+	 * Сохраняет настройки сразу в базу данных 
+	 */
+	private function configSet($key, $value, $store_id=0) {
+		if (!$this->config->has('exchange1c_'.$key)) {
+			$this->db->query("INSERT INTO `" . DB_PREFIX . "setting` SET `value` = '" . $value . "', `store_id` = " . $store_id . ", `code` = 'exchange1c', `key` = '" . $key . "'");
+		}
+	}
+
+	/**
 	 * Определяет значение переменной ошибки
 	 */
 	private function setParamError(&$data, $param) {
@@ -397,7 +406,7 @@ class ControllerModuleExchange1c extends Controller {
 		// Генерация опций
 		$params = array(
 			'cleaning_db' 							=> array('type' => 'button')
-			,'flush_quantity'						=> array('type' => 'radio')
+			,'flush_quantity'						=> array('type' => 'radio', 'default' => 0)
 			,'watermark'							=> array('type' => 'image')
 			,'allow_ip'								=> array('type' => 'textarea')
 			,'import_images'						=> array('type' => 'radio', 'default' => 1)
@@ -405,15 +414,15 @@ class ControllerModuleExchange1c extends Controller {
 			,'import_product_name'					=> array('type' => 'select', 'options' => $select_import_product, 'default' => 'name')
 			,'import_product_description'			=> array('type' => 'radio', 'default' => 1)
 			,'import_product_manufacturer'			=> array('type' => 'radio', 'default' => 1)
-			,'new_product_status_off'				=> array('type' => 'radio')
-			,'new_category_status_off'				=> array('type' => 'radio')
-			,'description_html'						=> array('type' => 'radio')
-			,'fill_parent_cats'						=> array('type' => 'radio')
-			,'product_disable_if_zero'				=> array('type' => 'radio')
+			,'new_product_status_off'				=> array('type' => 'radio', 'default' => 0)
+			,'new_category_status_off'				=> array('type' => 'radio', 'default' => 0)
+			,'description_html'						=> array('type' => 'radio', 'default' => 1)
+			,'fill_parent_cats'						=> array('type' => 'radio', 'default' => 1)
+			,'product_disable_if_zero'				=> array('type' => 'radio', 'default' => 0)
 			,'synchronize_new_product_by'        	=> array('type' => 'select', 'options' => $select_sync_poroduct, 'default' => 'sku')
-			,'synchronize_uuid_to_id'				=> array('type' => 'radio')
+			,'synchronize_uuid_to_id'				=> array('type' => 'radio', 'default' => 0)
 			,'status'								=> array('type' => 'radio')
-			,'flush_log'							=> array('type' => 'radio')
+			,'flush_log'							=> array('type' => 'radio', 'default' => 1)
 			,'currency_convert'						=> array('type' => 'radio', 'default' => 1)
 			,'parse_only_types_item'				=> array('type' => 'input')
 			,'username'								=> array('type' => 'input')
@@ -444,6 +453,7 @@ class ControllerModuleExchange1c extends Controller {
 			,'product_options_name'					=> array('type' => 'select', 'options' => $list_options_name, 'default' => 'short_name')
 			,'product_options_mode'					=> array('type' => 'select', 'options' => $list_options)
 			,'product_options_type'					=> array('type' => 'select', 'options' => $list_options_type)
+			,'product_options_subtract'				=> array('type' => 'radio', 'default' => 1)
 			,'default_stock_status'				=> array('type'	=> 'select', 'options' => $stock_statuses)
 			,'log_level'						=> array('type' => 'select', 'options' => $log_level_list)
 			,'file_exchange'					=> array('type' => 'select', 'options' => $file_exchange_list)
@@ -1613,6 +1623,9 @@ class ControllerModuleExchange1c extends Controller {
 			echo "file_limit=" . $this->getPostMaxFileSize() . "\n";
 		}
 
+		$this->configSet('exchange_status', 1);
+		$this->log("[i] Exchange status=1");
+		
 		// При начале обмена запишем в регистр дату и время начала обмена, а после обмена удалим ее
 		if ($this->config->has('exchange1c_date_exchange_stop')) {
 			// Запишем в регистр время начала обмена
@@ -1626,7 +1639,7 @@ class ControllerModuleExchange1c extends Controller {
 
 			// Очистка лога при начале обмена
 			if ($this->config->get('exchange1c_flush_log')) {
-				$this->load->model('tool/exchange1c');
+				//$this->load->model('tool/exchange1c');
 				// Очистка базы!!! ВРЕМЕННО!
 				//$this->model_tool_exchange1c->cleanDB();
 				$this->clearLog();

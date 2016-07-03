@@ -56,7 +56,7 @@
 	<file path="catalog/controller/product/product.php">
 		<operation>
 			<search><![CDATA[$product_option_value_data[] = array(]]></search>
-			<add position="before"><![CDATA[						if (!(float)$product_info['price']) {
+			<add position="before"><![CDATA[						if (!(float)$product_info['price'] && $this->customer->isLogged() || !$this->config->get('config_customer_price')) {
 							$product_info['price'] = (float)$option_value['price'];
 							$data['price'] = $this->currency->format($this->tax->calculate($product_info['price'], $product_info['tax_class_id'], $this->config->get('config_tax')));
 						}]]></add>
@@ -107,18 +107,6 @@
 		</operation>
 	</file>
   
-	<file path="catalog/view/theme/*/template/product/category.tpl">
-		<operation>
-			<search><![CDATA[<?php if ($product['price']) { ?>]]></search>
-			<add position="before"><![CDATA[                <?php if ($product['quantity']) { ?>
-                	<ul class="list-unstyled">
-					  <li>Доступно: <?php echo $product['quantity'] ?> шт.</li>
-				    </ul>
-                <?php } ?>]]></add>
-		</operation>
-	</file>
-
-  
 	<file path="catalog/view/theme/*/template/product/product.tpl">
 		<operation>
 			<search><![CDATA[<option value=""><?php echo $text_select; ?></option>]]></search>
@@ -145,7 +133,8 @@
 			<add position="after" offset="8"><![CDATA[
 	<?php foreach ($options as $option) { ?>
 	<?php if (sizeof($option['product_option_value'])) { ?>
-
+var price = [];
+var quantity = [];
 <?php foreach ($option['product_option_value'] as $option_value) { ?>
 price[<?php echo $option_value['product_option_value_id']?>] = '<?php echo $option_value['price']?>';
 <?php foreach ($option_value['product_quantity'] as $quantity) { ?>
