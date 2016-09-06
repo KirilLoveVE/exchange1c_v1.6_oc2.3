@@ -1792,7 +1792,7 @@ class ControllerModuleExchange1c extends Controller {
 				,'currency'		=> $this->config->get('exchange1c_order_currency') ? $this->config->get('exchange1c_order_currency') : 'руб.'
 			)
 		);
-		echo iconv('utf-8', 'cp1251', $orders);
+		echo iconv('utf-8', 'cp1251//TRANSLIT', $orders);
 	}
 
 	/**
