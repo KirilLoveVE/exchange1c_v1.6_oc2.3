@@ -3698,7 +3698,7 @@ class ModelToolExchange1c extends Model {
 					,'Имя'			      => isset($user[1]) ? $user[1] : ''
 					,'Отчество'		      => isset($user[2]) ? $user[2] : ''
 					,'АдресРегистрации' => array(
-						'Представление'	=> $order['shipping_address_1'].', '.$order['shipping_city'].', '.$order['shipping_postcode'].', '.$order['shipping_country']
+						'Представление'	=> $order['shipping_postcode'] . ', ' . $order['shipping_zone'] . ', ' . $order['shipping_city'] . ', ' . $order['shipping_address_1'] . ', '.$order['shipping_address_2']
 					)
 					,'Контакты' => array(
 						'Контакт1' => array(
