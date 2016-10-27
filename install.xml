@@ -1,6 +1,6 @@
 <modification>
 	<name>Exchange Module for OpenCart 2.x</name>
-	<version>1.6.2.8</version>
+	<version>1.6.2.9</version>
 	<id>OpenCart Exchange</id> 
 	<author>KirilLoveVE</author>
 	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
@@ -19,29 +19,7 @@
 		</operation>
 	</file>
 
-	<file path="admin/model/catalog/product.php">
-		<operation>
-			<search><![CDATA[$this->db->query("INSERT INTO " . DB_PREFIX . "product SET model]]></search>
-			<add position="before"><![CDATA[		$filter_product_id = isset($data['product_id']) ? " product_id = '" . (int)$data['product_id'] . "'," : "";]]></add>
-		</operation>
-		<operation>
-			<search><![CDATA[$this->db->query("INSERT INTO " . DB_PREFIX . "product SET model]]></search>
-			<add position="replace"><![CDATA[$this->db->query("INSERT INTO " . DB_PREFIX . "product SET" . $filter_product_id . " model]]></add>
-		</operation>
-	</file>
-
-	<file path="admin/model/catalog/category.php">
-		<operation>
-			<search><![CDATA[$this->db->query("INSERT INTO " . DB_PREFIX . "category SET parent_id]]></search>
-			<add position="before"><![CDATA[		$filter_category_id = isset($data['category_id']) ? " category_id = '" . (int)$data['category_id'] . "'," : "";]]></add>
-		</operation>
-		<operation>
-			<search><![CDATA[$this->db->query("INSERT INTO " . DB_PREFIX . "category SET parent_id]]></search>
-			<add position="replace"><![CDATA[$this->db->query("INSERT INTO " . DB_PREFIX . "category SET" . $filter_category_id . " parent_id]]></add>
-		</operation>
-	</file>
-
-	<file path="system/library/image.php">
+  	<file path="system/library/image.php">
 		<operation>
 			<search><![CDATA[$mime = $this->info['mime'];]]></search>
 			<add position="replace"><![CDATA[$info = getimagesize($image);
@@ -55,134 +33,813 @@
 
 	<file path="catalog/controller/product/product.php">
 		<operation>
+			<search><![CDATA[if ($product_info['quantity'] <= 0) {]]></search>
+			<add position="before"><![CDATA[			// +++ KirilLoveVE
+			// Характеристики
+			$product_option_values = array();
+			$sql = "SELECT product_feature_id, pfv.product_option_id, product_option_value_id FROM `" . DB_PREFIX . "product_feature_value` pfv LEFT JOIN `" . DB_PREFIX . "product_option` po ON (pfv.product_option_id = po.product_option_id) LEFT JOIN `" . DB_PREFIX . "option`o ON (o.option_id = po.option_id) WHERE pfv.product_id = " . $this->request->get['product_id'] . " ORDER BY o.sort_order";
+			$query = $this->db->query($sql);
+			$features = $query->rows;
+			foreach ($features as $feature_value) {
+				if (empty($product_option_values[$feature_value['product_option_value_id']])) {
+					$product_option_values[$feature_value['product_option_value_id']] = array();
+				}
+       			foreach ($features as $feature_value1) {
+       				if ($feature_value1['product_feature_id'] == $feature_value['product_feature_id'] && $feature_value1['product_option_value_id'] <> $feature_value['product_option_value_id']) {
+
+       					$product_option_values[$feature_value['product_option_value_id']][] = $feature_value1['product_option_value_id'];
+       				}
+				}
+
+	        }
+        	unset($query);
+
+			$customer_group_id = $this->customer->isLogged()? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
+			$product_features_price = array();
+			$query = $this->db->query("SELECT `product_feature_id`, `price` FROM `" . DB_PREFIX . "product_price` WHERE `product_id` = " . (int)$this->request->get['product_id'] . " AND `customer_group_id` = " . $customer_group_id);
+			$product_features_price = array();
+			$product_features_tax = array();
+			$product_features_options = array();
+			$product_features_options_values = array();
+			foreach ($query->rows as $query_price) {
+				$product_features_price[$query_price['product_feature_id']] = array(
+					'value' => $query_price['price'],
+					'name'	=> $this->currency->format($this->tax->calculate($query_price['price'], $product_info['tax_class_id'], $this->config->get('config_tax')))
+				);
+				if ($this->config->get('config_tax')) {
+					$product_features_tax[$query_price['product_feature_id']] = $this->currency->format((float)$product_info['special'] ? $product_info['special'] : $query_price['price']);
+				} else {
+					$product_features_tax[$query_price['product_feature_id']] = false;
+				}
+					foreach ($features as $feature) {
+					if ($feature['product_feature_id'] == $query_price['product_feature_id']) {
+						if (!isset($product_features_options[$feature['product_feature_id']])) {
+							$product_features_options[$feature['product_feature_id']] = array();
+						}
+						$product_features_options[$feature['product_feature_id']][$feature['product_option_id']] = $feature['product_option_value_id'];
+						$product_features_options_values[$feature['product_option_value_id']] = $feature['product_feature_id'];
+					}
+				}
+			}
+			$data['product_features_price'] = $product_features_price;
+			$data['product_features_tax'] = $product_features_tax;
+			$data['product_features_options'] = $product_features_options;
+			$data['product_features_options_values'] = $product_features_options_values;
+
+			// Остатки и единицы
+			$product_quantity = array();
+			$product_units = array();
+			if ($this->config->get('config_stock_display') && !empty($product_features_options)) {
+
+				$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . (int)$this->request->get['product_id']);
+				foreach ($query->rows as $query_quantity) {
+
+					$unit_id = $query_quantity['unit_id'];
+
+					if (!isset($product_quantity[$query_quantity['product_feature_id']])) {
+						$product_quantity[$query_quantity['product_feature_id']] = array();
+					}
+					$quantity = &$product_quantity[$query_quantity['product_feature_id']];
+
+					if (!isset($quantity[$query_quantity['warehouse_id']])) {
+						$quantity[$query_quantity['warehouse_id']] = array();
+					}
+					$warehouse = &$quantity[$query_quantity['warehouse_id']];
+
+					if (!isset($warehouse[$unit_id])) {
+						$warehouse[$unit_id] = array(
+							'quantity'	=> $query_quantity['quantity'],
+							'name'		=> "unit_name"
+						);
+					}
+					if (!isset($product_units[$unit_id])) {
+						$query = $this->db->query("SELECT `name`, `rus_name1` FROM `" . DB_PREFIX . "unit` WHERE `unit_id` = '" . (int)$unit_id . "'");
+						if ($query->num_rows) {
+							$product_units[$unit_id] = $query->row['rus_name1'];
+						}
+					}
+				}
+			}
+			$data['product_quantity'] = $product_quantity;
+			$data['product_units'] = $product_units;
+
+			// Список складов
+			$sql = "SELECT * FROM `" . DB_PREFIX . "warehouse`";
+			$query = $this->db->query($sql);
+			$data['warehouses'] = array();
+			foreach ($query->rows as $query_warehouse) {
+				$data['warehouses'][$query_warehouse['warehouse_id']] = $query_warehouse['name'];
+			}
+			// --- KirilLoveVE
+]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[if (!$option_value['subtract'] || ($option_value['quantity'] > 0)) {]]></search>
+			<add position="replace"><![CDATA[// +++ KirilLove
+					//-if (!$option_value['subtract'] || ($option_value['quantity'] > 0)) {
+					if ($option_value['subtract']) {
+						// --- KirilLove
+]]></add>
+		</operation>
+		<operation>
 			<search><![CDATA[$product_option_value_data[] = array(]]></search>
-			<add position="before"><![CDATA[						if (!(float)$product_info['price'] && $this->customer->isLogged() || !$this->config->get('config_customer_price')) {
-							$product_info['price'] = (float)$option_value['price'];
-							$data['price'] = $this->currency->format($this->tax->calculate($product_info['price'], $product_info['tax_class_id'], $this->config->get('config_tax')));
-						}]]></add>
-		</operation>
-		<operation>
-			<search><![CDATA[foreach ($option['product_option_value'] as $option_value) {]]></search>
-			<add position="after"><![CDATA[					$group_id = $this->customer->getGroupId() ? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
-					if ($option_value['price']) {
-						$option_value['price_prefix'] = $option_value['quantity'] . " шт. по ";
-					} else {
-						$option_value['price_prefix'] = $product_info['quantity'] . " шт. по ";
-					}
+			<add position="before"><![CDATA[						// +++ KirilLove
+						$class = "";
+						foreach ($product_option_values[$option_value['product_option_value_id']] as $value) {
+							if (empty($class)) {
+								$class = $value;
+							} else {
+								$class .= " " . $value;
+							}
+						}
+						// --- KirilLove
+
 ]]></add>
 		</operation>
-		<operation>
-			<search><![CDATA['option_value_id'         => $option_value['option_value_id'],]]></search>
-			<add position="after"><![CDATA[							'product_feature_id'      => $option_value['product_feature_id'],
-							'product_quantity'        => $this->model_catalog_product->getQuantity($this->request->get['product_id'], $option_value['product_feature_id']),]]></add>
-		</operation>
 
+		<operation>
+			<search><![CDATA['product_option_value_id' => $option_value['product_option_value_id'],]]></search>
+			<add position="after"><![CDATA[							// +++ KirilLove
+							'price_prefix'            => $option_value['price_prefix'],
+							'class'                   => $class,
+							// --- KirilLove]]></add>
+		</operation>
 	</file>
 
-	<file path="catalog/controller/product/category.php">
+	<file path="catalog/model/catalog/product.php">
 		<operation>
-			<search><![CDATA['option_value_id'         => $option_value['option_value_id'],]]></search>
-			<add position="after"><![CDATA[	   						'product_feature_id'      => $option_value['product_feature_id'],
-							'product_quantity'        => $this->model_catalog_product->getQuantity($this->request->get['product_id'], $option_value['product_feature_id']),]]></add>
-		</operation>
-		<operation>
-			<search><![CDATA[$price = false]]></search>
-			<add position="before" offset="4"><![CDATA[
-				$quantity_warehouse = $this->model_catalog_product->getQuantity($result['product_id']);
-				$quantity = 0;
-				foreach ($quantity_warehouse as $quantity_data) {
-					$quantity += $quantity_data['quantity'];
-				}
-				if (!(float)$result['price']) {
-					$options = $this->model_catalog_product->getProductOptions($result['product_id']);
-					if (isset($options[0]['product_option_value'][0]['price'])) {
-						$result['price'] = $options[0]['product_option_value'][0]['price'];
-					}
-				}
+			<search><![CDATA[public function getTotalProductSpecials() {]]></search>
+			<add position="before"><![CDATA[	// +++ KirilLoveVE
+	public function getProductFeaturesPrice($product_id, $product_feature_id, $customer_group_id=0, $unit_id=0) {
+		$str_customer_group_id  = $customer_group_id ? " AND customer_group_id = " . $customer_group_id : "";
+		$str_unit_id  = $unit_id? " AND unit_id = " . $unit_id : "";
+		$sql = "SELECT price FROM " . DB_PREFIX . "product_price WHERE product_id = " . $product_id . " AND product_feature_id = " . $product_feature_id . $str_customer_group_id . $str_unit_id;
+		$this->log->write($sql);
+		$query = $this->db->query($sql);
+
+		if ($query->num_rows) {
+			return $query->rows;
+		} else {
+			return 0;
+		}
+	}
+	// --- KirilLoveVE
 ]]></add>
 		</operation>
+	</file>
+
+	<file path="catalog/controller/checkout/cart.php">
 		<operation>
-			<search><![CDATA[$data['products'][] = array(]]></search>
-			<add position="after"><![CDATA[					'quantity'    => $quantity,]]></add>
+			<search><![CDATA[$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id);]]></search>
+			<add position="replace"><![CDATA[// +++ KirilLove
+				//-$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id);
+				$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id, $this->request->post['product_feature_id'], $this->request->post['unit_id']);
+				// --- KirilLove]]></add>
 		</operation>
 	</file>
+
+  	<file path="system/library/cart.php">
+		<operation>
+			<search><![CDATA[$price = $product_query->row['price'];]]></search>
+			<add position="replace"><![CDATA[// +++ KirilLove
+				//-$price = $product_query->row['price'];
+				$cart_option = json_decode($cart['option']);
+				$product_feature_id = $this->getProductFeatureId($cart_option);
+				if ($product_feature_id) {
+					$customer_group_id = $this->customer->isLogged()? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
+					$price = $this->getProductFeaturesPrice($cart['product_id'], $product_feature_id, $customer_group_id);
+				} else {
+					$price = $product_query->row['price'];
+				}
+				// --- KirilLoveVE]]></add>
+		</operation>
+
+	  	<operation>
+			<search><![CDATA[public function add($product_id, $quantity = 1, $option = array(), $recurring_id = 0) {]]></search>
+			<add position="replace"><![CDATA[public function add_off($product_id, $quantity = 1, $option = array(), $recurring_id = 0) {]]></add>
+		</operation>
+
+	  	<operation>
+			<search><![CDATA[public function add_off($product_id, $quantity = 1, $option = array(), $recurring_id = 0) {]]></search>
+			<add position="before"><![CDATA[	// +++ KirilLove
+	public function add($product_id, $quantity = 1, $option = array(), $recurring_id = 0, $product_feature_id = 0, $unit_id = 0) {
+		$query = $this->db->query("SELECT COUNT(*) AS total FROM " . DB_PREFIX . "cart WHERE customer_id = '" . (int)$this->customer->getId() . "' AND session_id = '" . $this->db->escape($this->session->getId()) . "' AND product_id = '" . (int)$product_id . "' AND recurring_id = '" . (int)$recurring_id . "' AND `option` = '" . $this->db->escape(json_encode($option)) . "' AND `product_feature_id` = '" . (int)$product_feature_id . "' AND `unit_id` = '" . (int)$unit_id . "'");
+
+		if (!$query->row['total']) {
+			$this->db->query("INSERT " . DB_PREFIX . "cart SET customer_id = '" . (int)$this->customer->getId() . "', session_id = '" . $this->db->escape($this->session->getId()) . "', product_id = '" . (int)$product_id . "', recurring_id = '" . (int)$recurring_id . "', `option` = '" . $this->db->escape(json_encode($option)) . "', quantity = '" . (int)$quantity . "', date_added = NOW(), product_feature_id = '" . (int)$product_feature_id . "', unit_id = '" . (int)$unit_id . "'");
+		} else {
+			$this->db->query("UPDATE " . DB_PREFIX . "cart SET quantity = (quantity + " . (int)$quantity . ") WHERE customer_id = '" . (int)$this->customer->getId() . "' AND session_id = '" . $this->db->escape($this->session->getId()) . "' AND product_id = '" . (int)$product_id . "' AND recurring_id = '" . (int)$recurring_id . "' AND `option` = '" . $this->db->escape(json_encode($option)) . "' AND product_feature_id = '" . (int)$product_feature_id . "' AND unit_id = '" . (int)$unit_id . "'");
+		}
+	}
+	// --- KirilLove
+]]></add>
+		</operation>
+
+	  	<operation>
+			<search><![CDATA[	public function getProducts() {]]></search>
+			<add position="before"><![CDATA[	// +++ KirilLove
+	private function getProductFeaturesPrice($product_id, $product_feature_id, $customer_group_id=0, $unit_id=0) {
+		$str_customer_group_id  = $customer_group_id ? " AND customer_group_id = " . $customer_group_id : "";
+		$str_unit_id  = $unit_id? " AND unit_id = " . $unit_id : "";
+		$sql = "SELECT price FROM " . DB_PREFIX . "product_price WHERE product_id = " . $product_id . " AND product_feature_id = " . $product_feature_id . $str_customer_group_id . $str_unit_id;
+		$query = $this->db->query($sql);
+
+		if ($query->num_rows == 1) {
+			return $query->row['price'];
+		} else {
+			return 0;
+		}
+	}
+
+	private function getProductFeatureId($options) {
+		$where = "";
+		foreach ($options as $product_option_value_id) {
+			$where .= $where ? ",".$product_option_value_id : $product_option_value_id;
+		}
+		if (!$where)
+			return 0;
+
+		$sql = "SELECT product_feature_id FROM " . DB_PREFIX . "product_feature_value WHERE product_option_value_id IN (" . $where . ") GROUP BY product_feature_id";
+		$query = $this->db->query($sql);
+
+		if ($query->num_rows == 1) {
+			return $query->row['product_feature_id'];
+		}
+		return 0;
+	}
+	// --- KirilLove
+
+]]></add>
+		</operation>
+
+	  	<operation>
+			<search><![CDATA[if ($option_value_query->row['price_prefix'] == '+') {]]></search>
+			<add position="replace"><![CDATA[if ($option_value_query->row['price_prefix'] == 'off+') {]]></add>
+		</operation>
   
+	  	<operation>
+			<search><![CDATA[} elseif ($option_value_query->row['price_prefix'] == '-') {]]></search>
+			<add position="replace"><![CDATA[} elseif ($option_value_query->row['price_prefix'] == 'off-') {]]></add>
+		</operation>
+
+  </file>
+
 	<file path="catalog/view/theme/*/template/product/product.tpl">
 		<operation>
-			<search><![CDATA[<option value=""><?php echo $text_select; ?></option>]]></search>
-			<add position="replace"><![CDATA[]]></add>
-		</operation>
-		<operation>
 			<search><![CDATA[<li><?php echo $text_stock; ?> <?php echo $stock; ?></li>]]></search>
-			<add position="replace"><![CDATA[<li id="quantity"><?php echo $text_stock; ?> <?php echo $stock; ?></li>]]></add>
+			<add position="replace"><![CDATA[<li id="stock"><?php echo $text_stock; ?> <?php echo $stock; ?></li>]]></add>
 		</operation>
 		<operation>
 			<search><![CDATA[<h2><?php echo $price; ?></h2>]]></search>
 			<add position="replace"><![CDATA[<h2 id="price"><?php echo $price; ?></h2>]]></add>
 		</operation>
 		<operation>
-			<search><![CDATA[<h2><?php echo $special; ?></h2>]]></search>
-			<add position="replace"><![CDATA[<h2 id="special"><?php echo $special; ?></h2>]]></add>
-		</operation>
-		<operation>
 			<search><![CDATA[<li><?php echo $text_tax; ?> <?php echo $tax; ?></li>]]></search>
 			<add position="replace"><![CDATA[<li id="tax"><?php echo $text_tax; ?> <?php echo $tax; ?></li>]]></add>
 		</operation>
 		<operation>
+			<search><![CDATA[<li><?php echo $text_points; ?> <?php echo $points; ?></li>]]></search>
+			<add position="replace"><![CDATA[<li id="points"><?php echo $text_points; ?> <?php echo $points; ?></li>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<option value="<?php echo $option_value['product_option_value_id']; ?>">]]></search>
+			<add position="replace"><![CDATA[<option class="<?php echo $option_value['class']; ?>" value="<?php echo $option_value['product_option_value_id']; ?>">]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<input type="radio" name="option[<?php echo $option['product_option_id']; ?>]"]]></search>
+			<add position="replace"><![CDATA[<input class="<?php echo $option_value['class']; ?>" type="radio" name="option[<?php echo $option['product_option_id']; ?>]"]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<input type="checkbox" name="option[<?php echo $option['product_option_id']; ?>][]"]]></search>
+			<add position="replace"><![CDATA[<input class="<?php echo $option_value['class']; ?>" type="checkbox" name="option[<?php echo $option['product_option_id']; ?>]"]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<input type="hidden" name="product_id" value="<?php echo $product_id; ?>" />]]></search>
+			<add position="after"><![CDATA[              <input type="hidden" name="product_feature_id" value="0" />
+              <input type="hidden" name="unit_id" value="0" />
+]]></add>
+		</operation>
+		<operation>
 			<search><![CDATA[$(document).ready(function() {]]></search>
-			<add position="after" offset="8"><![CDATA[
-	<?php foreach ($options as $option) { ?>
-	<?php if (sizeof($option['product_option_value'])) { ?>
-var price = [];
-var quantity = [];
-<?php foreach ($option['product_option_value'] as $option_value) { ?>
-price[<?php echo $option_value['product_option_value_id']?>] = '<?php echo $option_value['price']?>';
-<?php foreach ($option_value['product_quantity'] as $quantity) { ?>
-quantity[<?php echo $quantity['product_feature_id']?>] = '<?php echo $quantity['quantity']?>';
-<?php } // foreach ($option['product_option_value']) ?>
-<?php } // foreach ($option_value['product_quantity']) ?>
-
-$('#input-option<?php echo $option['product_option_id'] ?>').change(function () {
-	var productOptionId = $('#input-option<?php echo $option['product_option_id'] ?> :selected').val();
-	$('#price').html(price[productOptionId]);
-	$('#tax').html();
-});
-
-	<?php } // if (sizeof($option['product_option_value'])) ?>
-	<?php } // foreach ($options as $option) ?>
-]]></add>
-		</operation>
-	</file>
-
-	<file path="catalog/model/catalog/product.php">
-		<operation>
-			<search><![CDATA[$product_option_value_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_option_value pov LEFT JOIN " . DB_PREFIX . "option_value ov ON (pov.option_value_id = ov.option_value_id) LEFT JOIN " . DB_PREFIX . "option_value_description ovd ON (ov.option_value_id = ovd.option_value_id) WHERE pov.product_id = '" . (int)$product_id . "' AND pov.product_option_id = '" . (int)$product_option['product_option_id'] . "' AND ovd.language_id = '" . (int)$this->config->get('config_language_id') . "' ORDER BY ov.sort_order");]]></search>
-			<add position="replace"><![CDATA[// +++ KirilLoveVE
-			$group_id = $this->customer->getGroupId() ? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
-			$product_option_value_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_option_value pov LEFT JOIN " . DB_PREFIX . "option_value ov ON (pov.option_value_id = ov.option_value_id) LEFT JOIN " . DB_PREFIX . "option_value_description ovd ON (ov.option_value_id = ovd.option_value_id) WHERE pov.product_id = '" . (int)$product_id . "' AND pov.product_option_id = '" . (int)$product_option['product_option_id'] . "' AND ovd.language_id = '" . (int)$this->config->get('config_language_id') . "' AND pov.customer_group_id = '" . $group_id . "' ORDER BY ov.sort_order");
-			if (!$product_option_value_query->num_rows) {
-				$product_option_value_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_option_value pov LEFT JOIN " . DB_PREFIX . "option_value ov ON (pov.option_value_id = ov.option_value_id) LEFT JOIN " . DB_PREFIX . "option_value_description ovd ON (ov.option_value_id = ovd.option_value_id) WHERE pov.product_id = '" . (int)$product_id . "' AND pov.product_option_id = '" . (int)$product_option['product_option_id'] . "' AND ovd.language_id = '" . (int)$this->config->get('config_language_id') . "' ORDER BY ov.sort_order");
-			}
-			// --- KirilLoveVE]]></add>
-		</operation>
-		<operation>
-			<search><![CDATA['option_value_id'         => $product_option_value['option_value_id'],]]></search>
-			<add position="after"><![CDATA['product_feature_id'       => $product_option_value['product_feature_id'],]]></add>
-		</operation>
-		<operation>
-			<search><![CDATA[public function getTotalProductSpecials() {]]></search>
-			<add position="after" offset="8"><![CDATA[
-	public function getQuantity($product_id, $product_feature_id=0) {
-		if ($product_feature_id) {
-			$group_id = $this->customer->getGroupId() ? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
-			return $this->db->query("SELECT `pq`.`quantity`,`pq`.`warehouse_id`,`pq`.`product_feature_id` FROM `" . DB_PREFIX . "product_quantity` `pq` LEFT JOIN `" . DB_PREFIX . "product_option_value` `pov` ON `pq`.`product_feature_id` = `pov`.`product_feature_id` WHERE `pq`.`product_id` = " . (int)$product_id . " AND `pq`.`product_feature_id` = " . (int)$product_feature_id . " AND `pov`.`customer_group_id` = " . (int)$group_id)->rows;
-		} else {
-			return $this->db->query("SELECT `warehouse_id`,SUM(`quantity`) as `quantity` FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . (int)$product_id . " GROUP BY `warehouse_id`")->rows;
-		}
+			<add position="before"><![CDATA[var text_stock = "<?php echo $text_stock; ?>";
+var text_tax = "<?php echo $text_tax; ?>";
+<?php
+if (isset($warehouses)) {
+	echo "var \$warehouses = {";
+	foreach ($warehouses as $warehouse_id => $name) {
+		echo "'" . $warehouse_id . "':'" . $name . "',";
 	}
+	echo "}\n";
+}
+?>
+<?php if ($options) {?>
+//------------------------------------------------------------------------------------------------------------------------------
+// Определение переменных для характеристик
+var $options_type = {<?php foreach ($options as $option) { echo $option['product_option_id'].":'".$option['type']."',"; }?>};
+var options_order = [<?php foreach ($options as $option) { echo $option['product_option_id'].","; }?>];
+var $options_required = {<?php foreach ($options as $option) { echo $option['product_option_id'].":true,"; }?>};
+var $options = {<?php
+	foreach ($product_features_options as $product_feature_id => $feature) {
+		$str_value = $product_feature_id.":{";
+		foreach ($feature as $product_option_id => $product_option_value_id) {
+			$str_value .= $product_option_id.":".$product_option_value_id.",";
+		}
+		$str_value .= "},";
+		echo $str_value;
+	}
+	echo "};\n";?>
+// Тут хранится id выбранной характеристики
+var product_feature_id = 0;
+var unit_id = 0;
+<?php
+
+	$str_features =  "var \$features = {";
+	$str_price =  "var \$price = {";
+	$str_tax =  "var \$tax = {";
+	$str_quantity = "// quantity{product_feature_id:{warehouse_id:{unit_id:quantity}}}\n";
+	$str_quantity .=  "var \$quantity = {";
+	foreach ($product_features_options as $product_feature_id => $feature_option) {
+		// Цены
+		$str_price .= "'" . $product_feature_id . "':{'name':'" . $product_features_price[$product_feature_id]['name'] . "', 'value':'" . $product_features_price[$product_feature_id]['value'] . "'},";
+		// Налоги
+		$str_tax .= "'" . $product_feature_id . "':'" . $product_features_tax[$product_feature_id] . "',";
+		// Характеристики
+		$str_features .= "'" . implode("_", $feature_option) . "':" . $product_feature_id . ",";
+		// Остатки
+		$quantity_array = isset($product_quantity[$product_feature_id]) ? $product_quantity[$product_feature_id] : array();
+		$str_quantity .= "'" . $product_feature_id . "':";
+
+		$str_quantity .= "{";
+		foreach ($quantity_array as $warehouse_id => $quantity) {
+			$str_quantity .= "'" . $warehouse_id . "':{";
+			foreach ($quantity as $unit_id => $unit) {
+				$str_quantity .= $unit_id . ":" . $unit['quantity'];
+			}
+			$str_quantity .= "},";
+		}
+		$str_quantity .= "},";
+
+	}
+	echo $str_features . "};\n";
+	echo $str_price . "};\n";;
+	echo $str_tax . "};\n";;
+	echo $str_quantity . "};\n";;
+	echo "var \$product_units = {";
+	foreach ($product_units as $unit_id => $unit_name) {
+		echo $unit_id . ":'" . $unit_name . "',";
+	}
+	echo "}\n";
+?>
+
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция отображает остатки по складам
+// Возвращает строковую переменную в которой перечислены названия всех складов с остатками и единицами измерений
+function displayQuantity() {
+
+	if ($.type($quantity[product_feature_id]) == "string") {
+
+		// Если переменная строка, то есть нет складов, возвращается только количество
+		return $quantity[product_feature_id];
+
+	} else {
+
+		var str = "";
+
+		// Перебираем все остатки по складам
+		$.each($quantity[product_feature_id],function(warehouse_id, quantity_all) {
+
+			// Нет складов, если warehouse_id = 0
+			if (warehouse_id == "0") {
+
+				// Перебираем все единицы измерений
+				$.each(quantity_all,function(unit_id, quantity) {
+					str += quantity+" ("+$product_units[unit_id]+"),";
+				});
+			}
+			// Остатки могут иметь несколько единиц измерений или одну
+			else if ($.type(quantity_all) == "object") {
+
+				// Название склада
+				var str_war = " Склад: "+$warehouses[warehouse_id]+": ";
+
+				// Общий остаток всех единиц
+				var total_unit_quantity = 0;
+
+				// Перебираем все единицы измерений
+				$.each(quantity_all,function(unit_id, quantity) {
+					if (quantity > 0) {
+						str_war += quantity + " ("+$product_units[unit_id]+"),";
+						total_unit_quantity += quantity;
+					}
+
+				});
+
+				// Добавляем в строку, если остаток больше нуля
+				if (total_unit_quantity > 0) {
+					str += str_war;
+				}
+
+			} else {
+				// Одна единица измерения
+				str += " Склад: "+$warehouses[warehouse_id]+" = "+quantity_all;
+			}
+
+		});
+		return str;
+	}
+} // displayQuantity()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция отображает на странице цену, налоги, остатки,
+// а также, для передачи в корзину, устанавливает значение product_feature_id
+function displaySelect() {
+	if (product_feature_id){
+		$('#price').text($price[product_feature_id]['name']);
+		$('#tax').text(text_tax+" "+$tax[product_feature_id]);
+		$('#stock').text(text_stock+" "+displayQuantity());
+		$('input[name=\'product_feature_id\']').val(product_feature_id);
+		$('input[name=\'unit_id\']').val($product_units[unit_id]);
+	} else {
+		$('#price').text("");
+		$('#tax').text("");
+		$('#stock').text("");
+		$('input[name=\'product_feature_id\']').val(0);
+		$('input[name=\'unit_id\']').val(0);
+	}
+} // displaySelect()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция очищает все опции и разблокирует их, сбрасывает ид характеристики, а также обновляет надписи на страничке
+function clearOptions() {
+
+	// Перебираем все опции
+	$.each($options_type,function(product_option_id, value) {
+
+		if (value == "select") {
+
+			// Делаем доступным опцию
+			$('select[name="option['+product_option_id+']"]').attr("disabled",false);
+
+			// Сбрасываем выбор, по-умолчанию будет выбран первый элемент
+			$('select[name="option['+product_option_id+']"]').val('');
+
+			// Делаем доступным все значения опции
+			$('select[name="option['+product_option_id+']"] option').each(function(){
+				$(this).removeAttr("disabled");
+			});
+		} else {
+
+			// Делаем доступным опцию
+			$('input[name="option['+product_option_id+']"]').attr("disabled",false);
+
+			// Снимаем выбор со всех значений
+			$('input[name="option['+product_option_id+']"]').attr('checked', false);
+		}
+		$options_required[product_option_id] = true;
+	});
+
+	// Проверка на обязательные опции
+	checkRequired();
+
+	// Сбрасываем выбранную характеристику
+	product_feature_id = 0;
+
+	// Обновляем надписи на страничке
+	displaySelect();
+
+} // clearOptions()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция проверяет и устанавливает какие опции обязательные, бывает что некоторые характеристики имеют разное количество опций
+function checkRequired() {
+
+	// Перебираем все опции
+	$.each($options_required,function(product_option_id, required) {
+
+		if ($options_type[product_option_id] == "select") {
+
+			// Получаем элемент в котором устанавливается класс обязательной опции
+			$form = $('select[name="option['+product_option_id+']"]').parents("div.form-group");
+
+			// Если опция должна быть обязательной, а она не содержит класс "required", устанавливает этот класс или наоборот убираем его
+			if (required && !$form.hasClass("required")) {
+				$form.addClass("required");
+			} else if (!required && $form.hasClass("required")) {
+				$form.removeClass("required");
+			}
+
+		} else {
+
+			// Получаем элемент в котором устанавливается класс обязательной опции
+			$form = $('input[name="option['+product_option_id+']"]').parents("div.form-group");
+
+			// Если опция должна быть обязательной, а она не содержит класс "required", устанавливает этот класс или наоборот убираем его
+			if (required && !$form.hasClass("required")) {
+				$form.addClass("required");
+			} else if (!required && $form.hasClass("required")) {
+				$form.removeClass("required");
+			}
+		}
+	});
+} // checkRequired()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция возвращает выбранные опции значений в виде объекта
+// Возвращает $option_values - объект с опция и значениями
+function getOptionValues() {
+	var $option_values = {};
+
+	// Перебираем опции в том порядке в каком они заданы на сайте
+	$.each(options_order,function(index, product_option_id) {
+
+		if ($options_type[product_option_id] == 'select') {
+			// Если опция типа select
+			$option_values[product_option_id] = $('select[name="option['+product_option_id+']"] :selected').val();
+
+		} else {
+			// Если опция типа input
+			$option_values[product_option_id] = $('input[name="option['+product_option_id+']"]:checked').val();
+		}
+	});
+	return $option_values;
+} // getOptionValues()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция по выбранным опциям возвращает product_feature_id
+// $option_values - объект с опциями и значений
+// Возвращает ид характеристики, если вариант выбранныхопций не существует ни в одной характеристики, то вернет 0
+function getProductFeature($option_values) {
+	var new_product_feature_id = 0;
+	$.each($options,function(feature_id, $product_options) {
+
+		// Количество совпадений
+		var matches = 0;
+
+		// Перебираем все опции характеристики
+		$.each($product_options,function(product_option_id, product_option_value_id) {
+
+			// Ищем совпадение значений
+			if ($option_values[product_option_id] == product_option_value_id) {
+				matches ++;
+			}
+		});
+
+		// Если совпали все опции
+		if (matches == options_order.length) {
+
+			// Сохраним значение характеристики где совпали все опции
+			new_product_feature_id = feature_id;
+
+			// Прервем цикл
+			return false;
+		}
+	});
+
+	return new_product_feature_id;
+} // getProductFeature()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция устанавливает доступность опции типа input и ее значения
+// current_product_option_value_id - текущее выбранное значение опции
+// current_option_id - текущая опция в которой выбрано значение
+// $option_values - объект в котором заданы все значения опций текущей характеристики
+// Возвращает значение текущей опции
+function setAccessInputOption(current_option_id, current_product_option_value_id, $option_values) {
+	var val = 0;
+	var required = false;
+
+	// Перебираем все значения опций
+	$('div#input-option'+current_option_id+' div label input').each(function(index){
+
+		// Если в классе не содержится значение выбранной опции, то отключаем эту опцию и снимаем флажок
+		if (!$(this).hasClass(current_product_option_value_id) && (current_product_option_value_id)) {
+			$(this).attr("disabled",true);
+			$(this).prop("checked",false);
+
+		} else {
+
+			required = true;
+
+			// Включаем,если была отключена ранее
+			$(this).attr("disabled",false);
+
+			// Если есть в варианте текущее значение опции
+			if ($option_values[current_option_id] == $(this).val()) {
+
+				// И еще не выбрано значение
+				if (!val) {
+					val = $(this).val();
+					$(this).prop("checked",true);
+				} else {
+					// Если значение уже было установлено, то с других опций снимаем выбор
+					$(this).prop("checked",false);
+				}
+			} else {
+				// Если вариант не содержит значение, снимаем выбор
+				$(this).prop("checked",false);
+				//$(this).attr("disabled",true);
+			}
+		}
+
+	});
+	$options_required[current_option_id] = required;
+	return val;
+} // setAccessSelectOption()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция устанавливает доступность опции типа select и ее значения
+// current_product_option_value_id - текущее выбранное значение опции
+// current_option_id - текущая опция в которой выбрано значение
+// $option_values - объект в котором заданы все значения опций текущей характеристики
+// Возвращает значение текущей опции
+function setAccessSelectOption(current_option_id, current_product_option_value_id, $option_values) {
+	var val = 0;
+	var required = false;
+
+	// Перебираем все значения опций
+	$('select#input-option'+current_option_id+' option').each(function(index){
+
+		// Если в классе не содержится значение выбранной опции,
+		// и есть само значение и не первое, тогда отключаем эту опцию и снимаем флажок
+		if (!$(this).hasClass(current_product_option_value_id) && (current_product_option_value_id) && index > 0) {
+			$(this).attr("disabled",true);
+			$(this).prop("selected",false);
+		} else {
+
+			required = true;
+
+			// Значение содержится в классе, значит разблокируем если был заблокирован
+			$(this).attr("disabled",false);
+
+			// Если не было ранее выбрано значение, и не первое,
+			// и в варианте для этой опции есть текущее значение
+			if (!val && index > 0 && $option_values[current_option_id] == $(this).val()) {
+
+				// Записываем выбранное значение
+				val = $(this).val();
+
+				// Выбираем его в селекте
+				$(this).prop("selected",true);
+			}
+		}
+	});
+	$options_required[current_option_id] = required;
+	return val;
+} // setAccessSelectOption()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция устанавливает доступность опций и их значений
+// current_product_option_value_id - текущее выбранное значение опции
+// current_option_id - текущая опция в которой выбрано значение
+// $option_values - объект в котором заданы все значения опций текущей характеристики
+// Возвращает объект $option_values, теоретически он не меняется, оставлено временно для тестирования
+function setAccessOptions(current_product_option_value_id, current_option_id, $option_values) {
+
+	// Выберем опции по варианту
+	$.each(options_order,function(index, product_option_id) {
+
+		if (current_option_id == product_option_id) {
+			$option_values[product_option_id] = current_product_option_value_id;
+		} else {
+			if ($options_type[product_option_id] == 'select') {
+
+				// Установим доступность значений в опции типа select
+				//$option_values[product_option_id] = setAccessSelectOption(product_option_id, current_product_option_value_id, $option_values);
+				setAccessSelectOption(product_option_id, current_product_option_value_id, $option_values);
+			} else {
+
+				// Установим доступность значений в опции типа input
+				//$option_values[product_option_id] = setAccessInputOption(product_option_id, current_product_option_value_id, $option_values);
+				setAccessInputOption(product_option_id, current_product_option_value_id, $option_values);
+			}
+		}
+	});
+
+	return $option_values;
+} // setAccessOptions()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция получает первый вариант опция по выбранному значению одной из опций
+// product_option_value_id - значение выбранной опции
+// Возвращает объект (index = product_option_id, value = product_option_value_id)
+function getRightOption(product_option_value_id) {
+
+	// Тут хранится вариант опций выбранной характеристики
+	var $option_values = {};
+
+	// Перебирем все опции
+	$.each($options, function(sel_product_feature_id, $product_options) {
+
+		// Прервем цикл, если ид характеристики уже определена
+		if (product_feature_id) {
+   			return false;
+   		}
+
+		// Перебираем все опции характеристики
+		$.each($product_options, function(option_id, sel_product_option_value_id) {
+
+			// Если значение неопределено, берем первую попавшуюся характеристику
+			if (product_option_value_id == undefined) {
+
+				// Запишем id характеристики, чтобы потом передать ее в корзину
+				product_feature_id = sel_product_feature_id;
+
+				// Получим вариант опций и значений этой характеристики
+				$option_values = $product_options;
+
+				// Прервем цикл
+				return false;
+			}
+
+			// Если совпало значение опции в первой попавшейся характеристики, тогда выбираем ее, и получаем остальные значения опций
+    		else if (sel_product_option_value_id == product_option_value_id) {
+
+				// Запишем id характеристики, чтобы потом передать ее в корзину
+				product_feature_id = sel_product_feature_id;
+
+				// Получим вариант опций и значений этой характеристики
+				$option_values = $product_options;
+
+				// Прервем цикл
+				return false;
+    		}
+   		});
+
+	});
+
+	return $option_values;
+} // getRightOption()
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Функция вызывается при изменении любой опции
+// current_option_id - это номер опции в которой выбрано значение
+// selected - выбранное значение опции, product_option_value_id
+// type - тип опции, может иметь значение: select, input, radio, image
+function selectOption(current_option_id, selected, type) {
+
+	// Объект опций с выбранными значениями (index = опция, value = значение)
+	var $option_values = {};
+
+	// Получим существующие значения опций
+	$option_values = getOptionValues();
+
+	// Проверим вариант и получим id характеристики, если вариант неверный, тогда id = 0
+	product_feature_id = getProductFeature($option_values);
+
+	// Если опции не соответствуют ни одной характеристики, выставляем другие опции по первому совпадению в первой найденой характеристики
+	if (!product_feature_id) {
+
+		// Получим вариант опции по выбранному значению одной из опций
+		// option_values это объект index = product_option_id, value = product_option_value_id
+		$option_values = getRightOption(selected);
+
+		// Устанавливает доступность значений всех опций
+		setAccessOptions(selected, current_option_id, $option_values);
+	}
+
+	// Проверим опции на обязательные
+	checkRequired();
+
+	// Отображает выбранные данные
+	displaySelect();
+}
+
+<?php } ?>
 ]]></add>
 		</operation>
+	  
+		<operation>
+			<search><![CDATA[$(document).ready(function() {]]></search>
+			<add position="after"><![CDATA[<?php if ($options) {?>
+	// Кнопки очистки опций, под каждый шаблон возможно придется править
+	//$('select[name="option[9]"]').parent('div').before('<div class="form-group"><a href="#" id="clear_options">Очистить опции</a></div>');
+	$('div#input-option7').parent('div').after('<div class="form-group"><a href="#" id="clear_options">Очистить опции</a></div>');
+	//$('div#form-group').parent('div').after('<div class="form-group"><a href="#" id="clear_options">Очистить опции</a></div>');
 
-	</file>
+	$('#product').find('h3').after('<div class="form-group"><a href="#" id="clear_options">Очистить опции</a></div>');
+
+<?php foreach ($options as $option) { ?>
+	//------------------------------------------------------------------------------------------------------------------------------
+	// Функция обрабатывает значение при выборе опции
+<?php
+	$select_type = $option['type'] == "select" ? "select" : "input";
+	$html = "	$('".$select_type."[name=\"option[".$option['product_option_id']."]\"]').change(function(){\n";
+	$html .= "		var selected = ".($select_type  == "select" ? "$(':selected', this).val();" : "this.value;") . "\n";
+	$html .= "		selectOption(".$option['product_option_id'].",selected,'".$select_type."');\n";
+	$html .= "	});\n\n";
+	echo $html;
+	} ?>
+	$('#product').on('click', '#clear_options', function(e){
+		e.preventDefault();
+		clearOptions();
+	});
+
+	selectOption();
+
+<?php } ?>
+]]></add>
+		</operation>
+  </file>
 
 </modification>

@@ -5,7 +5,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	if (isset($_SERVER["REMOTE_USER"]) && isset($_SERVER["REDIRECT_REMOTE_USER"])){
 		$remote_user = $_SERVER["REMOTE_USER"] ? $_SERVER["REMOTE_USER"]: $_SERVER["REDIRECT_REMOTE_USER"];
 		$strTmp = base64_decode(substr($remote_user,6));
-		if($strTmp) 
+		if($strTmp)
 			list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
 	}
 }
@@ -58,10 +58,9 @@ foreach ($query->rows as $result) {
 	if (!$result['serialized']) {
 		$config->set($result['key'], $result['value']);
 	} else {
-		if (json_decode($result['value'])) 
-			$config->set($result['key'], json_decode($result['value'], true));
-		else
-			$config->set($result['key'], unserialize($result['value']));
+		$config->set($result['key'], json_decode($result['value'], true));
+//		Для старых версий
+//		$config->set($result['key'], unserialize($result['value']));
 	}
 }
 
@@ -70,8 +69,10 @@ if (!$store_query->num_rows) {
 	$config->set('config_ssl', HTTPS_SERVER);
 }
 
-// Log 
-$log = new Log($config->get('config_error_filename'));
+// Log
+//$log = new Log($config->get('config_error_filename'));
+//$log = new Log('exchange1c_'.date('dmy-His').'.log');
+$log = new Log('exchange1c_'.$_SERVER["REMOTE_ADDR"].'_'.date('dmy').'.log');
 $registry->set('log', $log);
 
 // Error Handler
@@ -100,7 +101,7 @@ function error_handler($errno, $errstr, $errfile, $errline) {
 	if ($config->get('config_error_display')) {
 		echo '<b>' . $error . '</b>: ' . $errstr . ' in <b>' . $errfile . '</b> on line <b>' . $errline . '</b>';
 	}
-	
+
 	if ($config->get('config_error_log')) {
 		$log->write('PHP ' . $error . ':  ' . $errstr . ' in ' . $errfile . ' on line ' . $errline);
 	}
@@ -118,7 +119,7 @@ $registry->set('request', $request);
 // Response
 $response = new Response();
 $response->addHeader('Content-Type: text/html; charset=utf-8');
-$registry->set('response', $response); 
+$registry->set('response', $response);
 
 // Session
 $registry->set('session', new Session());
@@ -132,7 +133,7 @@ $registry->set('document', new Document());
 // Language
 $languages = array();
 
-$query = $db->query("SELECT * FROM " . DB_PREFIX . "language"); 
+$query = $db->query("SELECT * FROM " . DB_PREFIX . "language");
 
 foreach ($query->rows as $result) {
 	$languages[$result['code']] = array(
@@ -175,13 +176,13 @@ $controller = new Front($registry);
 
 // Информация используется для поиска и отладки возможных ошибок в beta версиях
 //$sapi = php_sapi_name();
-//if ($sapi=='cli') 
+//if ($sapi=='cli')
 //	$log->write('Запуск веб сервера из командной строки');
-//elseif (substr($sapi,0,3)=='cgi') 
+//elseif (substr($sapi,0,3)=='cgi')
 //	$log->write('Запуск веб сервера в режиме CGI');
-//elseif (substr($sapi,0,6)=='apache') 
+//elseif (substr($sapi,0,6)=='apache')
 //	$log->write('Запуск веб сервера в режиме модуля Apache');
-//else 
+//else
 //	$log->write('Запуск веб сервера в режиме модуля сервера '.$sapi);
 
 // Router
@@ -192,7 +193,7 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 		case 'checkauth':
 			$action = new Action('module/exchange1c/modeCheckauth');
 		break;
-		
+
 		case 'init':
 			$action = new Action('module/exchange1c/modeCatalogInit');
 		break;
@@ -210,12 +211,12 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 	}
 
 } else if (isset($request->get['mode']) && $request->get['type'] == 'sale') {
-	
+
 	switch ($request->get['mode']) {
 		case 'checkauth':
 			$action = new Action('module/exchange1c/modeCheckauth');
 		break;
-		
+
 		case 'init':
 			$action = new Action('module/exchange1c/modeSaleInit');
 		break;
@@ -242,7 +243,7 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 	}
 
 } else if (isset($request->get['mode']) && $request->get['type'] == 'get_catalog') {
-	
+
 	switch ($request->get['mode']) {
 		case 'init':
 			$action = new Action('module/exchange1c/modeInitGetCatalog');
@@ -259,8 +260,8 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 	}
 
 
-//} else {
-//	echo "success\n<br>";
+} else {
+	echo "success\n<br>";
 //	exit;
 }
 
@@ -269,7 +270,7 @@ if (isset($request->get['module'])) {
 		case 'export':
 			$action = new Action('module/exchange1c/modeExportModule');
 		break;
-		
+
 		case 'remove':
 			$action = new Action('module/exchange1c/modeRemoveModule');
 		break;
@@ -277,7 +278,7 @@ if (isset($request->get['module'])) {
 		default:
 			echo "available: export, remove";
 	}
-	
+
 }
 
 // Dispatch

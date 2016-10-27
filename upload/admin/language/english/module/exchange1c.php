@@ -1,6 +1,6 @@
 <?php
 // Heading
-$_['heading_title']							= 'Exchange 1C v8.x';
+$_['heading_title']							= 'Exchange 1C v8.x (Tesla-Chita)';
 
 //////////////////////////////// TABS ////////////////////////////////
 
@@ -117,7 +117,8 @@ $_['text_product_sku']                      = 'Product sku';
 $_['legend_product_options']				= 'Product options';
 $_['entry_product_options_mode']			= 'Feature mode:';
 $_['desc_product_options_mode']				= 'This setting configures how to download characteristics of the 1C:Enterprise or all the features in one option, either individually (selecting each option), but you want to link options. <strong>Attention! Not always unloads characteristics 1C:Enterprise with additional details!</strong> Before downloading on the website check the.XML file.';
-$_['text_product_options_combine']			= 'Properties as one option';
+$_['text_product_options_feature']			= 'Properties as one option';
+$_['text_product_options_certine']			= 'Certine products';
 $_['text_product_options_related']			= 'Related options';
 
 $_['entry_product_options_name']			= 'Feature name:';
