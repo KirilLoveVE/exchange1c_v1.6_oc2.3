@@ -94,7 +94,8 @@
 				$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . (int)$this->request->get['product_id']);
 				foreach ($query->rows as $query_quantity) {
 
-					$unit_id = $query_quantity['unit_id'];
+					//$unit_id = $query_quantity['unit_id'];
+					$unit_id = 0;
 
 					if (!isset($product_quantity[$query_quantity['product_feature_id']])) {
 						$product_quantity[$query_quantity['product_feature_id']] = array();
@@ -414,7 +415,8 @@ function displayQuantity() {
 
 				// Перебираем все единицы измерений
 				$.each(quantity_all,function(unit_id, quantity) {
-					str += quantity+" ("+$product_units[unit_id]+"),";
+					//str += quantity+" ("+$product_units[unit_id]+"),";
+					str += "\n" + quantity;
 				});
 			}
 			// Остатки могут иметь несколько единиц измерений или одну
@@ -429,7 +431,8 @@ function displayQuantity() {
 				// Перебираем все единицы измерений
 				$.each(quantity_all,function(unit_id, quantity) {
 					if (quantity > 0) {
-						str_war += quantity + " ("+$product_units[unit_id]+"),";
+						//str_war += quantity + " ("+$product_units[unit_id]+"),";
+						str_war += quantity;
 						total_unit_quantity += quantity;
 					}
 
@@ -459,13 +462,13 @@ function displaySelect() {
 		$('#tax').text(text_tax+" "+$tax[product_feature_id]);
 		$('#stock').text(text_stock+" "+displayQuantity());
 		$('input[name=\'product_feature_id\']').val(product_feature_id);
-		$('input[name=\'unit_id\']').val($product_units[unit_id]);
+		//$('input[name=\'unit_id\']').val($product_units[unit_id]);
 	} else {
 		$('#price').text("");
 		$('#tax').text("");
 		$('#stock').text("");
 		$('input[name=\'product_feature_id\']').val(0);
-		$('input[name=\'unit_id\']').val(0);
+		//$('input[name=\'unit_id\']').val(0);
 	}
 } // displaySelect()
 

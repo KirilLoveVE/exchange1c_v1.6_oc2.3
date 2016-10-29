@@ -123,13 +123,25 @@ class ControllerModuleExchange1c extends Controller {
 		$value = $this->getParam($name);
 		//$this->log($name . ' = ' . $value);
 		if (!$value && isset($param['default'])) $value = $param['default'];
+		if (isset($param['text'])) {
+			if ($param['text'] == 'on_off') {
+				$text1 = 'text_on';
+				$text0 = 'text_off';
+			} else {
+				$text1 = 'text_yes';
+				$text0 = 'text_no';
+			}
+		} else {
+			$text1 = 'text_yes';
+			$text0 = 'text_no';
+		}
 		$tmpl = '<label class="radio-inline">';
 		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="1"'.($value == 1 ? ' checked = "checked"' : '').'>';
-		$tmpl .= '&nbsp;'.$this->language->get('text_yes');
+		$tmpl .= '&nbsp;'.$this->language->get($text1);
 		$tmpl .= '</label>';
 		$tmpl .= '<label class="radio-inline">';
 		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="-1"'.($value == -1 ? ' checked = "checked"' : '').'>';
-		$tmpl .= '&nbsp;'.$this->language->get('text_no');
+		$tmpl .= '&nbsp;'.$this->language->get($text0);
 		$tmpl .= '</label>';
 		return $tmpl;
 	} // htmlRadio()
@@ -429,8 +441,8 @@ class ControllerModuleExchange1c extends Controller {
 			,'import_product_name'					=> array('type' => 'select', 'options' => $select_import_product, 'default' => 'name')
 			,'import_product_description'			=> array('type' => 'radio', 'default' => 1)
 			,'import_product_manufacturer'			=> array('type' => 'radio', 'default' => 1)
-			,'status_new_product'					=> array('type' => 'radio', 'default' => 1)
-			,'status_new_category'					=> array('type' => 'radio', 'default' => 1)
+			,'status_new_product'					=> array('type' => 'radio', 'default' => 1, 'text' => 'on_off')
+			,'status_new_category'					=> array('type' => 'radio', 'default' => 1, 'text' => 'on_off')
 			,'description_html'						=> array('type' => 'radio', 'default' => 1)
 			,'fill_parent_cats'						=> array('type' => 'radio', 'default' => 1)
 			,'product_disable_if_zero'				=> array('type' => 'radio', 'default' => 0)
@@ -442,6 +454,7 @@ class ControllerModuleExchange1c extends Controller {
 			,'parse_only_types_item'				=> array('type' => 'input')
 			,'username'								=> array('type' => 'input', 'default' => 'exchange1c')
 			,'password'								=> array('type' => 'input', 'default' => 'exchange1c')
+			,'price_types_auto_load'				=> array('type' => 'radio', 'default' => 1)
 			,'seo_product_seo_url_import'			=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
 			,'seo_product_seo_url_template'			=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_product_meta_title_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
@@ -552,12 +565,14 @@ class ControllerModuleExchange1c extends Controller {
 		else {
 			$data['exchange1c_price_type'] = $this->config->get('exchange1c_price_type');
 			if(empty($data['exchange1c_price_type'])) {
-				$data['exchange1c_price_type'][] = array(
-					'keyword'			=> '',
-					'customer_group_id'	=> $this->config->get('config_customer_group_id'),
-					'quantity'			=> 1,
-					'priority'			=> 1
-				);
+				$data['exchange1c_price_type'] = array();
+//				$data['exchange1c_price_type'][] = array(
+//					'keyword'			=> '',
+//					'id_cml'			=> '',
+//					'customer_group_id'	=> $this->config->get('config_customer_group_id'),
+//					'quantity'			=> 1,
+//					'priority'			=> 1
+//				);
 			}
 		}
 
@@ -632,14 +647,6 @@ class ControllerModuleExchange1c extends Controller {
 		// Общее количество теперь можно хранить не только целое число (для совместимости)
 		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0 COMMENT 'Количество'");
 
-		// Колонка для связи значения опции с группой покупателей для вывода нужной цены
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` ADD COLUMN `customer_group_id` int(11) NOT NULL DEFAULT 0 COMMENT 'Группа покупателя' AFTER `option_value_id`");
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` ADD INDEX (`customer_group_id`)");
-
-		// Колонка для связи значения опции с характеристикой товара
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` ADD COLUMN `product_feature_id` int(11) NOT NULL DEFAULT 0 COMMENT 'Характеристика товара' AFTER `customer_group_id`");
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` ADD INDEX (`product_feature_id`)");
-
 		// Связь товаров с 1С
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_to_1c`");
 		$this->db->query(
@@ -711,12 +718,10 @@ class ControllerModuleExchange1c extends Controller {
 				`product_id` 				INT(11) 		NOT NULL 			COMMENT 'Ссылка на товар',
 				`product_feature_id` 		INT(11) 		DEFAULT 0 NOT NULL	COMMENT 'Ссылка на характеристику товара',
 				`warehouse_id` 				INT(11) 		DEFAULT 0 NOT NULL 	COMMENT 'Ссылка на склад',
-				`unit_id` 					INT(11) 		DEFAULT 0 NOT NULL 	COMMENT 'Ссылка на единицу измерения',
 				`quantity` 					DECIMAL(10,3) 	DEFAULT 0 			COMMENT 'Остаток',
 				FOREIGN KEY (`product_id`) 			REFERENCES `" . DB_PREFIX . "product`(`product_id`),
 				FOREIGN KEY (`product_feature_id`) 	REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
 				FOREIGN KEY (`warehouse_id`) 		REFERENCES `" . DB_PREFIX . "warehouse`(`warehouse_id`),
-				FOREIGN KEY (`unit_id`) 			REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
@@ -754,7 +759,7 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature_value`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_feature_value` (
-				`product_feature_value_id`	INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'ID характеристики товара',
+				`product_feature_value_id`	INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'Счетчик',
 				`product_feature_id` 		INT(11) 		NOT NULL 				COMMENT 'ID характеристики товара',
 				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'ID товара',
 				`product_option_id` 		INT(11) 		NOT NULL 				COMMENT 'ID опции товара',
@@ -773,11 +778,9 @@ class ControllerModuleExchange1c extends Controller {
 				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'ID товара',
 				`product_feature_id` 		INT(11) 		NOT NULL DEFAULT '0' 	COMMENT 'ID характеристики товара',
 				`customer_group_id`			INT(11) 		NOT NULL DEFAULT '0'	COMMENT 'ID группы покупателя',
-				`unit_id` 					INT(11) 		NOT NULL DEFAULT '0'	COMMENT 'ID единицы измерения',
 				`price` 					DECIMAL(15,4) 	NOT NULL DEFAULT '0'	COMMENT 'Цена',
 				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`),
 				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
-				FOREIGN KEY (`unit_id`) 				REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
@@ -786,11 +789,27 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_unit`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_unit` (
+				`product_unit_id`			INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'Счетчик',
 				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'ID товара',
 				`unit_id` 					INT(11) 		DEFAULT '0' NOT NULL 	COMMENT 'ID единицы измерения',
 				`ratio` 					INT(9) 			DEFAULT '1' 			COMMENT 'Коэффициент пересчета количества',
+				PRIMARY KEY (`product_unit_id`),
 				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`),
 				FOREIGN KEY (`unit_id`) 				REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
+		);
+
+		// Привязка единиц измерения к торговой системе
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_to_1c`");
+		$this->db->query(
+			"CREATE TABLE `" . DB_PREFIX . "unit_to_1c` (
+				`unit_id` 					SMALLINT(6) 	NOT NULL 				COMMENT 'ID единицы измерения по каталогу',
+				`cml_id` 					VARCHAR(64) 	NOT NULL 				COMMENT 'Ид единицы измерения в ТС',
+				`name` 						VARCHAR(16) 	NOT NULL 				COMMENT 'Наименование краткое',
+				`fullname` 					VARCHAR(50) 	NOT NULL 				COMMENT 'Наименование полное',
+				`eng_name2` 				VARCHAR(50)		NOT NULL 				COMMENT 'Международное сокращение',
+				KEY (`cml_id`),
+				FOREIGN KEY (`unit_id`) 				REFERENCES `". DB_PREFIX ."unit`(`unit_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
@@ -798,7 +817,7 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "unit` (
-				`unit_id` 					SMALLINT(6) 	NOT NULL AUTO_INCREMENT COMMENT 'pk',
+				`unit_id` 					SMALLINT(6) 	NOT NULL AUTO_INCREMENT COMMENT 'Счетчик',
 				`name` 						VARCHAR(255) 	NOT NULL 				COMMENT 'Наименование единицы измерения',
 				`number_code` 				VARCHAR(5) 		NOT NULL 				COMMENT 'Код',
 				`rus_name1` 				VARCHAR(50) 	DEFAULT '' NOT NULL		COMMENT 'Условное обозначение национальное',
@@ -819,7 +838,7 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_group`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "unit_group` (
-				`unit_group_id` 			TINYINT(4) 		NOT NULL AUTO_INCREMENT COMMENT 'pk',
+				`unit_group_id` 			TINYINT(4) 		NOT NULL AUTO_INCREMENT COMMENT 'Счетчик',
 				`name` 						VARCHAR(255) 	NOT NULL 				COMMENT 'Наименование группы',
 				PRIMARY KEY (`unit_group_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Группы единиц измерения'"
@@ -828,7 +847,7 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_type`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "unit_type` (
-				`unit_type_id` 			TINYINT(4) 			NOT NULL AUTO_INCREMENT COMMENT 'pk',
+				`unit_type_id` 			TINYINT(4) 			NOT NULL AUTO_INCREMENT COMMENT 'Счетчик',
 				`name` 					VARCHAR(255) 		NOT NULL 				COMMENT 'Наименование раздела/приложения',
 				PRIMARY KEY (`unit_type_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Разделы/приложения, в которые включены единицы измерения'"
@@ -1336,6 +1355,7 @@ class ControllerModuleExchange1c extends Controller {
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_price`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_unit`");
+		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_group`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_type`");
@@ -1458,46 +1478,141 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
-	 * Распаковываем содержимое архива по "полочкам"
+	 * Проверка существования каталогов
 	 */
-	private function extractArchive($zip) {
-
-		$cache = DIR_CACHE . 'exchange1c';
-
-		$xmlfiles = array();
-		$imgfiles = array();
-
-		for($i = 0; $i < $zip->numFiles; $i++) {
-			$entry = $zip->getNameIndex($i);
-			if (strpos($entry, "mport_files/")) {
-				$imgfiles[] = $entry;
-				$this->log("> Картинка: " . $entry,2);
-				continue;
-			}
-			$this->log("> XML файл: " . $entry,2);
-			$xmlfiles[] = $entry;
-		}
-
-		if (count($xmlfiles)) {
-			$this->log("[i] Распаковка *.xml в папку " . $cache . "...",2);
-			if ($zip->extractTo($cache, $xmlfiles) === TRUE) {
-				$this->log("[i] XML успешно распакованы",1);
+	private function checkDirectories($name) {
+		$path = DIR_IMAGE;
+		$dir = explode("/", $name);
+		for ($i = 0; $i < count($dir)-1; $i++) {
+			$path .= $dir[$i]."/";
+			//$this->log($path,2);
+			if (!is_dir($path)) {
+				mkdir($path, 0775);
+				$this->log("[zip] create folder: ".$path,2);
 			}
 		}
+	}
 
-		if (is_writable(DIR_IMAGE)) {
-			if (count($imgfiles)) {
-				$this->log("[i] Распаковка картинок в папку " . DIR_IMAGE . "...",2);
-				if ($zip->extractTo(DIR_IMAGE, $imgfiles) === TRUE) {
-					$this->log("[i] Картинки успешно распакованы",1);
+
+	/**
+	 * Распаковываем картинки
+	 */
+	private function extractImage($zipArc, $zip_entry, $name) {
+		$this->log("[zip]> extractImage() name = " . $name, 2);
+		if (substr($name, -1) == "/") {
+			if (is_dir(DIR_IMAGE.$name)) {
+				$this->log('[zip] directory exist: '.$name, 2);
+			} else {
+				$this->log('[zip] create directory: '.$name, 2);
+				mkdir(DIR_IMAGE.$name, 0775);
+			}
+		} elseif (zip_entry_open($zipArc, $zip_entry, "r")) {
+			$this->checkDirectories($name);
+			if (is_file(DIR_IMAGE.$name)) {
+				$this->log('[zip] file exist: '.$name, 2);
+			} else {
+				if ($fd = fopen(DIR_IMAGE.$name,"w+")) {
+					$this->log('[zip] create file: '.$name, 2);
+					fwrite($fd, zip_entry_read($zip_entry, zip_entry_filesize($zip_entry)));
+					fclose($fd);
+				}
+			}
+			zip_entry_close($zip_entry);
+		}
+		$this->log("[zip]< extractImage()", 2);
+	} // extractImage()
+
+
+	/**
+	 * Распаковываем XML
+	 */
+	private function extractXML($zipArc, $zip_entry, $name, &$xmlFiles) {
+		$this->log("[zip]> extractXML() name = " . $name, 2);
+		$cache = DIR_CACHE . 'exchange1c/';
+		if (zip_entry_open($zipArc, $zip_entry, "r")) {
+			if ($fd = @fopen($cache.$name,"w+")) {
+				$xmlFiles[] = $name;
+				$this->log('[zip] create file: '.$name, 2);
+				fwrite($fd, zip_entry_read($zip_entry, zip_entry_filesize($zip_entry)));
+				fclose($fd);
+			} else {
+				$this->log('[zip] create directory: '.$name, 2);
+				@mkdir($cache.$name, 0775);
+			}
+			zip_entry_close($zip_entry);
+		}
+		$this->log("[zip]< extractXML()", 2);
+	} // extractXML()
+
+
+	/**
+	 * Распаковываем ZIP архив
+	 */
+	private function extractZip($zipFile) {
+		$this->log("[zip]> extractZip() zipFile = " . $zipFile, 2);
+		$xmlFiles = array();
+		$cache = DIR_CACHE . 'exchange1c/';
+		$zipArc = zip_open($zipFile);
+		if (is_resource($zipArc)) {
+			while ($zip_entry = zip_read($zipArc)) {
+				$name = zip_entry_name($zip_entry);
+				$pos = stripos($name, 'import_files/');
+				if ($pos !== false) {
+					$this->extractImage($zipArc, $zip_entry, substr($name, $pos));
+				} else {
+					$this->extractXML($zipArc, $zip_entry, $name, $xmlFiles);
 				}
 			}
 		} else {
-			$this->log("[ERROR] Папка " . DIR_IMAGE . " недоступна для записи картинок!");
+			$this->log("[zip] Файл не является архивом", 2);
+			return $xmlFiles;
 		}
-		return $xmlfiles;
+		zip_close($zipArc);
+		$this->log("[zip]< extractZip()", 2);
+		return $xmlFiles;
+	} // extractZip()
 
-	} // extractArchive()
+
+	/**
+	 * Определяет тип файла по наименованию
+	 */
+	public function detectFileType($fileName) {
+		$types = array('import', 'offers', 'prices', 'rests');
+		foreach ($types as $type) {
+			$pos = stripos($fileName, $type);
+			if ($pos !== false)
+				return $type;
+		}
+		return '';
+	}
+
+
+	/**
+	 * Создание и скачивание заказов
+	 */
+	public function downloadOrders() {
+		$this->load->model('tool/exchange1c');
+		$orders = $this->model_tool_exchange1c->queryOrders(
+			array(
+				 'from_date' 	=> $this->config->get('exchange1c_order_date')
+				,'exchange_status'	=> $this->config->get('exchange1c_order_status_to_exchange')
+				,'new_status'	=> $this->config->get('exchange1c_order_status')
+				,'notify'		=> $this->config->get('exchange1c_order_notify')
+				,'currency'		=> $this->config->get('exchange1c_order_currency') ? $this->config->get('exchange1c_order_currency') : 'руб.'
+			)
+		);
+		$this->response->addheader('Pragma: public');
+		$this->response->addheader('Connection: Keep-Alive');
+		$this->response->addheader('Expires: 0');
+		$this->response->addheader('Content-Description: File Transfer');
+		$this->response->addheader('Content-Type: application/octet-stream');
+		$this->response->addheader('Content-Disposition: attachment; filename="orders.xml"');
+		$this->response->addheader('Content-Transfer-Encoding: binary');
+		$this->response->addheader('Content-Length: ' . strlen($orders));
+		//$this->response->setOutput(file_get_contents(DIR_CACHE . 'exchange1c/orders.xml', FILE_USE_INCLUDE_PATH, null));
+        $this->response->setOutput($orders);
+
+	} // downloadOrders()
 
 
 	/**
@@ -1523,44 +1638,39 @@ class ControllerModuleExchange1c extends Controller {
 
 		if (!empty($this->request->files['file']['name']) && is_file($this->request->files['file']['tmp_name'])) {
 
-			$filename = basename(html_entity_decode($this->request->files['file']['name'], ENT_QUOTES, 'UTF-8'));
-			$zip = new ZipArchive;
-			if ($zip->open($this->request->files['file']['tmp_name']) === TRUE) {
-				$max_size_file = $this->modeCatalogInit(array(),FALSE);
-				//$this->log($this->request->files['file'],2);
+			//$filename = basename(html_entity_decode($this->request->files['file']['name'], ENT_QUOTES, 'UTF-8'));
 
-				$xmlfiles = $this->extractArchive($zip);
-				$zip->close();
-				// Удаляем временный файл
-				unlink($this->request->files['file']['tmp_name']);
+			$max_size_file = $this->modeCatalogInit(array(),FALSE);
+			$xmlFiles = $this->extractZip($this->request->files['file']['tmp_name']);
+			//$this->log($xmlFiles, 2);
+			if (count($xmlFiles)) {
 
-//				$xmlfiles_fullpath = array();
-				//$this->log('xmlfiles:',2);
-				//$this->log($xmlfiles,2);
-				// Сначала нужно обработать import, попробуем найти его
-//				foreach ($xmlfiles as $file) {
+				$goods = array();
+				$properties = array();
+				foreach ($xmlFiles as $key => $file) {
+					$pos = strripos($file, "/goods/");
+					if ($pos !== false) {
+						$goods[] = $file;
+						unset($xmlFiles[$key]);
+					}
+					$pos = strripos($file, "/properties/");
+					if ($pos !== false) {
+						$properties[] = $file;
+						unset($xmlFiles[$key]);
+					}
+				}
 
-					// Пропускаем если это не файл
-//					if (!file_exists($cache . $file)) continue;
-
-//					if ($fp = fopen($cache . $file, 'r')) {
-//						$buffer = fread($fp, 4096);
-//						fclose($fp);
-//						if (strpos($buffer, 'ПакетПредложений')) {
-//							$xmlfiles_fullpath[] = $cache . $file;
-//						} else {
-//							 array_unshift($xmlfiles_fullpath, $cache . $file);
-//						}
-//					}
-
-//				}
-				///$this->log($xmlfiles_fullpath,2);
-//				foreach ($xmlfiles_fullpath as $file) {
-//					//$no_error = $this->modeImport($file);
-//					$this->log('Обрабатывается файл: '.$file,2);
-//				}
-				foreach ($xmlfiles as $file) {
-					$this->log('Обрабатывается файл: ' . $file, 2);
+				// Порядок обработки файлов
+				foreach ($xmlFiles as $file) {
+					$this->log('Обрабатывается файл основной: ' . $file, 2);
+					$no_error = $this->modeImport($cache . $file);
+				}
+				foreach ($properties as $file) {
+					$this->log('Обрабатывается файл свойств: ' . $file, 2);
+//					$no_error = $this->modeImport($cache . $file);
+				}
+				foreach ($goods as $file) {
+					$this->log('Обрабатывается файл товаров: ' . $file, 2);
 					$no_error = $this->modeImport($cache . $file);
 				}
 
@@ -1570,16 +1680,18 @@ class ControllerModuleExchange1c extends Controller {
 				move_uploaded_file($this->request->files['file']['tmp_name'], $import_file);
 				$this->log( "[i] Загружен файл: " . $this->request->files['file']['name'],2);
 				$no_error = $this->modeImport($import_file);
-				unlink($import_file);
+//				unlink($import_file);
 			}
 		}
 		if ($no_error) {
 			$json['success'] = $this->language->get('text_upload_success');
+			$this->log( "[i] Ручной обмен прошел без ошибок", 2);
 		} else {
 			$json['error'] = $this->language->get('text_upload_error');
+			$this->log( "[!] Ручной обмен прошел ошибками", 2);
 		}
 
-		$this->cleanCacheDir();
+//		$this->cleanCacheDir();
 		$this->cache->delete('product');
 		$this->response->setOutput(json_encode($json));
 
@@ -1745,11 +1857,7 @@ class ControllerModuleExchange1c extends Controller {
 				if ($result === strlen($data)) {
 					chmod($uplod_file , 0664);
 					$this->echo_message(1, "The file " . $this->request->get['filename'] . " has been successfully uploaded");
-					$zip = new ZipArchive;
-					if ($zip->open($uplod_file) === TRUE) {
-						$xmlfiles = $this->extractArchive($zip);
-						$zip->close();
-					}
+					$xmlfiles = $this->extractZip($uplod_file);
 					//unlink($uplod_file);
 				}
 				else {
@@ -1793,10 +1901,11 @@ class ControllerModuleExchange1c extends Controller {
 		$language_id = $this->model_tool_exchange1c->getLanguageId($this->config->get('config_language'));
 
 		// Загружаем файл
-		if (!$this->model_tool_exchange1c->importFile($importFile)) {
+		if (!$this->model_tool_exchange1c->importFile($importFile, $this->detectFileType($importFile))) {
 			if (!$manual) {
 				$this->echo_message(0, "Error processing file " . $importFile);
 			}
+			$this->log("[!] Ошибка загрузка файла: " . $importFile);
 			return 0;
 		} else {
 			if (!$manual) {
@@ -1805,7 +1914,7 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		// Удалим файл
-		$this->log("[i] Удаление файла: " . $importFile,2);
+		//$this->log("[i] Удаление файла: " . $importFile,2);
 		//unlink($importFile);
 
 		$this->cache->delete('product');
@@ -1830,7 +1939,6 @@ class ControllerModuleExchange1c extends Controller {
 			)
 		);
 		echo header('Content-Type: text/html; charset=windows-1251', true);
-//		echo $orders;
 		echo iconv('utf-8', 'cp1251', $orders);
 	}
 

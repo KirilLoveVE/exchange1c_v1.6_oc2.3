@@ -32,6 +32,8 @@
 				<h3 class="panel-title"><i class="fa fa-pencil"></i> Редактирование настроек обмена</h3>
 			</div>
 			<div class="panel-body">
+				<form action="index.php?route=module/exchange1c/downloadOrders&token=<?php echo $token; ?>" method="post" enctype="multipart/form-data" id="form-download-orders" class="form-horizontal">
+				</form>
 				<form action="<?php echo $action; ?>" method="post" enctype="multipart/form-data" id="form-exchange1c" class="form-horizontal">
 				<ul class="nav nav-tabs">
 					<li class="active"><a href="#tab-general" data-toggle="tab"><?php echo $lang['text_tab_general']; ?></a></li>
@@ -149,6 +151,10 @@
 							<?php echo $html_description_html ?>
 						</div>
 						<legend><?php echo $lang['legend_product_features']; ?></legend>
+						<div class="alert alert-info">
+							<i class="fa fa-info-circle"></i>
+							<?php echo $lang['desc_product_features_name']; ?>
+						</div>
 						<div class="form-group">
 							<?php echo $html_product_options_mode ?>
 							<?php echo $html_product_options_subtract ?>
@@ -172,43 +178,49 @@
 								<tbody>
 									<tr>
 										<td>Ид</td>
-										<td>Используется для связи Ид торговой системы и ID CMS, также это Ид выгружается в заказах.</td>
+										<td><?php echo $lang['desc_product_1c_id']; ?></td>
 										<td>1c_id</td>
 										<td>product_to_1c</td>
 									</tr>
 									<tr>
+										<td>Код</td>
+										<td><?php echo $lang['desc_product_1c_code']; ?></td>
+										<td></td>
+										<td></td>
+									</tr>
+									<tr>
 										<td>Артикул</td>
-										<td>Артикул товара будет записан одновременно в оба поля, если это поле будет пустым, то в Модель (model) будет записан Ид.</td>
+										<td><?php echo $lang['desc_product_sku']; ?></td>
 										<td>sku, model</td>
 										<td>product</td>
 									</tr>
 									<tr>
 										<td>Штрихкод</td>
-										<td>Штрихкод товара.</td>
+										<td><?php echo $lang['desc_product_ean']; ?></td>
 										<td>ean</td>
 										<td>product</td>
 									</tr>
 									<tr>
 										<td>БазоваяЕдиница</td>
-										<td>Читается базовая единица и коэффициент пересчета</td>
+										<td><?php echo $lang['desc_product_unit']; ?></td>
 										<td>unit_id</td>
 										<td>product_unit, product_quantity, product_price</td>
 									</tr>
 									<tr>
 										<td>ПолноеНаименование</td>
-										<td>В некоторых конфигурациях это поле присутствует в XML, но приоритет имеет реквизит</td>
+										<td><?php echo $lang['desc_product_fullname']; ?></td>
 										<td>name</td>
 										<td>product</td>
 									</tr>
 									<tr>
 										<td>Описание</td>
-										<td>Описание товара произвольной длины, обычно в ТС ограничивают 3000 символами</td>
+										<td><?php echo $lang['desc_product_description']; ?></td>
 										<td>description</td>
 										<td>product_description</td>
 									</tr>
 									<tr>
 										<td>Изготовитель</td>
-										<td>Производитель или Изготовитель - одно и тоже, имеет приоритет перед свойством</td>
+										<td><?php echo $lang['desc_product_manufacturer']; ?></td>
 										<td>manufacturer_id</td>
 										<td>product</td>
 									</tr>
@@ -230,31 +242,31 @@
 								<tbody>
 									<tr>
 										<td>Вес</td>
-										<td>Загружается до определения свойств, если в свойстве будет такое же определение, то приоритет будет у свойства.</td>
+										<td><?php echo $lang['desc_product_req_weight']; ?></td>
 										<td>weight</td>
-										<td>Производитель</td>
+										<td>Вес</td>
 									</tr>
 									<tr>
 										<td>ТипНоменклатуры</td>
-										<td>По этому полю происходит фильтр опции "Обрабатывать только типы номенклатуры".</td>
+										<td><?php echo $lang['desc_product_req_type']; ?></td>
 										<td></td>
 										<td></td>
 									</tr>
 									<tr>
 										<td>ВидНоменклатуры</td>
-										<td>Не используется</td>
+										<td><?php echo $lang['desc_product_req_view']; ?></td>
 										<td></td>
 										<td></td>
 									</tr>
 									<tr>
 										<td>ОписаниеВФорматеHTML</td>
-										<td>Используется для форматирования описания товара.</td>
+										<td><?php echo $lang['desc_product_req_desc_html']; ?></td>
 										<td></td>
 										<td></td>
 									</tr>
 									<tr>
 										<td>Полное наименование</td>
-										<td>Читается полное наименование товара и в зависимости от опции "Наименование товара" будет записана в наименование товара.</td>
+										<td><?php echo $lang['desc_product_req_fullname']; ?></td>
 										<td>name</td>
 										<td>Наименование</td>
 									</tr>
@@ -264,6 +276,10 @@
 
 						<legend><?php echo $lang['legend_product_properties_std_from_ts']; ?></legend>
 						<div class="table-responsive">
+							<div class="alert alert-info">
+								<i class="fa fa-info-circle"></i>
+								<?php echo $lang['desc_product_properties_name']; ?>
+							</div>
 							<table id="exchange1c_property_standart" class="table table-bordered table-hover">
 								<thead>
 									<tr>
@@ -276,39 +292,39 @@
 								<tbody>
 									<tr>
 										<td>Производитель</td>
-										<td>Загружается в том случае если не был определен тег &lt;Изготовитель&gt; в разделе товара. Производится поиск по наименованию и записывается ID</td>
+										<td><?php echo $lang['desc_product_prop_manufacturer']; ?></td>
 										<td>manufacturer_id</td>
 										<td>Производитель</td>
 									</tr>
 									<tr>
 										<td>Вес</td>
-										<td>Вес товара, единице веса задается в CMS</td>
+										<td><?php echo $lang['desc_product_prop_weight']; ?></td>
 										<td>weight</td>
 										<td>Вес</td>
 									</tr>
 									<tr>
 										<td>Ширина</td>
-										<td>Ширина товара, единица длины задается в CMS</td>
+										<td><?php echo $lang['desc_product_prop_width']; ?></td>
 										<td>width</td>
 										<td>Ширина</td>
 									</tr>
 									<tr>
 										<td>Высота</td>
-										<td>Высота товара, единица длины задается в CMS</td>
+										<td><?php echo $lang['desc_product_prop_height']; ?></td>
 										<td>height</td>
 										<td>Высота</td>
 									</tr>
 									<tr>
 										<td>Длина</td>
-										<td>Длина товара, единица длины задается в CMS</td>
+										<td><?php echo $lang['desc_product_prop_length']; ?></td>
 										<td>length</td>
 										<td>Длина</td>
 									</tr>
 									<tr>
 										<td>Модель</td>
-										<td>Это свойство имеет приоритет и перезапишет значение поля Модель.</td>
+										<td><?php echo $lang['desc_product_prop_model']; ?></td>
 										<td>model</td>
-										<td>Модель</td>
+										<td><?php echo $lang['text_model']; ?></td>
 									</tr>
 								</tbody>
 							</table>
@@ -384,6 +400,9 @@
 					<!-- ЦЕНЫ -->
 					<div class="tab-pane" id="tab-prices">
 						<legend><?php echo $lang['legend_prices']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_price_types_auto_load ?>
+						</div>
 						<div class="alert alert-info">
 							<i class="fa fa-info-circle"></i>
 							<?php echo $lang['desc_prices']; ?>
@@ -392,50 +411,42 @@
 							<table id="exchange1c_price_type_id" class="table table-bordered table-hover">
 								<thead>
 									<tr>
-										<td class="text-left"><?php echo $lang['entry_config_price_type']; ?></td>
-										<td class="text-left"><?php echo $lang['entry_customer_group']; ?></td>
-										<td class="text-right"><?php echo $lang['entry_quantity']; ?></td>
-										<td class="text-right"><?php echo $lang['entry_priority']; ?></td>
-										<td class="text-right"><?php echo $lang['entry_action']; ?></td>
+										<td class="col-sm-3 text-left"><?php echo $lang['entry_config_price_type']; ?></td>
+										<td class="col-sm-3 text-left"><?php echo $lang['entry_config_price_id_cml']; ?></td>
+										<td class="col-sm-3 text-left"><?php echo $lang['entry_customer_group']; ?></td>
+										<td class="col-sm-1 text-right"><?php echo $lang['entry_quantity']; ?></td>
+										<td class="col-sm-1 text-right"><?php echo $lang['entry_priority']; ?></td>
+										<td class="col-sm-1 text-right"><?php echo $lang['entry_action']; ?></td>
 									</tr>
 								</thead>
 								<tbody>
 									<?php $price_row = 0; ?>
 									<?php foreach ($exchange1c_price_type as $obj) { ?>
-										<?php if ($price_row == 0) {?>
-											<tr id="exchange1c_price_type_row<?php echo $price_row; ?>">
-												<td class="col-sm-4 text-left"><input type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" class="form-control"/></td>
-												<td class="col-sm-3 text-left"><?php echo $lang['text_price_default']; ?><input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]" value="<?php echo $obj['customer_group_id']; ?>" /></td>
-												<td class="col-sm-1 text-center">-<input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="1" /></td>
-												<td class="col-sm-1 text-center">-<input type="hidden" name="exchange1c_price_type[<?php echo $price_row; ?>][priority]" value="0" /></td>
-												<td class="col-sm-1 text-left">&nbsp;</td>
-											</tr>
-										<?php } else { ?>
-											<tr id="exchange1c_price_type_row<?php echo $price_row; ?>">
-												<td class="col-sm-4 text-left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" /></td>
-												<td class="col-sm-3 text-left"><select class="form-control" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]">
+										<tr id="exchange1c_price_type_row<?php echo $price_row; ?>">
+											<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" /></td>
+											<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][id_cml]" value="<?php echo $obj['id_cml']; ?>" /></td>
+											<td class="text-left"><select class="form-control" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]">
 											<?php foreach ($customer_groups as $customer_group) { ?>
-													<?php if ($customer_group['customer_group_id'] == $obj['customer_group_id']) { ?>
-														<option value="<?php echo $customer_group['customer_group_id']; ?>" selected="selected"><?php echo $customer_group['name']; ?></option>
-													<?php } else { ?>
-														<option value="<?php echo $customer_group['customer_group_id']; ?>"><?php echo $customer_group['name']; ?></option>
-													<?php } ?>
+												<?php if ($customer_group['customer_group_id'] == $obj['customer_group_id']) { ?>
+													<option value="<?php echo $customer_group['customer_group_id']; ?>" selected="selected"><?php echo $customer_group['name']; ?></option>
+												<?php } else { ?>
+													<option value="<?php echo $customer_group['customer_group_id']; ?>"><?php echo $customer_group['name']; ?></option>
 												<?php } ?>
-												</select></td>
-												<td class="col-sm-1 text-center"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="<?php echo $obj['quantity']; ?>" size="2" /></td>
-												<td class="col-sm-1 text-center"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][priority]" value="<?php echo $obj['priority']; ?>" size="2" /></td>
-												<td class="col-sm-1 text-center">
-												<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_price_type_row<?php echo $price_row; ?>').remove() : false;"><i class="fa fa-trash-o"></i></button>
-												</td>
-											</tr>
-										<?php } ?>
+											<?php } ?>
+											</select></td>
+											<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="<?php echo $obj['quantity']; ?>" size="2" /></td>
+											<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][priority]" value="<?php echo $obj['priority']; ?>" size="2" /></td>
+											<td class="text-center">
+											<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_price_type_row<?php echo $price_row; ?>').remove() : false;"><i class="fa fa-minus-circle"></i></button>
+											</td>
+										</tr>
 										<?php $price_row++; ?>
 									<?php } ?>
 								</tbody>
 								<tfoot>
 									<?php if (count($customer_groups)) { ?>
 									<tr>
-										<td colspan="4"></td>
+										<td colspan="5"></td>
 										<td class="text-center">
 											<a onclick="addConfigPriceType();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></a>
 										</td>
@@ -586,16 +597,23 @@
 								<i class="fa fa-upload"></i>
 								<?php echo $lang['button_upload']; ?>
 							</button>
-							<label class="col-sm-3 control-label">Upload max file size : <?php echo $upload_max_filesize; ?><br />Maximum size of POST data : <?php echo $post_max_size; ?></label>
+							<div class="col-sm-8">
+								<label class="alert alert-info"><i class="fa fa-info-circle"></i> Upload max file size : <?php echo $upload_max_filesize; ?></label>
+								<label class="alert alert-info"><i class="fa fa-info-circle"></i> Maximum size of POST data : <?php echo $post_max_size; ?></label>
+								<label class="alert alert-info"><i class="fa fa-info-circle"></i> <?php echo $lang['desc_upload_file']; ?></label>
+							</div>
 						</div>
 						<div class="form-group">
 							<label class="col-sm-2 control-label" for="button-download-orders">
 								<span title="" data-original-title="<?php echo $lang['help_download_orders']; ?>" data-toggle="tooltip"><?php echo $lang['entry_download_orders']; ?></span>
 							</label>
-							<button id="button-download-orders" class="col-sm-2 btn btn-primary" type="button" data-loading-text="<?php echo $lang['button_download_orders']; ?>">
-								<i class="fa fa-download"></i>
-								<?php echo $lang['button_download']; ?>
+							<button class="col-sm-2 btn btn-primary" form="form-download-orders" type="submit" data-loading-text="<?php echo $lang['button_download_orders']; ?>">
+							<i class="fa fa-download"></i>
+							<?php echo $lang['button_download']; ?>
 							</button>
+							<div class="col-sm-8">
+								<div class="alert alert-info"><i class="fa fa-info-circle"></i> <?php echo $lang['desc_download_orders']; ?></div>
+							</div>
 						</div>
 					</div><!-- tab-manual -->
 
@@ -786,15 +804,16 @@ $('#exchange1c-button-cleaning_links').on('click', function() {
 var price_row = <?php echo $price_row; ?>;
 function addConfigPriceType() {
 	html = '<tr id="exchange1c_price_type_row' + price_row + '">';
-	html += '<td class="col-sm-4 text-left"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][keyword]" value="" /></td>';
-	html += '<td class="col-sm-3 text-left"><select class="form-control" name="exchange1c_price_type[' + price_row + '][customer_group_id]">';
+	html += '<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][keyword]" value="" /></td>';
+	html += '<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][id_cml]" value="" /></td>';
+	html += '<td class="text-left"><select class="form-control" name="exchange1c_price_type[' + price_row + '][customer_group_id]">';
 	<?php foreach ($customer_groups as $customer_group) { ?>
 	html += '<option value="<?php echo $customer_group['customer_group_id']; ?>"><?php echo $customer_group['name']; ?></option>';
 	<?php } ?>
 	html += '</select></td>';
-	html += '<td class="col-sm-1 text-center"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][quantity]" value="1" size="2" /></td>';
-	html += '<td class="col-sm-1 text-center"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][priority]" value="<?php echo $price_row+1; ?>" size="2" /></td>';
-	html += '<td class="col-sm-1 text-center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_price_type_row' + price_row + '\').remove() : false;"><i class="fa fa-minus-circle"></i></button></td>';
+	html += '<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][quantity]" value="1" size="2" /></td>';
+	html += '<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][priority]" value="<?php echo $price_row+1; ?>" size="2" /></td>';
+	html += '<td class="text-center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_price_type_row' + price_row + '\').remove() : false;"><i class="fa fa-minus-circle"></i></button></td>';
 	html += '</tr>';
 
 	$('#exchange1c_price_type_id tbody').append(html);
