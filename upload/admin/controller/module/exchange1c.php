@@ -715,13 +715,15 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_quantity`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_quantity` (
-				`product_id` 				INT(11) 		NOT NULL 			COMMENT 'Ссылка на товар',
-				`product_feature_id` 		INT(11) 		DEFAULT 0 NOT NULL	COMMENT 'Ссылка на характеристику товара',
-				`warehouse_id` 				INT(11) 		DEFAULT 0 NOT NULL 	COMMENT 'Ссылка на склад',
-				`quantity` 					DECIMAL(10,3) 	DEFAULT 0 			COMMENT 'Остаток',
+				`product_quantity_id` 		INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'Счетчик',
+				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'Ссылка на товар',
+				`product_feature_id` 		INT(11) 		DEFAULT 0 NOT NULL		COMMENT 'Ссылка на характеристику товара',
+				`warehouse_id` 				INT(11) 		DEFAULT 0 NOT NULL 		COMMENT 'Ссылка на склад',
+				`quantity` 					DECIMAL(10,3) 	DEFAULT 0 				COMMENT 'Остаток',
+				PRIMARY KEY (`product_quantity_id`),
 				FOREIGN KEY (`product_id`) 			REFERENCES `" . DB_PREFIX . "product`(`product_id`),
 				FOREIGN KEY (`product_feature_id`) 	REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
-				FOREIGN KEY (`warehouse_id`) 		REFERENCES `" . DB_PREFIX . "warehouse`(`warehouse_id`),
+				FOREIGN KEY (`warehouse_id`) 		REFERENCES `" . DB_PREFIX . "warehouse`(`warehouse_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
@@ -742,8 +744,8 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_feature` (
-				`product_feature_id` 		INT(11) 		NOT NULL AUTO_INCREMENT,
-				`product_id` 				INT(11) 		NOT NULL 			COMMENT 'Ссылка на товар',
+				`product_feature_id` 		INT(11) 		NOT NULL AUTO_INCREMENT COMMENT 'Счетчик',
+				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'Ссылка на товар',
 				`ean` 						VARCHAR(14) 	NOT NULL DEFAULT '' 	COMMENT 'Штрихкод',
 				`name` 						VARCHAR(255) 	NOT NULL DEFAULT '' 	COMMENT 'Название',
 				`sku` 						VARCHAR(128) 	NOT NULL DEFAULT '' 	COMMENT 'Артикул',
@@ -775,12 +777,14 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_price`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_price` (
+				`product_price_id` 			INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'Счетчик',
 				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'ID товара',
 				`product_feature_id` 		INT(11) 		NOT NULL DEFAULT '0' 	COMMENT 'ID характеристики товара',
 				`customer_group_id`			INT(11) 		NOT NULL DEFAULT '0'	COMMENT 'ID группы покупателя',
 				`price` 					DECIMAL(15,4) 	NOT NULL DEFAULT '0'	COMMENT 'Цена',
+				PRIMARY KEY (`product_price_id`),
 				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`),
-				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
+				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
@@ -1355,6 +1359,8 @@ class ControllerModuleExchange1c extends Controller {
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_price`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_unit`");
+		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature`");
+		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature_value`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_group`");
@@ -1368,14 +1374,6 @@ class ControllerModuleExchange1c extends Controller {
 
 		// Общее количество теперь можно хранить не только целое число (для совместимости)
 		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` CHANGE `quantity` `quantity` int(4) NOT NULL DEFAULT 0 COMMENT 'Количество'");
-
-		// Колонка для связи значения опции с группой покупателей для вывода нужной цены
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` DROP COLUMN `customer_group_id`");
-		//$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` DROP INDEX `customer_group_id`");
-
-		// Колонка для связи значения опции с характеристикой товара
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` DROP COLUMN `product_feature_id`");
-		//$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` DROP INDEX `product_feature_id`");
 
 		// Восстанавливаем корзину
 		$this->db->query("ALTER TABLE `" . DB_PREFIX . "cart` DROP COLUMN `unit_id`");

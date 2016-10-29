@@ -5490,7 +5490,7 @@ class ModelToolExchange1c extends Model {
 		}
 
 		// Формируем заголовок
-		$root = '<?xml version="1.0" encoding="utf-8"?><КоммерческаяИнформация ВерсияСхемы="2.04" ДатаФормирования="' . date('Y-m-d', time()) . '" />';
+		$root = '<?xml version="1.0" encoding="utf-8"?><КоммерческаяИнформация ВерсияСхемы="2.07" ДатаФормирования="' . date('Y-m-d', time()) . '" />';
 		$xml = $this->array_to_xml($document, new SimpleXMLElement($root));
 
 		// Проверка на запись файлов в кэш

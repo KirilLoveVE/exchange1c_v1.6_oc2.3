@@ -700,12 +700,12 @@ $('#exchange1c-button-upload').on('click', function() {
 				contentType: false,
 				processData: false,
 				beforeSend: function() {
-					$('#button-upload i').replaceWith('<i class="fa fa-circle-o-notch fa-spin"></i>');
-					$('#button-upload').prop('disabled', true);
+					$('#exchange1c-button-upload i').replaceWith('<i class="fa fa-circle-o-notch fa-spin"></i>');
+					$('#exchange1c-button-upload').prop('disabled', true);
 				},
 				complete: function() {
-					$('#button-upload i').replaceWith('<i class="fa fa-upload"></i>');
-					$('#button-upload').prop('disabled', false);
+					$('#exchange1c-button-upload i').replaceWith('<i class="fa fa-upload"></i>');
+					$('#exchange1c-button-upload').prop('disabled', false);
 				},
 				success: function(json) {
 					if (json['error']) {
@@ -714,8 +714,6 @@ $('#exchange1c-button-upload').on('click', function() {
 
 					if (json['success']) {
 						alert(json['success']);
-
-						$('#button-refresh').trigger('click');
 					}
 				},
 				error: function(xhr, ajaxOptions, thrownError) {
