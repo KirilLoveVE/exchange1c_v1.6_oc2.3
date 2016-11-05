@@ -133,12 +133,15 @@
 					<div class="tab-pane" id="tab-product">
 						<legend><?php echo $lang['legend_new_product']; ?></legend>
 						<div class="form-group">
+							<?php echo $html_create_new_product ?>
+						</div>
+						<div class="form-group">
 							<?php echo $html_synchronize_new_product_by ?>
 							<?php echo $html_status_new_product ?>
 						</div>
 						<div class="form-group">
 						</div>
-						<legend><?php echo $lang['legend_update_in_product']; ?></legend>
+						<legend><?php echo $lang['legend_existing_product']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_import_product_name ?>
 							<?php echo $html_import_product_description ?>
@@ -389,6 +392,9 @@
 					<div class="tab-pane" id="tab-category">
 						<legend><?php echo $lang['legend_new_category']; ?></legend>
 						<div class="form-group">
+							<?php echo $html_create_new_category ?>
+						</div>
+						<div class="form-group">
 							<?php echo $html_status_new_category ?>
 						</div>
 						<legend><?php echo $lang['legend_other']; ?></legend>
@@ -576,15 +582,41 @@
 
 					<!-- ЗАКАЗЫ -->
 					<div class="tab-pane" id="tab-order">
-						<legend><?php echo $lang['legend_export_orders']; ?></legend>
-						<?php echo $html_order_status_to_exchange; ?>
-						<?php echo $html_order_status_change; ?>
-						<?php echo $html_order_status_canceled; ?>
-						<?php echo $html_order_status_completed; ?>
-						<?php echo $html_order_currency; ?>
-						<?php echo $html_order_notify; ?>
-						<legend><?php echo $lang['legend_import_orders']; ?></legend>
-						<h2><?php echo $lang['text_in_developing']; ?></h2>
+						<div class="form-group">
+							<?php echo $html_order_notify; ?>
+						</div>
+						<legend><?php echo $lang['legend_orders_new']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_order_status_to_exchange; ?>
+							<?php echo $html_order_new_notify_subject; ?>
+							<?php echo $html_order_new_notify_text; ?>
+							<?php echo $lang['text_under_development']; ?>
+						</div>
+						<legend><?php echo $lang['legend_orders_export']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_order_status_change; ?>
+							<?php echo $html_order_export_notify_subject; ?>
+							<?php echo $html_order_export_notify_text; ?>
+							<?php echo $lang['text_under_development']; ?>
+						</div>
+						<legend><?php echo $lang['legend_orders_canceled']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_order_status_canceled; ?>
+							<?php echo $html_order_canceled_notify_subject; ?>
+							<?php echo $html_order_canceled_notify_text; ?>
+							<?php echo $lang['text_under_development']; ?>
+						</div>
+						<legend><?php echo $lang['legend_orders_completed']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_order_status_completed; ?>
+							<?php echo $html_order_completed_notify_subject; ?>
+							<?php echo $html_order_completed_notify_text; ?>
+							<?php echo $lang['text_under_development']; ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_order_currency; ?>
+							<?php echo $html_convert_orders_cp1251; ?>
+						</div>
 					</div><!-- tab-order -->
 
 					<!-- РУЧНАЯ ОБРАБОТКА -->

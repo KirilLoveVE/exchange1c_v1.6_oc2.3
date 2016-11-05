@@ -348,7 +348,8 @@ class ControllerModuleExchange1c extends Controller {
 		$log_level_list = array(
 			0	=> $this->language->get('text_log_level_0'),
 			1	=> $this->language->get('text_log_level_1'),
-			2	=> $this->language->get('text_log_level_2')
+			2	=> $this->language->get('text_log_level_2'),
+			3	=> $this->language->get('text_log_level_3')
 		);
 
 		$file_exchange_list = array(
@@ -409,7 +410,7 @@ class ControllerModuleExchange1c extends Controller {
 		$list_options = array(
 			'feature'	=> $this->language->get('text_product_options_feature')
 			,'related'	=> $this->language->get('text_product_options_related')
-			,'certine'	=> $this->language->get('text_product_options_certine')
+			//,'certine'	=> $this->language->get('text_product_options_certine')
 		);
 
 		$list_options_type = array(
@@ -446,11 +447,14 @@ class ControllerModuleExchange1c extends Controller {
 			,'description_html'						=> array('type' => 'radio', 'default' => 1)
 			,'fill_parent_cats'						=> array('type' => 'radio', 'default' => 1)
 			,'product_disable_if_zero'				=> array('type' => 'radio', 'default' => 0)
+			,'create_new_product'					=> array('type' => 'radio', 'default' => 1)
+			,'create_new_category'					=> array('type' => 'radio', 'default' => 1)
 			,'synchronize_new_product_by'        	=> array('type' => 'select', 'options' => $select_sync_new_poroduct, 'default' => 'sku')
 			,'synchronize_uuid_to_id'				=> array('type' => 'radio', 'default' => 0)
 			,'status'								=> array('type' => 'radio', 'default' => 1)
 			,'flush_log'							=> array('type' => 'radio', 'default' => 1)
 			,'currency_convert'						=> array('type' => 'radio', 'default' => 1)
+			,'convert_orders_cp1251'				=> array('type' => 'radio', 'default' => 1)
 			,'parse_only_types_item'				=> array('type' => 'input')
 			,'username'								=> array('type' => 'input', 'default' => 'exchange1c')
 			,'password'								=> array('type' => 'input', 'default' => 'exchange1c')
@@ -504,6 +508,15 @@ class ControllerModuleExchange1c extends Controller {
 			,'order_status_change'				=> array('type' => 'select', 'options' => $order_statuses)
 			,'order_status_canceled'			=> array('type' => 'select', 'options' => $order_statuses)
 			,'order_status_completed'			=> array('type' => 'select', 'options' => $order_statuses)
+			,'order_new_notify_subject'			=> array('type' => 'input')
+			,'order_new_notify_text'			=> array('type' => 'textarea')
+			,'order_export_notify_subject'		=> array('type' => 'input')
+			,'order_export_notify_text'			=> array('type' => 'textarea')
+			,'order_canceled_notify_subject'	=> array('type' => 'input')
+			,'order_canceled_notify_text'		=> array('type' => 'textarea')
+			,'order_completed_notify_subject'	=> array('type' => 'input')
+			,'order_completed_notify_text'		=> array('type' => 'textarea')
+
 		);
 
 		if ($this->model_tool_exchange1c->existField('product_description', 'meta_h1')) {
@@ -614,7 +627,8 @@ class ControllerModuleExchange1c extends Controller {
 
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->setEvents();
-		$module_version = $this->model_tool_exchange1c->version();
+		//$module_version = $this->model_tool_exchange1c->version();
+		$module_version = '1.6.2.b9';
 
 		$this->load->model('setting/setting');
 		$settings['exchange1c_version'] 					= $module_version;
@@ -638,6 +652,9 @@ class ControllerModuleExchange1c extends Controller {
 //		);
 
 		// Изменения в базе данных
+		$this->db->query("ALTER TABLE  `" . DB_PREFIX . "cart` ADD  `product_feature_id` INT( 11 ) NOT NULL DEFAULT 0 AFTER  `option`");
+		$this->db->query("ALTER TABLE  `" . DB_PREFIX . "cart` ADD  `unit_id` INT( 11 ) NOT NULL DEFAULT 0 AFTER  `option`");
+		$this->db->query("ALTER TABLE  `" . DB_PREFIX . "cart` DROP INDEX  `cart_id` ,	ADD INDEX  `cart_id` (  `customer_id` ,  `session_id` ,  `product_id` ,  `recurring_id` ,  `product_feature_id` , `unit_id`)");
 
 		// Общее количество теперь можно хранить не только целое число (для совместимости)
 		// Увеличиваем точность поля веса до тысячных
@@ -745,14 +762,12 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_feature` (
 				`product_feature_id` 		INT(11) 		NOT NULL AUTO_INCREMENT COMMENT 'Счетчик',
-				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'Ссылка на товар',
 				`ean` 						VARCHAR(14) 	NOT NULL DEFAULT '' 	COMMENT 'Штрихкод',
 				`name` 						VARCHAR(255) 	NOT NULL DEFAULT '' 	COMMENT 'Название',
 				`sku` 						VARCHAR(128) 	NOT NULL DEFAULT '' 	COMMENT 'Артикул',
 				`1c_id` 					VARCHAR(64) 	NOT NULL 				COMMENT 'Ид характеристики в 1С',
 				PRIMARY KEY (`product_feature_id`),
-				KEY (`1c_id`),
-				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`)
+				KEY (`1c_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
@@ -795,10 +810,12 @@ class ControllerModuleExchange1c extends Controller {
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_unit` (
 				`product_unit_id`			INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'Счетчик',
 				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'ID товара',
+				`product_feature_id` 		INT(11) 		NOT NULL DEFAULT '0' 	COMMENT 'ID характеристики товара',
 				`unit_id` 					INT(11) 		DEFAULT '0' NOT NULL 	COMMENT 'ID единицы измерения',
 				`ratio` 					INT(9) 			DEFAULT '1' 			COMMENT 'Коэффициент пересчета количества',
 				PRIMARY KEY (`product_unit_id`),
 				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`),
+				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
 				FOREIGN KEY (`unit_id`) 				REFERENCES `" . DB_PREFIX . "unit`(`unit_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
@@ -810,6 +827,7 @@ class ControllerModuleExchange1c extends Controller {
 				`unit_id` 					SMALLINT(6) 	NOT NULL 				COMMENT 'ID единицы измерения по каталогу',
 				`cml_id` 					VARCHAR(64) 	NOT NULL 				COMMENT 'Ид единицы измерения в ТС',
 				`name` 						VARCHAR(16) 	NOT NULL 				COMMENT 'Наименование краткое',
+				`code` 						VARCHAR(4) 		NOT NULL 				COMMENT 'Код числовой',
 				`fullname` 					VARCHAR(50) 	NOT NULL 				COMMENT 'Наименование полное',
 				`eng_name2` 				VARCHAR(50)		NOT NULL 				COMMENT 'Международное сокращение',
 				KEY (`cml_id`),
@@ -1509,10 +1527,23 @@ class ControllerModuleExchange1c extends Controller {
 			if (is_file(DIR_IMAGE.$name)) {
 				$this->log('[zip] file exist: '.$name, 2);
 			} else {
-				if ($fd = fopen(DIR_IMAGE.$name,"w+")) {
+				$dump = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
+
+				// для безопасности проверим, не является ли этот файл php
+				$pos = strpos($dump, "<?php");
+				if ($pos !== false) {
+					$this->log("[!] ВНИМАНИЕ Файл '" . $name . "' является PHP скриптом и не будет записан!");
+				} elseif ($fd = fopen(DIR_IMAGE.$name,"w+")) {
 					$this->log('[zip] create file: '.$name, 2);
-					fwrite($fd, zip_entry_read($zip_entry, zip_entry_filesize($zip_entry)));
+					fwrite($fd, $dump);
 					fclose($fd);
+
+					// для безопасности проверим, является ли этот файл картинкой
+//					$image_info = getimagesize(DIR_IMAGE.$name);
+//					if ($image_info == NULL) {
+//						$this->log("[!] ВНИМАНИЕ Файл '" . $name . "' не является картинкой, и будет удален!");
+//						unlink(DIR_IMAGE.$name);
+//					}
 				}
 			}
 			zip_entry_close($zip_entry);
@@ -1527,15 +1558,29 @@ class ControllerModuleExchange1c extends Controller {
 	private function extractXML($zipArc, $zip_entry, $name, &$xmlFiles) {
 		$this->log("[zip]> extractXML() name = " . $name, 2);
 		$cache = DIR_CACHE . 'exchange1c/';
-		if (zip_entry_open($zipArc, $zip_entry, "r")) {
-			if ($fd = @fopen($cache.$name,"w+")) {
-				$xmlFiles[] = $name;
-				$this->log('[zip] create file: '.$name, 2);
-				fwrite($fd, zip_entry_read($zip_entry, zip_entry_filesize($zip_entry)));
-				fclose($fd);
+		if (substr($name, -1) == "/") {
+			if (is_dir(DIR_IMAGE.$name)) {
+				$this->log('[zip] directory exist: '.$name, 2);
 			} else {
 				$this->log('[zip] create directory: '.$name, 2);
-				@mkdir($cache.$name, 0775);
+				mkdir(DIR_IMAGE.$name, 0775);
+			}
+		} elseif (zip_entry_open($zipArc, $zip_entry, "r")) {
+			$dump = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
+
+			// для безопасности проверим, является ли этот файл XML
+			$str_xml = mb_substr($dump, 1, 5);
+			if ($str_xml != "<?xml") {
+				$this->log("[!] ВНИМАНИЕ Файл '" . $name . "' не является XML файлом и не будет записан!");
+
+			} elseif ($fd = @fopen($cache.$name,"w+")) {
+				$xmlFiles[] = $name;
+				$this->log('[zip] create file: '.$name, 2);
+				fwrite($fd, $dump);
+				fclose($fd);
+//			} else {
+//				$this->log('[zip] create directory: '.$name, 2);
+//				@mkdir($cache.$name, 0775);
 			}
 			zip_entry_close($zip_entry);
 		}
@@ -1607,6 +1652,8 @@ class ControllerModuleExchange1c extends Controller {
 		$this->response->addheader('Content-Disposition: attachment; filename="orders.xml"');
 		$this->response->addheader('Content-Transfer-Encoding: binary');
 		$this->response->addheader('Content-Length: ' . strlen($orders));
+		//$this->response->addheader('Content-Type: text/html; charset=windows-1251');
+
 		//$this->response->setOutput(file_get_contents(DIR_CACHE . 'exchange1c/orders.xml', FILE_USE_INCLUDE_PATH, null));
         $this->response->setOutput($orders);
 
@@ -1684,6 +1731,12 @@ class ControllerModuleExchange1c extends Controller {
 		if ($no_error) {
 			$json['success'] = $this->language->get('text_upload_success');
 			$this->log( "[i] Ручной обмен прошел без ошибок", 2);
+
+			// после обмена запускаем генерацию SEO
+			$this->load->model('tool/exchange1c');
+			$this->model_tool_exchange1c->seoGenerate();
+
+
 		} else {
 			$json['error'] = $this->language->get('text_upload_error');
 			$this->log( "[!] Ручной обмен прошел ошибками", 2);
@@ -1937,7 +1990,10 @@ class ControllerModuleExchange1c extends Controller {
 			)
 		);
 		echo header('Content-Type: text/html; charset=windows-1251', true);
-		echo iconv('utf-8', 'cp1251', $orders);
+		if ($this->config->get('exchange1c_convert_orders_cp1251') == 1)
+			echo iconv('utf-8', 'cp1251', $orders);
+		else
+			echo $orders;
 	}
 
 	/**

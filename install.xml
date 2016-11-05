@@ -34,7 +34,8 @@
 	<file path="catalog/controller/product/product.php">
 		<operation>
 			<search><![CDATA[if ($product_info['quantity'] <= 0) {]]></search>
-			<add position="before"><![CDATA[			// +++ KirilLoveVE
+			<add position="before"><![CDATA[			// +++ TESLA-CHITA
+			$product_id = (int)$this->request->get['product_id'];
 			// Характеристики
 			$product_option_values = array();
 			$sql = "SELECT product_feature_id, pfv.product_option_id, product_option_value_id FROM `" . DB_PREFIX . "product_feature_value` pfv LEFT JOIN `" . DB_PREFIX . "product_option` po ON (pfv.product_option_id = po.product_option_id) LEFT JOIN `" . DB_PREFIX . "option`o ON (o.option_id = po.option_id) WHERE pfv.product_id = " . $this->request->get['product_id'] . " ORDER BY o.sort_order";
@@ -94,9 +95,6 @@
 				$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . (int)$this->request->get['product_id']);
 				foreach ($query->rows as $query_quantity) {
 
-					//$unit_id = $query_quantity['unit_id'];
-					$unit_id = 0;
-
 					if (!isset($product_quantity[$query_quantity['product_feature_id']])) {
 						$product_quantity[$query_quantity['product_feature_id']] = array();
 					}
@@ -107,17 +105,18 @@
 					}
 					$warehouse = &$quantity[$query_quantity['warehouse_id']];
 
-					if (!isset($warehouse[$unit_id])) {
-						$warehouse[$unit_id] = array(
-							'quantity'	=> $query_quantity['quantity'],
-							'name'		=> "unit_name"
-						);
+					if (!isset($warehouse)) {
+						$warehouse = $query_quantity['quantity'];
 					}
-					if (!isset($product_units[$unit_id])) {
-						$query = $this->db->query("SELECT `name`, `rus_name1` FROM `" . DB_PREFIX . "unit` WHERE `unit_id` = '" . (int)$unit_id . "'");
-						if ($query->num_rows) {
-							$product_units[$unit_id] = $query->row['rus_name1'];
-						}
+
+					$query = $this->db->query("SELECT `u`.`name`, `u`.`rus_name1`, `pu`.`ratio`, `pu`.`product_feature_id` FROM `" . DB_PREFIX . "product_unit` `pu` LEFT JOIN `" . DB_PREFIX . "unit` `u` ON (`pu`.`unit_id` = `u`.`unit_id`) WHERE `pu`.`product_id` = " . $product_id);
+					if ($query->num_rows) {
+						$product_units[$unit_id] = array(
+							'rus_name'				=> $query->row['rus_name1'],
+							'name'					=> $query->row['name'],
+							'ratio'					=> $query->row['ratio'],
+							'product_feature_id'	=> $query->row['product_feature_id']
+						);
 					}
 				}
 			}
@@ -131,20 +130,20 @@
 			foreach ($query->rows as $query_warehouse) {
 				$data['warehouses'][$query_warehouse['warehouse_id']] = $query_warehouse['name'];
 			}
-			// --- KirilLoveVE
+			// --- TESLA-CHITA
 ]]></add>
 		</operation>
 		<operation>
 			<search><![CDATA[if (!$option_value['subtract'] || ($option_value['quantity'] > 0)) {]]></search>
-			<add position="replace"><![CDATA[// +++ KirilLove
+			<add position="replace"><![CDATA[// +++ TESLA-CHITA
 					//-if (!$option_value['subtract'] || ($option_value['quantity'] > 0)) {
 					if ($option_value['subtract']) {
-						// --- KirilLove
+						// --- TESLA-CHITA
 ]]></add>
 		</operation>
 		<operation>
 			<search><![CDATA[$product_option_value_data[] = array(]]></search>
-			<add position="before"><![CDATA[						// +++ KirilLove
+			<add position="before"><![CDATA[						// +++ TESLA-CHITA
 						$class = "";
 						foreach ($product_option_values[$option_value['product_option_value_id']] as $value) {
 							if (empty($class)) {
@@ -153,24 +152,24 @@
 								$class .= " " . $value;
 							}
 						}
-						// --- KirilLove
+						// --- TESLA-CHITA
 
 ]]></add>
 		</operation>
 
 		<operation>
 			<search><![CDATA['product_option_value_id' => $option_value['product_option_value_id'],]]></search>
-			<add position="after"><![CDATA[							// +++ KirilLove
+			<add position="after"><![CDATA[							// +++ TESLA-CHITA
 							'price_prefix'            => $option_value['price_prefix'],
 							'class'                   => $class,
-							// --- KirilLove]]></add>
+							// --- TESLA-CHITA]]></add>
 		</operation>
 	</file>
 
 	<file path="catalog/model/catalog/product.php">
 		<operation>
 			<search><![CDATA[public function getTotalProductSpecials() {]]></search>
-			<add position="before"><![CDATA[	// +++ KirilLoveVE
+			<add position="before"><![CDATA[	// +++ TESLA-CHITA
 	public function getProductFeaturesPrice($product_id, $product_feature_id, $customer_group_id=0, $unit_id=0) {
 		$str_customer_group_id  = $customer_group_id ? " AND customer_group_id = " . $customer_group_id : "";
 		$str_unit_id  = $unit_id? " AND unit_id = " . $unit_id : "";
@@ -184,25 +183,38 @@
 			return 0;
 		}
 	}
-	// --- KirilLoveVE
+	// --- TESLA-CHITA
 ]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/model/sale/order.php">
+		<operation>
+			<search><![CDATA['order_id'                => $order_query->row['order_id'],]]></search>
+			<add position="after"><![CDATA[				// +++ TESLA-CHITA
+				'payment_inn'             => $order_query->row['payment_inn'],
+				'shipping_kpp'            => $order_query->row['shipping_inn'],
+				'patronymic'              => $order_query->row['patronymic'],
+				'payment_patronymic'      => $order_query->row['payment_patronymic'],
+				'shipping_patronymic'     => $order_query->row['shipping_patronymic'],
+				// --- TESLA-CHITA]]></add>
 		</operation>
 	</file>
 
 	<file path="catalog/controller/checkout/cart.php">
 		<operation>
 			<search><![CDATA[$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id);]]></search>
-			<add position="replace"><![CDATA[// +++ KirilLove
+			<add position="replace"><![CDATA[// +++ TESLA-CHITA
 				//-$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id);
 				$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id, $this->request->post['product_feature_id'], $this->request->post['unit_id']);
-				// --- KirilLove]]></add>
+				// --- TESLA-CHITA]]></add>
 		</operation>
 	</file>
 
   	<file path="system/library/cart.php">
 		<operation>
 			<search><![CDATA[$price = $product_query->row['price'];]]></search>
-			<add position="replace"><![CDATA[// +++ KirilLove
+			<add position="replace"><![CDATA[// +++ TESLA-CHITA
 				//-$price = $product_query->row['price'];
 				$cart_option = json_decode($cart['option']);
 				$product_feature_id = $this->getProductFeatureId($cart_option);
@@ -212,7 +224,7 @@
 				} else {
 					$price = $product_query->row['price'];
 				}
-				// --- KirilLoveVE]]></add>
+				// --- TESLA-CHITA]]></add>
 		</operation>
 
 	  	<operation>
@@ -222,7 +234,7 @@
 
 	  	<operation>
 			<search><![CDATA[public function add_off($product_id, $quantity = 1, $option = array(), $recurring_id = 0) {]]></search>
-			<add position="before"><![CDATA[	// +++ KirilLove
+			<add position="before"><![CDATA[	// +++ TESLA-CHITA
 	public function add($product_id, $quantity = 1, $option = array(), $recurring_id = 0, $product_feature_id = 0, $unit_id = 0) {
 		$query = $this->db->query("SELECT COUNT(*) AS total FROM " . DB_PREFIX . "cart WHERE customer_id = '" . (int)$this->customer->getId() . "' AND session_id = '" . $this->db->escape($this->session->getId()) . "' AND product_id = '" . (int)$product_id . "' AND recurring_id = '" . (int)$recurring_id . "' AND `option` = '" . $this->db->escape(json_encode($option)) . "' AND `product_feature_id` = '" . (int)$product_feature_id . "' AND `unit_id` = '" . (int)$unit_id . "'");
 
@@ -232,13 +244,13 @@
 			$this->db->query("UPDATE " . DB_PREFIX . "cart SET quantity = (quantity + " . (int)$quantity . ") WHERE customer_id = '" . (int)$this->customer->getId() . "' AND session_id = '" . $this->db->escape($this->session->getId()) . "' AND product_id = '" . (int)$product_id . "' AND recurring_id = '" . (int)$recurring_id . "' AND `option` = '" . $this->db->escape(json_encode($option)) . "' AND product_feature_id = '" . (int)$product_feature_id . "' AND unit_id = '" . (int)$unit_id . "'");
 		}
 	}
-	// --- KirilLove
+	// --- TESLA-CHITA
 ]]></add>
 		</operation>
 
 	  	<operation>
 			<search><![CDATA[	public function getProducts() {]]></search>
-			<add position="before"><![CDATA[	// +++ KirilLove
+			<add position="before"><![CDATA[	// +++ TESLA-CHITA
 	private function getProductFeaturesPrice($product_id, $product_feature_id, $customer_group_id=0, $unit_id=0) {
 		$str_customer_group_id  = $customer_group_id ? " AND customer_group_id = " . $customer_group_id : "";
 		$str_unit_id  = $unit_id? " AND unit_id = " . $unit_id : "";
@@ -268,7 +280,7 @@
 		}
 		return 0;
 	}
-	// --- KirilLove
+	// --- TESLA-CHITA
 
 ]]></add>
 		</operation>
