@@ -2323,12 +2323,12 @@ class ModelToolExchange1c extends Model {
 			$this->setPrice($data['product_id'], $data['prices']);
 		}
 
-		//if ($this->config->get('exchange1c_product_status_disable_if_quantity_zero') == 1) {
-		//	if ($data['quantity'] <= 0) {
-		//		$data['status'] = 0;
-		//		$this->log("> Товар отключен, так как остаток нулевой",1);
-		//	}
-		//}
+		if ($this->config->get('exchange1c_product_disable_if_zero') == 1) {
+			if ($data['quantity'] <= 0) {
+				$data['status'] = 0;
+				$this->log("> Товар отключен, так как остаток нулевой",1);
+			}
+		}
 
 		// Полное наименование из 1С в товар
 		if ($this->config->get('exchange1c_import_product_name') == 'fullname' && isset($data['full_name'])) {
