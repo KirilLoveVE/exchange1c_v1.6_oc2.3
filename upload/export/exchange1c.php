@@ -70,8 +70,8 @@ if (!$store_query->num_rows) {
 }
 
 // Log
-//$log = new Log($config->get('config_error_filename'));
-$log = new Log('exchange1c.log');
+$log = new Log($config->get('config_error_filename'));
+//$log = new Log('exchange1c_ts.log');
 //$log = new Log('exchange1c_'.$_SERVER["REMOTE_ADDR"].'_'.date('dmy').'.log');
 $registry->set('log', $log);
 

@@ -17,7 +17,7 @@ class ModelToolExchange1c extends Model {
 	 *
 	 */
 	public function version() {
-		return "1.6.2.10";
+		return "1.6.2.b9";
 	} // version()
 
 
@@ -1112,14 +1112,11 @@ class ModelToolExchange1c extends Model {
 		if ($category_id) {
 			$query = $this->query("SELECT `category_id` FROM `" . DB_PREFIX . "category` WHERE `category_id` = " . (int)$category_id);
 			if (!$query->num_rows) {
-
 				// Удалим неправильную связь
 				$this->query("DELETE FROM `" . DB_PREFIX . "category_to_1c` WHERE `category_id` = " . (int)$category_id);
-
 				$category_id = 0;
 			}
 		}
-
 		return $category_id;
 
 	} // getCategoryIdBycml_id()
@@ -1131,12 +1128,7 @@ class ModelToolExchange1c extends Model {
 	private function getCategoryIdByName($name, $parent_id = 0) {
 		$this->log("==> getCategoryIdByName(), name  = '" . $name . "', parent_id = '" . $parent_id . "'", 2);
 		$query = $this->query("SELECT `c`.`category_id` FROM `" . DB_PREFIX . "category` `c` LEFT JOIN `" . DB_PREFIX. "category_description` `cd` ON (`c`.`category_id` = `cd`.`category_id`) WHERE `cd`.`name` = LOWER('" . $this->db->escape(strtolower($name)) . "') AND `cd`.`language_id` = " . $this->LANG_ID . " AND `c`.`parent_id` = " . $parent_id);
-		if ($query->num_rows) {
-			$this->log("<== getCategoryIdByName(), category_id = " . $query->row['category_id'], 2);
-			return $query->row['category_id'];
-		}
-		$this->log("<== getCategoryIdByName(), category_id = 0", 2);
-		return 0;
+		return $query->num_rows ? $query->row['category_id'] : 0;
 	} // getCategoryIdByName()
 
 
@@ -1146,7 +1138,7 @@ class ModelToolExchange1c extends Model {
 	private function getCategoryBycml_id($cml_id) {
 		$this->log('==> getCategoryBycml_id()',2);
 		$query = $this->query("SELECT `c`.`category_id`, `cd`.`name` FROM `" . DB_PREFIX . "category_to_1c` `c` LEFT JOIN `" . DB_PREFIX. "category_description` `cd` ON (`c`.`category_id` = `cd`.`category_id`) WHERE `c`.`1c_id` = '" . $this->db->escape($cml_id) . "' AND `cd`.`language_id` = " . $this->LANG_ID);
-		return $query->rows;
+		return $query->num_rows ? $query->rows : 0;
 	} // getCategoryBycml_id()
 
 
@@ -1165,25 +1157,18 @@ class ModelToolExchange1c extends Model {
 			$this->log("<== updateCategoryDescription() - нет данных", 2);
 			return false;
 		}
-
 //		$this->log($query,2);
 //		$this->log($data,2);
-
 		// Сравнивает запрос с массивом данных и формирует список измененных полей
 		$fields = $this->compareArrays($query, $data);
-
 //		$this->log($fields,2);
-
 		// Если есть расхождения, производим обновление
 		if ($fields) {
 			$this->query("UPDATE `" . DB_PREFIX . "category_description` SET " . $fields . " WHERE `category_id` = " . $data['category_id'] . " AND `language_id` = " . $this->LANG_ID);
-
 			$this->query("UPDATE `" . DB_PREFIX . "category` SET date_modified = NOW() WHERE `category_id` = " . $data['category_id']);
-
 			$this->log("<== updateCategoryDescription(), обновленые поля: '" . $fields . "'", 2);
 			return true;
 		}
-
 		$this->log("[i] Описание категории не нуждается в обновлении",2);
 		$this->log("<== updateCategoryDescription()", 2);
 		return false;
@@ -1199,9 +1184,7 @@ class ModelToolExchange1c extends Model {
 
 		// MySQL Hierarchical Data Closure Table Pattern
 		$level = 0;
-
 		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "category_path` WHERE `category_id` = " . $data['parent_id'] . " ORDER BY `level` ASC");
-
 		foreach ($query->rows as $result) {
 			$this->query("INSERT INTO `" . DB_PREFIX . "category_path` SET `category_id` = " . $category_id . ", `path_id` = " . (int)$result['path_id'] . ", `level` = " . $level);
 			$level++;
@@ -1225,26 +1208,19 @@ class ModelToolExchange1c extends Model {
 			foreach ($query->rows as $category_path) {
 				// Delete the path below the current one
 				$this->query("DELETE FROM `" . DB_PREFIX . "category_path` WHERE `category_id` = " . (int)$category_path['category_id'] . " AND `level` < " . (int)$category_path['level']);
-
 				$path = array();
-
 				// Get the nodes new parents
 				$query = $this->query("SELECT * FROM `" . DB_PREFIX . "category_path` WHERE `category_id` = " . $data['parent_id'] . " ORDER BY `level` ASC");
-
 				foreach ($query->rows as $result) {
 					$path[] = $result['path_id'];
 				}
-
 				// Get whats left of the nodes current path
 				$query = $this->query("SELECT * FROM `" . DB_PREFIX . "category_path` WHERE `category_id` = " . $category_path['category_id'] . " ORDER BY `level` ASC");
-
 				foreach ($query->rows as $result) {
 					$path[] = $result['path_id'];
 				}
-
 				// Combine the paths with a new level
 				$level = 0;
-
 				foreach ($path as $path_id) {
 					$this->query("REPLACE INTO `" . DB_PREFIX . "category_path` SET `category_id` = " . $category_path['category_id'] . ", `path_id` = " . $path_id . ", `level` = " . $level);
 
@@ -1254,19 +1230,15 @@ class ModelToolExchange1c extends Model {
 		} else {
 			// Delete the path below the current one
 			$this->query("DELETE FROM `" . DB_PREFIX . "category_path` WHERE `category_id` = " . $data['category_id']);
-
 			// Fix for records with no paths
 			$level = 0;
-
 			$query = $this->query("SELECT * FROM `" . DB_PREFIX . "category_path` WHERE `category_id` = " . $data['parent_id'] . " ORDER BY `level` ASC");
-
-			foreach ($query->rows as $result) {
+ 			foreach ($query->rows as $result) {
 				$this->query("INSERT INTO `" . DB_PREFIX . "category_path` SET `category_id` = " . $data['category_id'] . ", `path_id` = " . (int)$result['path_id'] . ", `level` = " . $level);
 
 				$level++;
 			}
-
-			$this->query("REPLACE INTO `" . DB_PREFIX . "category_path` SET `category_id` = " . $data['category_id'] . ", `path_id` = " . $data['category_id'] . ", `level` = " . $level);
+ 			$this->query("REPLACE INTO `" . DB_PREFIX . "category_path` SET `category_id` = " . $data['category_id'] . ", `path_id` = " . $data['category_id'] . ", `level` = " . $level);
 		}
 
 		$this->log("<== updateHierarchical()", 2);
@@ -1305,9 +1277,7 @@ class ModelToolExchange1c extends Model {
 
 		// Если было обновление описания
 		$this->updateCategoryDescription($data);
-
 		$this->cache->delete('category');
-
 		$this->log("<== updateCategory()", 2);
 
 	} // updateCategory()
@@ -1354,7 +1324,6 @@ class ModelToolExchange1c extends Model {
 				$this->log("[i] Добавление описания к категории отменено, так оно уже существует у category_id = " . $data['category_id']);
 				return $data['category_id'];
 			}
-
 			$this->query("INSERT INTO `" . DB_PREFIX . "category_description` SET `category_id` = " . $data['category_id'] . ", `language_id` = " . $this->LANG_ID . ", " . $fields);
 		}
 
@@ -1442,14 +1411,7 @@ class ModelToolExchange1c extends Model {
 
 		$this->log("==> getOptionValueByName()", 2);
 		$query = $this->query("SELECT `option_value_id` FROM `" . DB_PREFIX . "option_value_description` WHERE `language_id` = " . $this->LANG_ID . " AND `option_id` = " . $option_id . " AND `name` = '" . $this->db->escape($name) . "'");
-
-        if ($query->num_rows) {
- 			$this->log("<== getOptionValueByName(), наден option_value_id = " . $query->row['option_value_id'], 2);
-        	return $query->row['option_value_id'];
-       	}
-
- 		$this->log("<== getOptionValueByName(), не надено.", 2);
-		return 0;
+		return $query->num_rows ? $query->row['option_value_id'] : 0;
 
 	} // getOptionValueByName()
 
@@ -1468,7 +1430,8 @@ class ModelToolExchange1c extends Model {
 
 		$query = $this->query("INSERT INTO `" . DB_PREFIX . "option_value` SET `option_id` = " . $option_id . ", `image` = '" . $this->db->escape($image) . "', `sort_order` = " . $sort_order);
 		$option_value_id = $this->db->getLastId();
- 		$query = $this->query("INSERT INTO `" . DB_PREFIX . "option_value_description` SET `option_id` = " . $option_id . ", `option_value_id` = " . $option_value_id . ", `language_id` = " . $this->LANG_ID . ", `name` = '" . $this->db->escape($value) . "'");
+		if ($option_value_id)
+ 			$query = $this->query("INSERT INTO `" . DB_PREFIX . "option_value_description` SET `option_id` = " . $option_id . ", `option_value_id` = " . $option_value_id . ", `language_id` = " . $this->LANG_ID . ", `name` = '" . $this->db->escape($value) . "'");
 
 		return $option_value_id;
 
@@ -1551,91 +1514,20 @@ class ModelToolExchange1c extends Model {
 
 
 	/**
-	 * Поиск опции в товаре по id товара и id опции
-	 */
-	private function getProductOption($product_id, $option_id, $value='') {
-		$this->log("==> getProductOption()", 2);
-
-		// Ищем опцию в товаре
-		$query = $this->query("SELECT `product_option_id` FROM `" . DB_PREFIX . "product_option` WHERE `product_id` = " . $product_id . " AND `option_id` = " . $option_id . " AND `value` = '" . $this->db->escape($value) . "'");
-        if ($query->num_rows) {
-        	$this->log("<== getProductOption(), return product_option_id: " . $query->row['product_option_id'], 2);
-        	return $query->row['product_option_id'];
-        }
-
-        $this->log("<== getProductOption(), return product_option_id: 0", 2);
-		return 0;
-	} // getProductOption()
-
-
-	/**
-	 * добавляет опцию в товар
-	 */
-	private function addProductOption($product_id, $option_id, $option_name='', $required=1) {
-		$this->log("==> addProductOption()", 2);
-
-		// Добавляем опцию в товар
-		$this->query("INSERT INTO `" . DB_PREFIX . "product_option` SET `product_id` = " . $product_id . ", `option_id` = " . $option_id . ", `value` = '" . $this->db->escape($option_name) . "', `required` = " . $required);
-
-		$product_option_id = $this->db->getLastId();
-
-		$this->log("<== addProductOption(), return: " . $product_option_id, 2);
-       	return $product_option_id;
-	} // addProductOption()
-
-
-	/**
 	 * Добавляет или находит опцию в товаре и возвращает ID
      * $data['product_id'], $option_id, $option_name
 	 */
-	private function setProductOption($product_id, $option_id, $option_name) {
-		$this->log("==> setProductOption(), name = " . $option_name . ", option_id = " . $option_id, 2);
-		$options = array();
+	private function setProductOption($product_id, $option_id, $option_name, $required = 1) {
+		$query = $this->query("SELECT `product_option_id` FROM `" . DB_PREFIX . "product_option` WHERE `product_id` = " . $product_id . " AND `option_id` = " . $option_id . " AND `value` = '" . $this->db->escape($option_name) . "'");
+		$product_option_id = $query->num_rows ? $query->row['product_option_id'] : 0;
 
-		// Ищем опцию
-		$product_option_id = $this->getProductOption($product_id, $option_id, $option_name);
-
-		if (!$product_option_id) {
-			$product_option_id = $this->addProductOption($product_id, $option_id, $option_name);
+ 		if (!$product_option_id) {
+			$this->query("INSERT INTO `" . DB_PREFIX . "product_option` SET `product_id` = " . $product_id . ", `option_id` = " . $option_id . ", `value` = '" . $this->db->escape($option_name) . "', `required` = " . $required);
+			$product_option_id = $this->db->getLastId();
 		}
-
 		$this->log("<== setProductOption(), return: " . $product_option_id, 2);
 		return $product_option_id;
 	} // setProductOption()
-
-
-	/**
-	 * Удаление опции товара
-	 */
-	private function deleteProductOption($product_option_id) {
-
-		$this->log("==> deleteProductOption()", 2);
-
-		// Удалим старые опции
-		$query = $this->query("DELETE FROM `" . DB_PREFIX . "product_option` WHERE `product_option_id` = " . $product_option_id);
-
-		$this->log("<== deleteProductOption()", 2);
-	} // deleteProductOptions()
-
-
-	/**
-	 * Поиск значения опции товара по всем id
-	 */
-	private function getProductOptionValue($feature, $option, $data) {
-		$this->log("==> getProductOptionValue()", 2);
-
-		//$sql = "SELECT product_option_value_id FROM `" . DB_PREFIX . "product_option_value` WHERE `product_option_id` = " . $option['product_option_id'] . " AND `product_id` = " . $data['product_id'] . " AND `option_id` = " . $option['option_id'] . " AND option_value_id = " . $option['option_value_id'] . " AND `product_feature_id` = " . $feature['product_feature_id'];
-		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_option_value` WHERE `product_option_id` = " . $option['product_option_id'] . " AND `product_id` = " . $data['product_id'] . " AND `option_id` = " . $option['option_id'] . " AND option_value_id = " . $option['option_value_id']);
-
-        if ($query->num_rows) {
-			$this->log("<== getProductOptionValue(), есть данные: " . $query->num_rows, 2);
-			return $query->row;
-       	}
-
-		$this->log("<== getProductOptionValue(), нет данных", 2);
-		return array();
-
-	} // getProductOptionValues()
 
 
 	/**
@@ -1699,7 +1591,8 @@ class ModelToolExchange1c extends Model {
 	private function setProductOptionValue($feature, $option, $data) {
 		$this->log("==> setProductOptionValue(), value = " . $option['value'], 2);
 
-		$product_option_value = $this->getProductOptionValue($feature, $option, $data);
+		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_option_value` WHERE `product_option_id` = " . $option['product_option_id'] . " AND `product_id` = " . $data['product_id'] . " AND `option_id` = " . $option['option_id'] . " AND option_value_id = " . $option['option_value_id']);
+		$product_option_value = $query->num_rows ? $query->row : 0;
 
 		if (empty($product_option_value)){
 			$product_option_value_id = $this->addProductOptionValue($feature, $option, $data);
@@ -1709,7 +1602,8 @@ class ModelToolExchange1c extends Model {
 			$this->log($product_option_value, 2);
 
 			// В режиме загрузки характеристик - характеристика, записываем остаток и разницу цен в опции
-			// Хотя остатки и цены хранятся в отдельных таблицах
+			// но в этом случае использователь несколько цен нельзя, так как разница записанная в опцию,
+			// будет распространятся и на остальные цены
 			if ($this->config->get('exchange1c_product_options_mode') == 'feature') {
 				// Определим разницу в цене
 				//$this->updateProductOptionValue($product_option_value_id, $feature['quantity'], $price_prefix, $price);
@@ -1722,19 +1616,6 @@ class ModelToolExchange1c extends Model {
 
 
 	/**
-	 * Удаляет значение опции из товара
-	 */
-	private function deleteProductOptionValue($product_option_value_id) {
-		$this->log("==> deleteProductOptionValue()", 2);
-
-		// Добавляем опцию в товар
-		$this->query("DELETE FROM `" . DB_PREFIX . "product_option_value` WHERE `product_option_value_id` = " . $product_option_value_id);
-
-		$this->log("<== deleteProductOptionValue()", 2);
-	} // deleteProductOptionValue()
-
-
-	/**
 	 * ************************************ ФУНКЦИИ ДЛЯ РАБОТЫ С ХАРАКТЕРИСТИКАМИ *************************************
 	 */
 
@@ -1742,11 +1623,9 @@ class ModelToolExchange1c extends Model {
 	 * Ищет, проверяет, добавляет значение характеристики товара
 	 */
 	private function setProductFeatureValue($product_feature_id, $product_id, $product_option_id, $product_option_value_id) {
-
 		$this->log("==> setProductFeatureValue()", 2);
-		// Поищем такое значение
-		$query = $this->query("SELECT `product_feature_value_id` FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_feature_id` = " . $product_feature_id . " AND `product_option_value_id` = " . $product_option_value_id);
 
+		$query = $this->query("SELECT `product_feature_value_id` FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_feature_id` = " . $product_feature_id . " AND `product_option_value_id` = " . $product_option_value_id);
 		if ($query->num_rows) {
 			$this->log("<== setProductFeatureValue(), return: " . $query->row['product_feature_value_id'], 2);
 			return $query->row['product_feature_value_id'];
@@ -1754,7 +1633,6 @@ class ModelToolExchange1c extends Model {
 
        	// Добавим значение
 		$query = $this->query("INSERT INTO `" . DB_PREFIX . "product_feature_value` SET `product_feature_id` = " . $product_feature_id . ", `product_id` = " . $product_id . ", `product_option_id` = " . $product_option_id . ", `product_option_value_id` = " . $product_option_value_id);
-
 		$product_feature_value_id = $this->db->getLastId();
 
 		$this->log("<== setProductFeatureValue(), return: " . $product_feature_value_id, 2);
@@ -1810,9 +1688,7 @@ class ModelToolExchange1c extends Model {
 		foreach ($data['features'] as $feature_cml_id => $feature) {
 			// СВЯЗЬ ХАРАКТЕРИСТИКИ С 1С:ПРЕДПРИЯТИЕ
 			// Ищем характеристику по Ид
-			$sql = "SELECT * FROM `" . DB_PREFIX . "product_feature` WHERE `1c_id` = '" . $this->db->escape($feature_cml_id) . "'";
-	 		$this->log($sql,2);
-			$query = $this->db->query($sql);
+			$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_feature` WHERE `1c_id` = '" . $this->db->escape($feature_cml_id) . "'");
 //			$this->log($query,2);
 
 			if ($query->num_rows) {
@@ -1823,9 +1699,7 @@ class ModelToolExchange1c extends Model {
 				$fields = $this->compareArrays($query, $feature);
 
 				if ($fields) {
-					$sql = "UPDATE `" . DB_PREFIX . "product_feature` SET " . $fields . " WHERE `product_feature_id` = " . $product_feature_id;
-			 		$this->log($sql,2);
-					$this->db->query($sql);
+					$this->query("UPDATE `" . DB_PREFIX . "product_feature` SET " . $fields . " WHERE `product_feature_id` = " . $product_feature_id);
 				}
 
 	       	} else {
@@ -1833,9 +1707,7 @@ class ModelToolExchange1c extends Model {
 	       		$sql = isset($feature['name'])	? ", `name` = '"	. $this->db->escape($feature['name']) 	. "'" : "";
 	       		$sql .= isset($feature['sku'])	? ", `sku` = '"		. $this->db->escape($feature['sku']) 	. "'" : "";
 	       		$sql .= isset($feature['ean'])	? ", `ean` = '"		. $feature['ean'] . "'" : "";
-				$sql = "INSERT INTO `" . DB_PREFIX . "product_feature` SET `1c_id` = '" . $this->db->escape($feature_cml_id) . "'" . $sql;
-		 		$this->log($sql,2);
-				$this->db->query($sql);
+				$this->query("INSERT INTO `" . DB_PREFIX . "product_feature` SET `1c_id` = '" . $this->db->escape($feature_cml_id) . "'" . $sql);
 
 				$product_feature_id = $this->db->getLastId();
 				$data['features'][$feature_cml_id]['product_feature_id'] = $product_feature_id;
@@ -1900,9 +1772,7 @@ class ModelToolExchange1c extends Model {
 
 		$this->log("==> getProductFeatureId()", 2);
 		// Ищем характеристику по Ид
-		$sql = "SELECT `product_feature_id` FROM `" . DB_PREFIX . "product_feature` WHERE `1c_id` = '" . $this->db->escape($feature_cml_id) . "'";
- 		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_feature_id` FROM `" . DB_PREFIX . "product_feature` WHERE `1c_id` = '" . $this->db->escape($feature_cml_id) . "'");
 
 		if ($query->num_rows) {
 			$this->log("<== getProductFeatureId(), return product_feature_id: " . $query->row['product_feature_id'], 2);
@@ -1924,35 +1794,29 @@ class ModelToolExchange1c extends Model {
 
 		// Читаем старые опции товара, сравниваем, лишние удаляем
 		$old_options = array();
-		$sql = "SELECT `product_option_id` FROM `" . DB_PREFIX . "product_option` WHERE `product_id` = " . $data['product_id'];
- 		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_option_id` FROM `" . DB_PREFIX . "product_option` WHERE `product_id` = " . $data['product_id']);
 		foreach ($query->rows as $option) {
 			$old_options[] = $option['product_option_id'];
 		}
-		$this->log("old_options: ", 2);
+		//$this->log("old_options: ", 2);
 		//$this->log($old_options, 2);
 
 		// Читаем старые значения опциий товара
 		$old_values = array();
-		$sql = "SELECT `product_option_value_id` FROM `" . DB_PREFIX . "product_option_value` WHERE `product_id` = " . $data['product_id'];
- 		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_option_value_id` FROM `" . DB_PREFIX . "product_option_value` WHERE `product_id` = " . $data['product_id']);
 		foreach ($query->rows as $value) {
 			$old_values[] = $value['product_option_value_id'];
 		}
-		$this->log("old_values: ", 2);
-		$this->log($old_values, 2);
+		//$this->log("old_values: ", 2);
+		//$this->log($old_values, 2);
 
 		// Читаем старые значения характеристики текущего товара
 		$old_features_values = array();
-		$sql = "SELECT `product_feature_value_id` FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_id` = " . $data['product_id'];
- 		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_feature_value_id` FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_id` = " . $data['product_id']);
 		foreach ($query->rows as $value) {
 			$old_features_values[] = $value['product_feature_value_id'];
 		}
-		$this->log("old_features_values: ", 2);
+		//$this->log("old_features_values: ", 2);
 		//$this->log($old_features_values, 2);
 
 
@@ -1997,36 +1861,21 @@ class ModelToolExchange1c extends Model {
 
 		// Удалим старые неиспользуемые опции из товара
 		foreach ($old_options as $option) {
-			$this->deleteProductOption($option);
+			$query = $this->query("DELETE FROM `" . DB_PREFIX . "product_option` WHERE `product_option_id` = " . $option);
 		}
 
 		// Удалим старые неиспользуемые значения опции из товара
 		foreach ($old_values as $value) {
-			$this->deleteProductOptionValue($value);
+			$this->query("DELETE FROM `" . DB_PREFIX . "product_option_value` WHERE `product_option_value_id` = " . $value);
 		}
 
 		// Удалим старые неиспользуемые значения опции из товара
 		foreach ($old_features_values as $value) {
-			$this->deleteProductFeatureValue($value);
+			$this->query("DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_feature_value_id` = " . $value);
 		}
 
 		$this->log("<== setProductFeaturesOptions()", 2);
 	}
-
-
-	/**
-	 * Удаляет значение характеристики товара
-	 */
-	private function deleteProductFeatureValue($product_feature_value_id) {
-		$this->log("==> deleteProductFeatureValue()", 2);
-
-		// Добавляем опцию в товар
-		$sql = "DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_feature_value_id` = " . $product_feature_value_id;
- 		$this->log($sql,2);
-		$this->db->query($sql);
-
-		$this->log("<== deleteProductFeatureValue()", 2);
-	} // deleteProductFeatureValue()
 
 
 	/**
@@ -2035,16 +1884,10 @@ class ModelToolExchange1c extends Model {
 	private function deleteProductFeatures($product_id) {
 
 		$this->log("==> deleteFeatures()",2);
-
 		// Удалим старые характеристики
-		$sql = "DELETE FROM `" . DB_PREFIX . "product_feature` WHERE `product_id` = " . $product_id;
- 		$this->log($sql,2);
-		$query = $this->db->query($sql);
-
+		$query = $this->query("DELETE FROM `" . DB_PREFIX . "product_feature` WHERE `product_id` = " . $product_id);
 		// Удалим старые значения характеристики
-		$sql = "DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_id` = " . $product_id;
- 		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_id` = " . $product_id);
 
 	} // deleteProductFeatures()
 
@@ -2068,12 +1911,8 @@ class ModelToolExchange1c extends Model {
 		// Подготовим список полей по которым есть данные
 		$fields = $this->prepareQueryProduct($data);
 		if ($fields) {
-			$sql = "INSERT INTO `" . DB_PREFIX . "product` SET " . $fields . ", `date_added` = NOW(), `date_modified` = NOW()";
-			$this->log(2,$sql);
-			$this->db->query($sql);
-
+			$this->query("INSERT INTO `" . DB_PREFIX . "product` SET " . $fields . ", `date_added` = NOW(), `date_modified` = NOW()");
 			$data['product_id'] = $this->db->getLastId();
-
 		} else {
 			// Если нет данны - выходим
 			return false;
@@ -2087,9 +1926,7 @@ class ModelToolExchange1c extends Model {
 		// описание (пока только для одного языка)
 		$fields = $this->prepareStrQueryDescription($data);
 		if ($fields) {
-			$sql = "INSERT INTO `" . DB_PREFIX . "product_description` SET `product_id` = " . $data['product_id'] . ", `language_id` = " . $this->LANG_ID . ", " . $fields;
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("INSERT INTO `" . DB_PREFIX . "product_description` SET `product_id` = " . $data['product_id'] . ", `language_id` = " . $this->LANG_ID . ", " . $fields);
 		}
 
 		// категории продукта
@@ -2100,12 +1937,10 @@ class ModelToolExchange1c extends Model {
 		if (isset($data['product_categories'])) {
 			foreach ($data['product_categories'] as $key => $category_id) {
 				if ($key == 0) {
-					$sql = "INSERT INTO `" . DB_PREFIX . "product_to_category` SET `product_id` = " . $data['product_id'] . ", `category_id` = " . $category_id . $main_category;
+					$this->query("INSERT INTO `" . DB_PREFIX . "product_to_category` SET `product_id` = " . $data['product_id'] . ", `category_id` = " . $category_id . $main_category);
 				} else {
-					$sql = "INSERT INTO `" . DB_PREFIX . "product_to_category` SET `product_id` = " . $data['product_id'] . ", `category_id` = " . $category_id;
+					$this->query("INSERT INTO `" . DB_PREFIX . "product_to_category` SET `product_id` = " . $data['product_id'] . ", `category_id` = " . $category_id);
 				}
-				$this->log($sql,2);
-				$this->db->query($sql);
 				$this->log("[i] В товар добавлена категория, category_id: " . $category_id,2);
 			}
 		}
@@ -2232,12 +2067,10 @@ class ModelToolExchange1c extends Model {
 
 		$old_categories = array();
 		if ($main_category) {
-			$sql = "SELECT `category_id`,`main_category`  FROM `" . DB_PREFIX . "product_to_category` WHERE `product_id` = " . $product_id;
+			$query = $this->query("SELECT `category_id`,`main_category`  FROM `" . DB_PREFIX . "product_to_category` WHERE `product_id` = " . $product_id);
 		} else {
-			$sql = "SELECT `category_id`  FROM `" . DB_PREFIX . "product_to_category` WHERE `product_id` = " . $product_id;
+			$query = $this->query("SELECT `category_id`  FROM `" . DB_PREFIX . "product_to_category` WHERE `product_id` = " . $product_id);
 		}
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
 		foreach ($query->rows as $category) {
 			$old_categories[$category['category_id']] = $main_category;
 		}
@@ -2249,21 +2082,17 @@ class ModelToolExchange1c extends Model {
 			} else {
 				// Значит надо добавить, возможно группу удалили или изменили
 				if ($key == 0) {
-					$sql = "INSERT INTO `" . DB_PREFIX . "product_to_category` SET `product_id` = " . $product_id . ", `category_id` = " . $category_id . $main_category;
+					$this->query("INSERT INTO `" . DB_PREFIX . "product_to_category` SET `product_id` = " . $product_id . ", `category_id` = " . $category_id . $main_category);
 				} else {
-					$sql = "INSERT INTO `" . DB_PREFIX . "product_to_category` SET `product_id` = " . $product_id . ", `category_id` = " . $category_id;
+					$this->query("INSERT INTO `" . DB_PREFIX . "product_to_category` SET `product_id` = " . $product_id . ", `category_id` = " . $category_id);
 				}
-				$this->log($sql,2);
-				$this->db->query($sql);
 			}
 		}
 		//$this->log($old_categories, 2);
 
 		// а те которые не указаны в файле, удаляем
 		foreach ($old_categories as $category_id => $main_category) {
-			$sql = "DELETE FROM `" . DB_PREFIX . "product_to_category` WHERE `product_id` = " . $product_id . " AND `category_id` = " . $category_id;
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("DELETE FROM `" . DB_PREFIX . "product_to_category` WHERE `product_id` = " . $product_id . " AND `category_id` = " . $category_id);
 		}
 		$this->log("<== setProductCategories()", 2);
 	} // setProductCategories()
@@ -2339,9 +2168,7 @@ class ModelToolExchange1c extends Model {
 		// Читаем только те данные, которые получены из файла
 		$fields = $this->prepareQueryProduct($data, 'get');
 		if ($fields) {
-			$sql = "SELECT " . $fields . "  FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . $data['product_id'];
-			$this->log($sql,2);
-			$query = $this->db->query($sql);
+			$query = $this->query("SELECT " . $fields . "  FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . $data['product_id']);
 		}
 
 		// SEO формируем только из offers
@@ -2352,9 +2179,7 @@ class ModelToolExchange1c extends Model {
 
 		// Если есть что обновлять
 		if ($fields) {
-			$sql = "UPDATE `" . DB_PREFIX . "product` SET " . $fields . ", `date_modified` = NOW() WHERE `product_id` = " . $data['product_id'];
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("UPDATE `" . DB_PREFIX . "product` SET " . $fields . ", `date_modified` = NOW() WHERE `product_id` = " . $data['product_id']);
 			$update = true;
 		}
 
@@ -2362,7 +2187,6 @@ class ModelToolExchange1c extends Model {
 		if (isset($data['unit'])) {
 			$this->setProductUnits($data['product_id'], $data['unit']);
 		}
-
 
 		// Обновляем описание товара
 		if ($this->updateProductDescription($data))
@@ -2390,16 +2214,9 @@ class ModelToolExchange1c extends Model {
 	 * Получает product_id по артикулу
 	 */
 	private function getProductBySKU($sku) {
-
-		$this->log("==> getProductBySKU()",2);
-		$sql = "SELECT `product_id` FROM `" . DB_PREFIX . "product` WHERE `sku` = '" . $this->db->escape($sku) . "'";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
-
-		if ($query->num_rows)
-			return $query->row['product_id'];
-		else
-			return 0;
+ 		$this->log("==> getProductBySKU()",2);
+		$query = $this->query("SELECT `product_id` FROM `" . DB_PREFIX . "product` WHERE `sku` = '" . $this->db->escape($sku) . "'");
+		return $query->num_rows ? $query->row['product_id'] : 0;
 	} // getProductBySKU()
 
 
@@ -2407,16 +2224,9 @@ class ModelToolExchange1c extends Model {
 	 * Получает product_id по наименованию товара
 	 */
 	private function getProductByName($name) {
-
-		$this->log("==> getProductByName()",2);
-		$sql = "SELECT `pd`.`product_id` FROM `" . DB_PREFIX . "product` `p` LEFT JOIN `" . DB_PREFIX . "product_description` `pd` ON (`p`.`product_id` = `pd`.`product_id`) WHERE `name` = LOWER('" . $this->db->escape(strtolower($name)) . "')";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
-
-		if ($query->num_rows)
-			return $query->row['product_id'];
-		else
-			return 0;
+ 		$this->log("==> getProductByName()",2);
+		$query = $this->query("SELECT `pd`.`product_id` FROM `" . DB_PREFIX . "product` `p` LEFT JOIN `" . DB_PREFIX . "product_description` `pd` ON (`p`.`product_id` = `pd`.`product_id`) WHERE `name` = LOWER('" . $this->db->escape(strtolower($name)) . "')");
+		return $query->num_rows ? $query->row['product_id'] : 0;
 	} // getProductByName()
 
 
@@ -2424,31 +2234,11 @@ class ModelToolExchange1c extends Model {
 	 * Получает product_id по наименованию товара
 	 */
 	private function getProductByEAN($ean) {
-
 		$this->log("==> getProductByEAN()",2);
-		$sql = "SELECT `product_id` FROM `" . DB_PREFIX . "product` WHERE `ean` = '" . $ean . "'";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
-
-		if ($query->num_rows)
-			return $query->row['product_id'];
-		else
-			return 0;
+		$query = $this->query("SELECT `product_id` FROM `" . DB_PREFIX . "product` WHERE `ean` = '" . $ean . "'");
+		return $query->num_rows ? $query->row['product_id'] : 0;
 	} // getProductByEAN()
 
-
-	/**
-	 * Добавляет связь товара ID с Ид в XML
-	 */
-	private function insertProductLinkToCML($product_id, $product_cml_id) {
-
-		$this->log("==> insertProductLinkToCML()", 2);
-		$sql = "INSERT INTO `" . DB_PREFIX . "product_to_1c` SET `product_id` = '" . (int)$product_id . "', `1c_id` = '" . $this->db->escape($product_cml_id) . "'";
-		$this->log($sql,2);
-		$this->db->query($sql);
-		$this->log("<== insertProductLinkToCML()", 2);
-
-	} // insertProductLinkToCML()
 
 	/**
 	 * Обновление или добавление товара
@@ -2497,7 +2287,7 @@ class ModelToolExchange1c extends Model {
 
 			// Если нашли, запишем связь
  			if ($data['product_id'])
-				$this->insertProductLinkToCML($data['product_id'], $data['product_cml_id']);
+				$this->query("INSERT INTO `" . DB_PREFIX . "product_to_1c` SET `product_id` = '" . (int)$data['product_id'] . "', `1c_id` = '" . $this->db->escape($data['product_cml_id']) . "'");
 
  		}
  		// Можно добавить поиск по наименованию или другим полям...
@@ -2519,7 +2309,7 @@ class ModelToolExchange1c extends Model {
 
 
 	/**
-	 * Загружает реквизиты товара в массив
+	 * Читает реквизиты товара из XML в массив
 	 */
 	private function parseRequisite($xml, $data) {
 		$this->log("==> parseRequisite()",2);
@@ -2648,15 +2438,11 @@ class ModelToolExchange1c extends Model {
 
 		// Прочитаем все старые картинки
 		$old_images = array();
-		$sql = "SELECT `product_image_id`,`image` FROM `" . DB_PREFIX . "product_image` WHERE `product_id` = " . $product_id;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_image_id`,`image` FROM `" . DB_PREFIX . "product_image` WHERE `product_id` = " . $product_id);
 		foreach ($query->rows as $image) {
 			$old_images[$image['product_image_id']] = $image['image'];
 		}
-		$sql = "SELECT `image` FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . $product_id;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `image` FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . $product_id);
 		if ($query->num_rows)
 			$old_images[0] = $query->row['image'];
 
@@ -2712,9 +2498,7 @@ class ModelToolExchange1c extends Model {
 			if ($index == 0) {
 				if ($old_images[0] <> $new_image) {
 					// Надо обновить
-					$sql = "UPDATE `" . DB_PREFIX . "product` SET `image` = '" . $this->db->escape($new_image) . "' WHERE `product_id` = " . $product_id;
-					$this->log($sql, 2);
-					$this->db->query($sql);
+					$this->query("UPDATE `" . DB_PREFIX . "product` SET `image` = '" . $this->db->escape($new_image) . "' WHERE `product_id` = " . $product_id);
 					$this->log("> Картинка основная: '" . $new_image . "'", 2);
 				}
 				// Удалять картинку не нужно
@@ -2731,9 +2515,7 @@ class ModelToolExchange1c extends Model {
 					unset($old_images[$product_image_id]);
 				} else {
 					// Нет картинки такой
-					$sql = "INSERT INTO `" . DB_PREFIX . "product_image` SET `product_id` = " . $product_id . ", `image` = '" . $this->db->escape($new_image) . "', `sort_order` = " . $index;
-					$this->log($sql, 2);
-					$this->db->query($sql);
+					$this->query("INSERT INTO `" . DB_PREFIX . "product_image` SET `product_id` = " . $product_id . ", `image` = '" . $this->db->escape($new_image) . "', `sort_order` = " . $index);
 					$this->log("> Картинка дополнительная: '" . $new_image . "'", 2);
 				}
 			}
@@ -2743,9 +2525,7 @@ class ModelToolExchange1c extends Model {
 
 		// Удалим старые неиспользованные картинки
 		foreach ($old_images as $product_image_id => $image) {
-			$sql = "DELETE FROM `" . DB_PREFIX . "product_image` WHERE `product_image_id` = " . $product_image_id;
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("DELETE FROM `" . DB_PREFIX . "product_image` WHERE `product_image_id` = " . $product_image_id);
 
 			if (is_file(DIR_IMAGE . $image)) {
 				// Также удалим файл с диска
@@ -2765,23 +2545,16 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function setAttributeGroup($name) {
 		$this->log("==> setAttributeGroup()",2);
-		$sql = "SELECT `attribute_group_id` FROM `" . DB_PREFIX . "attribute_group_description` WHERE `name` = '" . $this->db->escape($name) . "'";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `attribute_group_id` FROM `" . DB_PREFIX . "attribute_group_description` WHERE `name` = '" . $this->db->escape($name) . "'");
 		if ($query->rows) {
 			return $query->row['attribute_group_id'];
 		}
 
 		// Добавляем группу
-		$sql = "INSERT INTO `" . DB_PREFIX . "attribute_group` SET `sort_order` = 1";
-		$this->log($sql,2);
-		$this->db->query($sql);
+		$this->query("INSERT INTO `" . DB_PREFIX . "attribute_group` SET `sort_order` = 1");
 
 		$attribute_group_id = $this->db->getLastId();
-
-		$sql = "INSERT INTO `" . DB_PREFIX . "attribute_group_description` SET `attribute_group_id` = " . $attribute_group_id . ", `language_id` = " . $this->LANG_ID . ", `name` = '" . $this->db->escape($name) . "'";
-		$this->log($sql,2);
-		$this->db->query($sql);
+		$this->query("INSERT INTO `" . DB_PREFIX . "attribute_group_description` SET `attribute_group_id` = " . $attribute_group_id . ", `language_id` = " . $this->LANG_ID . ", `name` = '" . $this->db->escape($name) . "'");
 
 		$this->log("<== setAttributeGroup()",2);
 		return $attribute_group_id;
@@ -2796,18 +2569,14 @@ class ModelToolExchange1c extends Model {
 
 		// Ищем свойства по 1С Ид
 		$attribute_id = 0;
-		$sql = "SELECT `attribute_id` FROM `" . DB_PREFIX . "attribute_to_1c` WHERE `1c_id` = '" . $this->db->escape($cml_id) . "'";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `attribute_id` FROM `" . DB_PREFIX . "attribute_to_1c` WHERE `1c_id` = '" . $this->db->escape($cml_id) . "'");
 		if ($query->num_rows) {
 			$attribute_id = $query->row['attribute_id'];
 		}
 
 		if (!$attribute_id) {
 			// Попытаемся найти по наименованию
-			$sql = "SELECT `a`.`attribute_id` FROM `" . DB_PREFIX . "attribute` `a` LEFT JOIN `" . DB_PREFIX . "attribute_description` `ad` ON (`a`.`attribute_id` = `ad`.`attribute_id`) WHERE `ad`.`language_id` = " . $this->LANG_ID . " AND `ad`.`name` LIKE '" . $this->db->escape($name) . "' AND `a`.`attribute_group_id` = " . $attribute_group_id;
-			$this->log($sql,2);
-			$query = $this->db->query($sql);
+			$query = $this->query("SELECT `a`.`attribute_id` FROM `" . DB_PREFIX . "attribute` `a` LEFT JOIN `" . DB_PREFIX . "attribute_description` `ad` ON (`a`.`attribute_id` = `ad`.`attribute_id`) WHERE `ad`.`language_id` = " . $this->LANG_ID . " AND `ad`.`name` LIKE '" . $this->db->escape($name) . "' AND `a`.`attribute_group_id` = " . $attribute_group_id);
 			if ($query->num_rows) {
 				$attribute_id = $query->row['attribute_id'];
 			}
@@ -2815,21 +2584,15 @@ class ModelToolExchange1c extends Model {
 
 		// Обновление
 		if ($attribute_id) {
-			$sql = "SELECT `a`.`attribute_group_id`,`ad`.`name` FROM `" . DB_PREFIX . "attribute` `a` LEFT JOIN `" . DB_PREFIX . "attribute_description` `ad` ON (`a`.`attribute_id` = `ad`.`attribute_id`) WHERE `ad`.`language_id` = " . $this->LANG_ID . " AND `a`.`attribute_id` = " . $attribute_id;
-			$this->log($sql,2);
-			$query = $this->db->query($sql);
+			$query = $this->query("SELECT `a`.`attribute_group_id`,`ad`.`name` FROM `" . DB_PREFIX . "attribute` `a` LEFT JOIN `" . DB_PREFIX . "attribute_description` `ad` ON (`a`.`attribute_id` = `ad`.`attribute_id`) WHERE `ad`.`language_id` = " . $this->LANG_ID . " AND `a`.`attribute_id` = " . $attribute_id);
 			if ($query->num_rows) {
 				// Изменилась группа свойства
 				if ($query->row['attribute_group_id'] <> $attribute_group_id) {
-					$sql = "UPDATE `" . DB_PREFIX . "attribute` SET `attribute_group_id` = " . (int)$attribute_group_id . " WHERE `attribute_id` = " . $attribute_id;
-					$this->log($sql,2);
-					$this->db->query($sql);
+					$this->query("UPDATE `" . DB_PREFIX . "attribute` SET `attribute_group_id` = " . (int)$attribute_group_id . " WHERE `attribute_id` = " . $attribute_id);
 				}
 				// Изменилось имя
 				if ($query->row['name'] <> $name) {
-					$sql = "UPDATE `" . DB_PREFIX . "attribute_description` SET `name` = '" . $this->db->escape($name) . "' WHERE `attribute_id` = " . $attribute_id . " AND `language_id` = " . $this->LANG_ID;
-					$this->log($sql,2);
-					$this->db->query($sql);
+					$this->query("UPDATE `" . DB_PREFIX . "attribute_description` SET `name` = '" . $this->db->escape($name) . "' WHERE `attribute_id` = " . $attribute_id . " AND `language_id` = " . $this->LANG_ID);
 				}
 			}
 
@@ -2838,20 +2601,12 @@ class ModelToolExchange1c extends Model {
 		}
 
 		// Добавим в базу характеристику
-		$sql = "INSERT INTO `" . DB_PREFIX . "attribute` SET `attribute_group_id` = " . $attribute_group_id . ", `sort_order` = " . $sort_order;
-		$this->log($sql,2);
-		$this->db->query($sql);
-
+		$this->query("INSERT INTO `" . DB_PREFIX . "attribute` SET `attribute_group_id` = " . $attribute_group_id . ", `sort_order` = " . $sort_order);
 		$attribute_id = $this->db->getLastId();
-
-		$sql = "INSERT INTO `" . DB_PREFIX . "attribute_description` SET `attribute_id` = " . $attribute_id . ", `language_id` = " . $this->LANG_ID . ", `name` = '" . $this->db->escape($name) . "'";
-		$this->log($sql,2);
-		$this->db->query($sql);
+		$this->query("INSERT INTO `" . DB_PREFIX . "attribute_description` SET `attribute_id` = " . $attribute_id . ", `language_id` = " . $this->LANG_ID . ", `name` = '" . $this->db->escape($name) . "'");
 
 		// Добавляем ссылку для 1С Ид
-		$sql = "INSERT INTO `" .  DB_PREFIX . "attribute_to_1c` SET `attribute_id` = " . $attribute_id . ", `1c_id` = '" . $this->db->escape($cml_id) . "'";
-		$this->log($sql,2);
-		$this->db->query($sql);
+		$this->query("INSERT INTO `" .  DB_PREFIX . "attribute_to_1c` SET `attribute_id` = " . $attribute_id . ", `1c_id` = '" . $this->db->escape($cml_id) . "'");
 
 		$this->log("<== setAttribute(), return attribute_id: " . $attribute_id, 2);
 		return $attribute_id;
@@ -2906,12 +2661,12 @@ class ModelToolExchange1c extends Model {
 
 			// Определим название группы в название свойства в круглых скобках в конце названия
 			$this->log("[i] Определение названия группы свойства: " . $name, 2);
-			preg_match('/(.*) \((.*)\)/', $name, $match);
-			if (isset($match[2])) {
-//				$this->log($match, 2);
-				$name = $match[1];
-				$group_name = $match[2];
+			$name_split = $this->splitNameStr($name);
+			$this->log($name_split, 2);
+			if ($name_split['option']) {
+				$group_name = $name_split['option'];
 			}
+			$name = $name_split['name'];
 			// Установим группу для свойств
 			$attribute_group_id = $this->setAttributeGroup($group_name);
 
@@ -3051,36 +2806,15 @@ class ModelToolExchange1c extends Model {
 	/**
 	 * Устанавливает свойства в товар из массива
 	 */
-	private function updateProductAttributeValue($product_id, $attribute_id, $value) {
-		$this->log("==> updateProductAttributeValue()", 2);
-		$sql = "UPDATE `" . DB_PREFIX . "product_attribute` SET `text` = '" . $this->db->escape($value) . "' WHERE `product_id` = " . $product_id . " AND `attribute_id` = " . $attribute_id . " AND `language_id` = " . $this->LANG_ID;
-		$this->log($sql,2);
-		$this->db->query($sql);
-		$this->log("<== updateProductAttributeValue()", 2);
-	} // updateProductAttributeValue()
-
-	/**
-	 * Устанавливает свойства в товар из массива
-	 */
 	private function setProductAttributes($data) {
 		$this->log("==> setProductAttributes()", 2);
-		//$this->log($data,2);
 
 		// Проверяем
 		$product_attributes = array();
-		$sql = "SELECT `attribute_id`,`text` FROM `" . DB_PREFIX . "product_attribute` WHERE `product_id` = " . $data['product_id'] . " AND `language_id` = " . $this->LANG_ID;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
-		//$this->log('query:',2);
-		//$this->log($query,2);
+		$query = $this->query("SELECT `attribute_id`,`text` FROM `" . DB_PREFIX . "product_attribute` WHERE `product_id` = " . $data['product_id'] . " AND `language_id` = " . $this->LANG_ID);
 		foreach ($query->rows as $attribute) {
 			$product_attributes[$attribute['attribute_id']] = $attribute['text'];
 		}
-		//$this->log('product_attributes:', 2);
-		//$this->log($product_attributes, 2);
-
-		//$this->log('data[product_attributes]:',2);
-		//$this->log($data['product_attributes'], 2);
 
 		foreach ($data['product_attributes'] as $property) {
 			// Проверим есть ли такой атрибут
@@ -3090,23 +2824,19 @@ class ModelToolExchange1c extends Model {
 
 				// Проверим значение
 				if ($product_attributes[$property['attribute_id']] != $property['value'])
-					$this->updateProductAttributeValue($data['product_id'], $property['attribute_id'], $property['value']);
+					$this->query("UPDATE `" . DB_PREFIX . "product_attribute` SET `text` = '" . $this->db->escape($property['value']) . "' WHERE `product_id` = " . $data['product_id'] . " AND `attribute_id` = " . $property['attribute_id'] . " AND `language_id` = " . $this->LANG_ID);
 
 				unset($product_attributes[$property['attribute_id']]);
 			} else {
 				// Добавим в товар
-				$sql = "INSERT INTO `" . DB_PREFIX . "product_attribute` SET `product_id` = " . $data['product_id'] . ", `attribute_id` = " . $property['attribute_id'] . ", `language_id` = " . $this->LANG_ID . ", `text` = '" .  $this->db->escape($property['value']) . "'";
-				$this->db->query($sql);
-				$this->log($sql,2);
+				$this->query("INSERT INTO `" . DB_PREFIX . "product_attribute` SET `product_id` = " . $data['product_id'] . ", `attribute_id` = " . $property['attribute_id'] . ", `language_id` = " . $this->LANG_ID . ", `text` = '" .  $this->db->escape($property['value']) . "'");
 				$this->log("> Свойство '" . $this->db->escape($property['name']) . "' = '" . $this->db->escape($property['value']) . "' записано в товар id: " . $data['product_id'],2);
 			}
 		}
 
 		// Удалим неиспользованные
 		foreach ($product_attributes as $attribute_id => $attribute) {
-			$sql = "DELETE FROM `" . DB_PREFIX . "product_attribute` WHERE `product_id` = " . $data['product_id'] . " AND `language_id` = " . $this->LANG_ID . " AND `attribute_id` = " . $attribute_id;
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("DELETE FROM `" . DB_PREFIX . "product_attribute` WHERE `product_id` = " . $data['product_id'] . " AND `language_id` = " . $this->LANG_ID . " AND `attribute_id` = " . $attribute_id);
 		}
 		$this->log("<== setProductAttributes()", 2);
 	} // setProductAttributes()
@@ -3117,36 +2847,25 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function updateManufacturer($data) {
 		$this->log("==> updateManufacturer()",2);
-//		$this->log($data,2);
 
-		$sql = "SELECT `name` FROM `" . DB_PREFIX . "manufacturer` WHERE `manufacturer_id` = " . $data['manufacturer_id'];
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
-
+		$query = $this->query("SELECT `name` FROM `" . DB_PREFIX . "manufacturer` WHERE `manufacturer_id` = " . $data['manufacturer_id']);
 		if ($query->row['name'] <> $data['name']) {
 			// Обновляем
 			$sql  = " `name` = '" . $this->db->escape($data['name']) . "'";
 			$sql .= isset($data['noindex']) ? ", `noindex` = " . $data['noindex'] : "";
-			$sql = "UPDATE `" . DB_PREFIX . "manufacturer` SET " . $sql . " WHERE `manufacturer_id` = " . $data['manufacturer_id'];
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("UPDATE `" . DB_PREFIX . "manufacturer` SET " . $sql . " WHERE `manufacturer_id` = " . $data['manufacturer_id']);
 		}
 
 		if ($this->existTable('manufacturer_description')) {
 
 	        $this->seoGenerateManufacturer($data);
-
-			$sql = "SELECT `name`,`description`,`meta_title`,`meta_description`,`meta_keyword` FROM `" . DB_PREFIX . "manufacturer_description` WHERE `manufacturer_id` = " . $data['manufacturer_id'] . " AND `language_id` = " . $this->LANG_ID;
-			$this->log($sql,2);
-			$query = $this->db->query($sql);
+			$query = $this->query("SELECT `name`,`description`,`meta_title`,`meta_description`,`meta_keyword` FROM `" . DB_PREFIX . "manufacturer_description` WHERE `manufacturer_id` = " . $data['manufacturer_id'] . " AND `language_id` = " . $this->LANG_ID);
 
 			// Сравнивает запрос с массивом данных и формирует список измененных полей
 			$fields = $this->compareArrays($query, $data);
 
 			if ($fields) {
-				$sql = "UPDATE `" . DB_PREFIX . "manufacturer_description` SET " . $fields . " WHERE `manufacturer_id` = " . $data['manufacturer_id'] . " AND `language_id` = " . $this->LANG_ID;
-				$this->log($sql,2);
-				$this->db->query($sql);
+				$this->query("UPDATE `" . DB_PREFIX . "manufacturer_description` SET " . $fields . " WHERE `manufacturer_id` = " . $data['manufacturer_id'] . " AND `language_id` = " . $this->LANG_ID);
 				$this->log("> Обновлено описание производителя '" . $data['name'] . "'",2);
 			}
 
@@ -3167,36 +2886,25 @@ class ModelToolExchange1c extends Model {
 		$sql 	.= isset($manufacturer_data['sort_order']) 			? ", `sort_order` = " . $manufacturer_data['sort_order']					: "";
 		$sql 	.= isset($manufacturer_data['image']) 				? ", `image` = '" . $this->db->escape($manufacturer_data['image']) . "'" 	: ", `image` = ''";
 		$sql 	.= isset($manufacturer_data['noindex']) 			? ", `noindex` = " . $manufacturer_data['noindex'] 							: "";
-		$sql = "INSERT INTO `" . DB_PREFIX . "manufacturer` SET" . $sql;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("INSERT INTO `" . DB_PREFIX . "manufacturer` SET" . $sql);
 
 		$manufacturer_data['manufacturer_id'] = $this->db->getLastId();
-
         $this->seoGenerateManufacturer($manufacturer_data);
 
 		if ($this->existTable('manufacturer_description')) {
 			$sql = $this->prepareStrQueryManufacturerDescription($manufacturer_data);
 			if ($sql) {
-				$sql = "INSERT INTO `" . DB_PREFIX . "manufacturer_description` SET `manufacturer_id` = " . $manufacturer_data['manufacturer_id'] . ", `language_id` = " . $this->LANG_ID . $sql;
-				$this->log($sql,2);
-				$this->db->query($sql);
+				$this->query("INSERT INTO `" . DB_PREFIX . "manufacturer_description` SET `manufacturer_id` = " . $manufacturer_data['manufacturer_id'] . ", `language_id` = " . $this->LANG_ID . $sql);
 			}
 		}
 
+		// добавляем связь
 		if (isset($manufacturer_data['cml_id'])) {
-			// добавляем связь
-			$sql 	= "INSERT INTO `" . DB_PREFIX . "manufacturer_to_1c` SET `1c_id` = '" . $this->db->escape($manufacturer_data['cml_id']) . "', `manufacturer_id` = " . $manufacturer_data['manufacturer_id'];
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("INSERT INTO `" . DB_PREFIX . "manufacturer_to_1c` SET `1c_id` = '" . $this->db->escape($manufacturer_data['cml_id']) . "', `manufacturer_id` = " . $manufacturer_data['manufacturer_id']);
 		}
 
-		$sql 	= "INSERT INTO `" . DB_PREFIX . "manufacturer_to_store` SET `manufacturer_id` = " . $manufacturer_data['manufacturer_id'] . ", `store_id` = " . $this->STORE_ID;
-		$this->log($sql,2);
-		$this->db->query($sql);
-
-		$this->log("> Производитель '" . $manufacturer_data['name'] . "' добавлен, id: " . $manufacturer_data['manufacturer_id']);
-
+		$this->query("INSERT INTO `" . DB_PREFIX . "manufacturer_to_store` SET `manufacturer_id` = " . $manufacturer_data['manufacturer_id'] . ", `store_id` = " . $this->STORE_ID);
+ 		$this->log("> Производитель '" . $manufacturer_data['name'] . "' добавлен, id: " . $manufacturer_data['manufacturer_id']);
 		$this->log("<== addManufacturer()",2);
 	} // addManufacturer()
 
@@ -3219,17 +2927,15 @@ class ModelToolExchange1c extends Model {
 
 		if ($cml_id) {
 			// Поиск (производителя) изготовителя по 1C Ид
-			$sql 	= "SELECT mc.manufacturer_id FROM `" . DB_PREFIX . "manufacturer_to_1c` mc LEFT JOIN `" . DB_PREFIX . "manufacturer_to_store` ms ON (mc.manufacturer_id = ms.manufacturer_id) WHERE mc.1c_id = '" . $this->db->escape($manufacturer_data['cml_id']) . "' AND ms.store_id = " . $this->STORE_ID;
+			$query = $this->query("SELECT mc.manufacturer_id FROM `" . DB_PREFIX . "manufacturer_to_1c` mc LEFT JOIN `" . DB_PREFIX . "manufacturer_to_store` ms ON (mc.manufacturer_id = ms.manufacturer_id) WHERE mc.1c_id = '" . $this->db->escape($manufacturer_data['cml_id']) . "' AND ms.store_id = " . $this->STORE_ID);
 		} else {
 			// Поиск по имени
-			$sql 	= "SELECT m.manufacturer_id FROM `" . DB_PREFIX . "manufacturer` m LEFT JOIN `" . DB_PREFIX . "manufacturer_to_store` ms ON (m.manufacturer_id = ms.manufacturer_id) WHERE m.name LIKE '" . $this->db->escape($manufacturer_data['name']) . "' AND ms.store_id = " . $this->STORE_ID;
+			$query = $this->query("SELECT m.manufacturer_id FROM `" . DB_PREFIX . "manufacturer` m LEFT JOIN `" . DB_PREFIX . "manufacturer_to_store` ms ON (m.manufacturer_id = ms.manufacturer_id) WHERE m.name LIKE '" . $this->db->escape($manufacturer_data['name']) . "' AND ms.store_id = " . $this->STORE_ID);
 		}
 
 		// Если есть таблица manufacturer_description тогда нужно условие
 		// AND language_id = '" . $this->LANG_ID . "'
 
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
 		if ($query->num_rows) {
 			$manufacturer_data['manufacturer_id'] = $query->row['manufacturer_id'];
 			$this->log("Найден manufacturer_id: " . $manufacturer_data['manufacturer_id'], 2);
@@ -3304,9 +3010,7 @@ class ModelToolExchange1c extends Model {
 		$old_inits = array();
 
 		// Прочитаем старые соответствия единиц измерения
-		$sql = "SELECT * FROM `" . DB_PREFIX . "unit_to_1c`";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "unit_to_1c`");
 		if ($query->num_rows) {
 			$old_inits[$query->row['unit_id']] = $query->row['cml_id'];
 		}
@@ -3325,18 +3029,13 @@ class ModelToolExchange1c extends Model {
 				unset($old_inits[$key]);
 			} else {
 				$unit_id = $this->getUnitId($code);
-
-				$sql = "INSERT INTO `" . DB_PREFIX . "unit_to_1c` SET `cml_id` = '" . $this->db->escape($cml_id) . "', `unit_id` = " . $unit_id;
-				$this->log($sql,2);
-				$this->db->query($sql);
+				$this->query("INSERT INTO `" . DB_PREFIX . "unit_to_1c` SET `cml_id` = '" . $this->db->escape($cml_id) . "', `unit_id` = " . $unit_id);
 			}
 		}
 
 		// удаляем неиспользуемые
 		foreach ($old_inits as $key => $old_init) {
-			$sql = "DELETE FROM `" . DB_PREFIX . "unit_to_1c` WHERE `product_unit_id` = " . (int)$key;
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("DELETE FROM `" . DB_PREFIX . "unit_to_1c` WHERE `product_unit_id` = " . (int)$key);
 		}
 		$this->log("<== parseUnits()",2);
 	}
@@ -3544,7 +3243,7 @@ class ModelToolExchange1c extends Model {
 	private function addWarehouse($cml_id, $name) {
 
 		$this->log("==> addWarehouse()", 2);
-		$this->db->query("INSERT INTO `" . DB_PREFIX . "warehouse` SET `name` = '" . $this->db->escape($name) . "', `1c_id` = '" . $this->db->escape($cml_id) . "'");
+		$this->query("INSERT INTO `" . DB_PREFIX . "warehouse` SET `name` = '" . $this->db->escape($name) . "', `1c_id` = '" . $this->db->escape($cml_id) . "'");
 		$warehouse_id = $this->db->getLastId();
 
 		$this->log("<== addWarehouse(), warehouse_id = " . $warehouse_id, 2);
@@ -3559,7 +3258,7 @@ class ModelToolExchange1c extends Model {
 	private function getWarehouseBycml_id($cml_id) {
 
 		$this->log("==> getWarehouseBycml_id(cml_id=".$cml_id.")", 2);
-		$query = $this->db->query('SELECT * FROM `' . DB_PREFIX . 'warehouse` WHERE `1c_id` = "' . $this->db->escape($cml_id) . '"');
+		$query = $this->query('SELECT * FROM `' . DB_PREFIX . 'warehouse` WHERE `1c_id` = "' . $this->db->escape($cml_id) . '"');
 
 		if ($query->num_rows) {
 			$this->log("<== getWarehouseBycml_id(), warehouse_id = " . $query->row['warehouse_id'], 2);
@@ -3597,9 +3296,7 @@ class ModelToolExchange1c extends Model {
 	private function getQuantity($product_id) {
 
 		$this->log("==> getQuantity(product_id=".$product_id.")", 2);
-		$sql = "SELECT `quantity` FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . $product_id;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `quantity` FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . $product_id);
 
 		if ($query->num_rows) {
 			$this->log("<== getQuantity(), quantity = " . $query->row['quantity'], 2);
@@ -3621,9 +3318,7 @@ class ModelToolExchange1c extends Model {
 		$quantity_old = $this->getQuantity($product_id);
 
 		if ($quantity <> $quantity_old) {
-			$sql = "UPDATE `" . DB_PREFIX . "product` SET `quantity` = " . (float)$quantity . " WHERE `product_id` = " . $product_id;
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("UPDATE `" . DB_PREFIX . "product` SET `quantity` = " . (float)$quantity . " WHERE `product_id` = " . $product_id);
 		}
 
 		$this->log("<== setQuantity()", 2);
@@ -3639,9 +3334,7 @@ class ModelToolExchange1c extends Model {
 		$this->log("==> getProductQuantity(product_id=".$product_id.")", 2);
 		$data_quantity = array();
 		$where = $product_feature_id ? " AND `product_feature_id` = " . $product_feature_id : "";
-		$sql = "SELECT `product_quantity_id`,`product_feature_id`,`warehouse_id`,`quantity` FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . $product_id . $where;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_quantity_id`,`product_feature_id`,`warehouse_id`,`quantity` FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . $product_id . $where);
 		//$this->log($query, 2);
 		foreach ($query->rows as $row) {
 			$data_quantity[$row['product_quantity_id']] = array(
@@ -3668,9 +3361,7 @@ class ModelToolExchange1c extends Model {
 			$where .= ($where ? " AND" : "") . " `" . $field . "` = " . $value;
 		}
 
-		$sql = "SELECT `product_quantity_id`,`quantity` FROM `" . DB_PREFIX . "product_quantity` WHERE " . $where;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_quantity_id`,`quantity` FROM `" . DB_PREFIX . "product_quantity` WHERE " . $where);
 		//$this->log($query, 2);
 		if ($query->num_rows) {
 			$data_quantity = array(
@@ -3693,15 +3384,7 @@ class ModelToolExchange1c extends Model {
 	 * Обновляет остаток товара
 	 */
 	private function updateProductQuantity($product_quantity_id, $quantity) {
-
-		$this->log("==> updateProductQuantity(product_quantity_id=".$product_quantity_id.", quantity=".$quantity.")", 2);
-
-		$sql = "UPDATE `" . DB_PREFIX . "product_quantity` SET `quantity` = '" . (float)$quantity . "' WHERE `product_quantity_id` = " . $product_quantity_id;
-		$this->log($sql,2);
-		$this->db->query($sql);
-
-		$this->log("<== updateProductQuantity()", 2);
-
+		$this->query("UPDATE `" . DB_PREFIX . "product_quantity` SET `quantity` = '" . (float)$quantity . "' WHERE `product_quantity_id` = " . $product_quantity_id);
 	} // updateProductQuantity()
 
 
@@ -3730,31 +3413,13 @@ class ModelToolExchange1c extends Model {
 			$set .= ", `" . $field . "` = " . $value;
 		}
 
-		$sql = "INSERT INTO `" . DB_PREFIX . "product_quantity` SET `quantity` = '" . (float)$quantity . "'" . $set;
-		$this->log($sql,2);
-		$this->db->query($sql);
+		$this->query("INSERT INTO `" . DB_PREFIX . "product_quantity` SET `quantity` = '" . (float)$quantity . "'" . $set);
 
 		$product_quantity_id = $this->db->getLastId();
 		$this->log("<== addProductQuantity(), product_quantity_id = " . $product_quantity_id, 2);
 		return $product_quantity_id;
 
 	} // addProductQuantityNew()
-
-
-	/**
-	 * Удаляет остаток товара
-	 */
-	private function deleteProductQuantity($product_quantity_id) {
-
-		$this->log("==> deleteProductQuantity()", 2);
-
-		$sql = "DELETE FROM `" . DB_PREFIX . "product_quantity` WHERE `product_quantity_id` = " . $product_quantity_id;
-		$this->log($sql,2);
-		$this->db->query($sql);
-
-		$this->log("<== deleteProductQuantity()", 2);
-
-	} // deleteProductQuantity()
 
 
 	/**
@@ -3962,26 +3627,14 @@ class ModelToolExchange1c extends Model {
 
 		//$this->log("[i] Остатки которые нужно удалить", 2);
 		//$this->log($quantities, 2);
-        // Удаляем лишние
+        // Удаляем лишние, в дальнейшем будем не удалять, а записывать нули
 		foreach ($quantities as $product_quantity_id => $quantity_data) {
-        	$this->deleteProductQuantity($product_quantity_id);
+			$this->query("DELETE FROM `" . DB_PREFIX . "product_quantity` WHERE `product_quantity_id` = " . $product_quantity_id);
        	}
 
 		$this->log("<== setProductQuantity()", 2);
 
 	} // setProductQuantity()
-
-
-	/**
-	 * Удаляет склад и все остатки поо нему
-	 */
-	private function deleteStockWarehouse($warehouse_id) {
-		$this->log("==> deleteStockWarehouse()",2);
-		$sql = "DELETE FROM `" . DB_PREFIX . "product_quantity ` WHERE `warehouse_id` = " . (int)$warehouse_id;
-		$this->log($sql,2);
-		$this->db->query($sql);
-		$this->log("<== deleteStockWarehouse()",2);
-	}
 
 
 	/**
@@ -3994,10 +3647,11 @@ class ModelToolExchange1c extends Model {
 			// Удаляем все остатки по этму складу
 			$this->deleteStockWarehouse($warehouse_id);
 
+			// Удалим остатки по этому складу
+			$this->query("DELETE FROM `" . DB_PREFIX . "product_quantity ` WHERE `warehouse_id` = " . (int)$warehouse_id);
+
 			// Удаляем склад
-			$sql = "DELETE FROM `" . DB_PREFIX . "warehouse ` WHERE `1c_id` = '" . $this->db->escape($id_cml) . "'";
-			$this->log($sql,2);
-			$this->db->query($sql);
+			$this->query("DELETE FROM `" . DB_PREFIX . "warehouse ` WHERE `1c_id` = '" . $this->db->escape($id_cml) . "'");
 
 		}
 		$this->log("<== deleteWarehouse()",2);
@@ -4082,9 +3736,7 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function getCurrency($currency_id) {
 		$this->log("==> getCurrency()",2);
-		$sql = "SELECT * FROM `" . DB_PREFIX . "currency` WHERE `currency_id` = " . $currency_id;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "currency` WHERE `currency_id` = " . $currency_id);
 		if ($query->num_rows) {
 			return $query->row;
 		}
@@ -4097,18 +3749,14 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function getCurrencyId($code) {
 		$this->log("==> getCurrencyId()", 2);
-		$sql = "SELECT `currency_id` FROM `" . DB_PREFIX . "currency` WHERE `code` = '" . $this->db->escape($code) . "'";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `currency_id` FROM `" . DB_PREFIX . "currency` WHERE `code` = '" . $this->db->escape($code) . "'");
 		if ($query->num_rows) {
 			$this->log("<== getCurrencyId() currency_id = " . $query->row['currency_id'], 2);
 			return $query->row['currency_id'];
 		}
 
 		// Попробуем поискать по символу справа
-		$sql = "SELECT `currency_id` FROM `" . DB_PREFIX . "currency` WHERE `symbol_right` = '" . $this->db->escape($code) . "'";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `currency_id` FROM `" . DB_PREFIX . "currency` WHERE `symbol_right` = '" . $this->db->escape($code) . "'");
 		if ($query->num_rows) {
 			$this->log("<== getCurrencyId() currency_id = " . $query->row['currency_id'], 2);
 			return $query->row['currency_id'];
@@ -4124,7 +3772,7 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function configSet($key, $value, $store_id=0) {
 		if (!$this->config->has('exchange1c_'.$key)) {
-			$this->db->query("INSERT INTO `" . DB_PREFIX . "setting` SET `value` = '" . $value . "', `store_id` = " . $store_id . ", `code` = 'exchange1c', `key` = '" . $key . "'");
+			$this->query("INSERT INTO `" . DB_PREFIX . "setting` SET `value` = '" . $value . "', `store_id` = " . $store_id . ", `code` = 'exchange1c', `key` = '" . $key . "'");
 		}
 	} // configSet()
 
@@ -4133,9 +3781,7 @@ class ModelToolExchange1c extends Model {
 	 * Получает список групп покупателей
 	 */
 	private function getCustomerGroups() {
-		$sql = "SELECT `customer_group_id` FROM `" . DB_PREFIX. "customer_group` ORDER BY `sort_order`";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `customer_group_id` FROM `" . DB_PREFIX. "customer_group` ORDER BY `sort_order`");
 		$data = array();
 		foreach ($query->rows as $row) {
 			$data[] = $row['customer_group_id'];
@@ -4223,12 +3869,11 @@ class ModelToolExchange1c extends Model {
 
         if ($update) {
 			if ($this->config->get('exchange1c_price_type')) {
-				$sql = "UPDATE `". DB_PREFIX . "setting` SET `value` = '" . $this->db->escape(json_encode($config_price_type)) . "', `serialized` = 1 WHERE `key` = 'exchange1c_price_type'";
+				$this->query("UPDATE `". DB_PREFIX . "setting` SET `value` = '" . $this->db->escape(json_encode($config_price_type)) . "', `serialized` = 1 WHERE `key` = 'exchange1c_price_type'");
 	        } else {
-				$sql = "INSERT `". DB_PREFIX . "setting` SET `value` = '" . $this->db->escape(json_encode($config_price_type)) . "', `serialized` = 1, `code` = 'exchange1c', `key` = 'exchange1c_price_type'";
+				$this->query("INSERT `". DB_PREFIX . "setting` SET `value` = '" . $this->db->escape(json_encode($config_price_type)) . "', `serialized` = 1, `code` = 'exchange1c', `key` = 'exchange1c_price_type'");
 	        }
-	        $this->log($sql, 2);
-	        $this->db->query($sql);
+
         }
 		$this->log("<== autoLoadPriceType()", 2);
 		return $config_price_type;
@@ -4300,7 +3945,6 @@ class ModelToolExchange1c extends Model {
 				$this->log('Вид цены: ' . $name,1);
 			}
 
-
 		} // foreach ($xml->ТипЦены as $price_type)
 
 		unset($xml);
@@ -4319,28 +3963,20 @@ class ModelToolExchange1c extends Model {
 		//$this->log($price_data, 2);
 
 		// Характеристика, у нее могут быть несколько цен
-		$sql = "SELECT `product_discount_id`, `quantity`, `priority`, `price`, `customer_group_id` FROM `" . DB_PREFIX . "product_discount` WHERE `product_id` = " . $product_id . " AND `customer_group_id` = " . $price_data['customer_group_id'];
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_discount_id`, `quantity`, `priority`, `price`, `customer_group_id` FROM `" . DB_PREFIX . "product_discount` WHERE `product_id` = " . $product_id . " AND `customer_group_id` = " . $price_data['customer_group_id']);
 		if ($query->num_rows) {
 
 			$product_discount_id = $query->row['product_discount_id'];
 
 			// Определим что обновлять
 			$fields = $this->compareArrays($query, $price_data);
-
-			if ($fields) {
-				$sql = "UPDATE `" . DB_PREFIX . "product_discount` SET " . $fields . " WHERE `product_id` = " . $product_id . " AND `customer_group_id` = " . $price_data['customer_group_id'];
-		 		$this->log($sql,2);
-				$this->db->query($sql);
+ 			if ($fields) {
+				$this->query("UPDATE `" . DB_PREFIX . "product_discount` SET " . $fields . " WHERE `product_id` = " . $product_id . " AND `customer_group_id` = " . $price_data['customer_group_id']);
 			}
 
 		} else {
 			// Добавляем
-			$sql = "INSERT INTO `" . DB_PREFIX . "product_discount` SET `product_id` = " . $product_id . ", `customer_group_id` = " . $price_data['customer_group_id'] . ", `quantity` = '" . (float)$price_data['quantity'] . "', `price` = '" . (float)$price_data['price'] . "', `priority` = " . $price_data['priority'];
-			$this->log($sql,2);
-			$query = $this->db->query($sql);
-
+			$query = $this->query("INSERT INTO `" . DB_PREFIX . "product_discount` SET `product_id` = " . $product_id . ", `customer_group_id` = " . $price_data['customer_group_id'] . ", `quantity` = '" . (float)$price_data['quantity'] . "', `price` = '" . (float)$price_data['price'] . "', `priority` = " . $price_data['priority']);
 			$product_discount_id = $this->db->getLastId();
 		}
 
@@ -4355,9 +3991,7 @@ class ModelToolExchange1c extends Model {
 	private function deleteProductPrice($product_price_id) {
 		$this->log("==> deleteProductPrice(), product_price_id = " . $product_price_id, 2);
 
-		$sql = "DELETE FROM `" . DB_PREFIX . "product_price` WHERE `product_price_id` = " . $product_price_id;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("DELETE FROM `" . DB_PREFIX . "product_price` WHERE `product_price_id` = " . $product_price_id);
 
 		$this->log("<== deleteProductPrice()", 2);
 	} // deleteProductPrice()
@@ -4369,9 +4003,7 @@ class ModelToolExchange1c extends Model {
 	private function deleteProductDiscount($product_discount_id) {
 		$this->log("==> deleteProductDiscount(), product_discount_id = " . $product_discount_id, 2);
 
-		$sql = "DELETE FROM `" . DB_PREFIX . "product_discount` WHERE `product_discount_id` = " . $product_discount_id;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("DELETE FROM `" . DB_PREFIX . "product_discount` WHERE `product_discount_id` = " . $product_discount_id);
 
 		$this->log("<== deleteProductDiscount()", 2);
 	} // deleteProductDiscount()
@@ -4384,9 +4016,7 @@ class ModelToolExchange1c extends Model {
 		$this->log("==> setPrice()", 2);
 		foreach ($data_prices as $price) {
 			if ($price['default']) {
-				$sql = "UPDATE `" . DB_PREFIX . "product` SET `price` = " . (float)$price['price'] . " WHERE `product_id` = " . $product_id;
-				$this->log($sql,2);
-				$this->db->query($sql);
+				$this->query("UPDATE `" . DB_PREFIX . "product` SET `price` = " . (float)$price['price'] . " WHERE `product_id` = " . $product_id);
 			} else{
 				$this->setDiscountPrice($price, $product_id);
 			}
@@ -4401,17 +4031,13 @@ class ModelToolExchange1c extends Model {
 	private function setDiscountPrice($price_data, $product_id) {
 		$this->log("==> setDiscountPrice()", 2);
 
-		$sql = "SELECT `product_discount_id`,`price` FROM `" . DB_PREFIX . "product_discount` WHERE `product_id` = " . $product_id . " AND `customer_group_id` = " . $price_data['customer_group_id'];
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_discount_id`,`price` FROM `" . DB_PREFIX . "product_discount` WHERE `product_id` = " . $product_id . " AND `customer_group_id` = " . $price_data['customer_group_id']);
 		if ($query->num_rows) {
 			$product_discount_id = $query->row['product_discount_id'];
 		}
 
 		if (empty($product_discount_id)) {
-			$sql = "INSERT INTO `" . DB_PREFIX . "product_discount` SET `product_id` = " . $product_id . ", `quantity` = " . $price_data['quantity'] . ", `priority` = " . $price_data['priority'] . ", `customer_group_id` = " . $price_data['customer_group_id'] . ", `price` = '" . (float)$price_data['price'] . "'";
-			$this->log($sql,2);
-			$query = $this->db->query($sql);
+			$query = $this->query("INSERT INTO `" . DB_PREFIX . "product_discount` SET `product_id` = " . $product_id . ", `quantity` = " . $price_data['quantity'] . ", `priority` = " . $price_data['priority'] . ", `customer_group_id` = " . $price_data['customer_group_id'] . ", `price` = '" . (float)$price_data['price'] . "'");
 
 			$product_discount_id = $this->db->getLastId();
 
@@ -4421,9 +4047,7 @@ class ModelToolExchange1c extends Model {
 
 			// Если есть расхождения, производим обновление
 			if ($fields) {
-				$sql = "UPDATE `" . DB_PREFIX . "product_discount` SET " . $fields . " WHERE `product_discount_id` = " . $product_discount_id;
-				$this->log($sql,2);
-				$this->db->query($sql);
+				$this->query("UPDATE `" . DB_PREFIX . "product_discount` SET " . $fields . " WHERE `product_discount_id` = " . $product_discount_id);
 			}
 		}
 		$this->log("<== setDiscountPrice(), return product_discount_id = " . $product_discount_id, 2);
@@ -4437,17 +4061,13 @@ class ModelToolExchange1c extends Model {
 	private function setProductPrice($price_data, $product_id, $product_feature_id = 0) {
 		$this->log("==> setProductPrice()", 2);
 
-		$sql = "SELECT `product_price_id`,`price` FROM `" . DB_PREFIX . "product_price` WHERE `product_id` = " . $product_id . " AND `customer_group_id` = " . $price_data['customer_group_id'] . " AND `product_feature_id` = " . $product_feature_id;
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `product_price_id`,`price` FROM `" . DB_PREFIX . "product_price` WHERE `product_id` = " . $product_id . " AND `customer_group_id` = " . $price_data['customer_group_id'] . " AND `product_feature_id` = " . $product_feature_id);
 		if ($query->num_rows) {
 			$product_price_id = $query->row['product_price_id'];
 		}
 
 		if (empty($product_price_id)) {
-			$sql = "INSERT INTO `" . DB_PREFIX . "product_price` SET `product_id` = " . $product_id . ", `product_feature_id` = " . $product_feature_id . ", `customer_group_id` = " . $price_data['customer_group_id'] . ", `price` = '" . (float)$price_data['price'] . "'";
-			$this->log($sql,2);
-			$query = $this->db->query($sql);
+			$query = $this->query("INSERT INTO `" . DB_PREFIX . "product_price` SET `product_id` = " . $product_id . ", `product_feature_id` = " . $product_feature_id . ", `customer_group_id` = " . $price_data['customer_group_id'] . ", `price` = '" . (float)$price_data['price'] . "'");
 
 			$product_price_id = $this->db->getLastId();
 
@@ -4457,9 +4077,7 @@ class ModelToolExchange1c extends Model {
 
 			// Если есть расхождения, производим обновление
 			if ($fields) {
-				$sql = "UPDATE `" . DB_PREFIX . "product_price` SET " . $fields . " WHERE `product_id` = " . $product_id . " AND `product_feature_id` = " . $product_feature_id . " AND `customer_group_id` = " . $price_data['customer_group_id'];
-				$this->log($sql,2);
-				$this->db->query($sql);
+				$this->query("UPDATE `" . DB_PREFIX . "product_price` SET " . $fields . " WHERE `product_id` = " . $product_id . " AND `product_feature_id` = " . $product_feature_id . " AND `customer_group_id` = " . $price_data['customer_group_id']);
 			}
 		}
 		$this->log("<== setProductPrice(), return product_price_id = " . $product_price_id, 2);
@@ -4472,16 +4090,12 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function getUnitId($number_code) {
 		$this->log("==> getUnitId()", 2);
-		$sql = "SELECT `unit_id` FROM `" . DB_PREFIX . "unit` WHERE `number_code` = '" . $this->db->escape($number_code) . "'";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `unit_id` FROM `" . DB_PREFIX . "unit` WHERE `number_code` = '" . $this->db->escape($number_code) . "'");
 		if ($query->num_rows) {
 			$this->log("<== getUnitId(), return unit_id =  " . $query->row['unit_id'], 2);
 			return $query->row['unit_id'];
 		}
-		$sql = "SELECT `unit_id` FROM `" . DB_PREFIX . "unit` WHERE `rus_name1` = '" . $this->db->escape($number_code) . "'";
-		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `unit_id` FROM `" . DB_PREFIX . "unit` WHERE `rus_name1` = '" . $this->db->escape($number_code) . "'");
 		if ($query->num_rows) {
 			$this->log("<== getUnitId(), return unit_id = " . $query->row['unit_id'], 2);
 			return $query->row['unit_id'];
@@ -4592,15 +4206,11 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function addOption($name, $type='select') {
 		$this->log("==> addOption()", 2);
-		$sql = "INSERT INTO `" . DB_PREFIX . "option` SET `type` = '" . $this->db->escape($type) . "'";
- 		$this->log($sql,2);
-		$this->db->query($sql);
+		$this->query("INSERT INTO `" . DB_PREFIX . "option` SET `type` = '" . $this->db->escape($type) . "'");
 
 		$option_id = $this->db->getLastId();
 
-		$sql = "INSERT INTO `" . DB_PREFIX . "option_description` SET `option_id` = '" . $option_id . "', `language_id` = " . $this->LANG_ID . ", `name` = '" . $this->db->escape($name) . "'";
- 		$this->log($sql,2);
-		$this->db->query($sql);
+		$this->query("INSERT INTO `" . DB_PREFIX . "option_description` SET `option_id` = '" . $option_id . "', `language_id` = " . $this->LANG_ID . ", `name` = '" . $this->db->escape($name) . "'");
 
 		$this->log("<== addOption(), return option_id = " . $option_id, 2);
 		return $option_id;
@@ -4612,9 +4222,7 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function getProductPrice($product_id) {
 		$this->log("==> getProductPrice()", 2);
-		$sql = "SELECT price FROM `" . DB_PREFIX . "product` WHERE `product_id` = '" . $product_id . "'";
- 		$this->log($sql,2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT price FROM `" . DB_PREFIX . "product` WHERE `product_id` = '" . $product_id . "'");
 
         if ($query->num_rows) {
         	$this->log("<== getProductPrice(), return price = " . $query->row['price'], 2);
@@ -4636,7 +4244,7 @@ class ModelToolExchange1c extends Model {
 			return "";
 		}
 
-		$query = $this->db->query("SELECT name FROM `" . DB_PREFIX . "manufacturer` WHERE `manufacturer_id` = " . $manufacturer_id);
+		$query = $this->query("SELECT name FROM `" . DB_PREFIX . "manufacturer` WHERE `manufacturer_id` = " . $manufacturer_id);
 		$name = isset($query->row['name']) ? $query->row['name'] : "";
 
 		$this->log("<== getManufacturerName(), return name = " . $name, 2);
@@ -4651,16 +4259,16 @@ class ModelToolExchange1c extends Model {
 
 		$this->log("==> getProductIdByCML(), product_cml_id = " . $product_cml_id, 2);
 		// Определим product_id
-		$query = $this->db->query("SELECT product_id FROM `" . DB_PREFIX . "product_to_1c` WHERE `1c_id` = '" . $this->db->escape($product_cml_id) . "'");
+		$query = $this->query("SELECT product_id FROM `" . DB_PREFIX . "product_to_1c` WHERE `1c_id` = '" . $this->db->escape($product_cml_id) . "'");
 		$product_id = isset($query->row['product_id']) ? $query->row['product_id'] : 0;
 
 		// Проверим существование такого товара
 		if ($product_id) {
-			$query = $this->db->query("SELECT `product_id` FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . (int)$product_id);
+			$query = $this->query("SELECT `product_id` FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . (int)$product_id);
 			if (!$query->num_rows) {
 
 				// Удалим неправильную связь
-				$this->db->query("DELETE FROM `" . DB_PREFIX . "product_to_1c` WHERE `product_id` = " . (int)$product_id);
+				$this->query("DELETE FROM `" . DB_PREFIX . "product_to_1c` WHERE `product_id` = " . (int)$product_id);
 
 				$product_id = 0;
 			}
@@ -4685,9 +4293,7 @@ class ModelToolExchange1c extends Model {
 
 		$data['product_id'] = $product_id;
 
-		$sql = "SELECT `sku`,`ean`,`manufacturer_id`, `image` FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . $product_id;
-		$this->log($sql, 2);
-		$query = $this->db->query($sql);
+		$query = $this->query("SELECT `sku`,`ean`,`manufacturer_id`, `image` FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . $product_id);
 
 		if ($query->num_rows) {
 			// Получим sku если он не задан
@@ -6209,12 +5815,7 @@ class ModelToolExchange1c extends Model {
 	/**
 	 * Устанавливает обновления
 	 */
-	public function update($settings) {
-
-		// Нужно ли обновлять
-		if (version_compare($settings['exchange1c_version'], $this->version(), '>=')) {
-			return "";
-		}
+	public function checkUpdates($settings) {
 
 		$old_version = $settings['exchange1c_version'];
 		$version = $old_version;
@@ -6228,12 +5829,12 @@ class ModelToolExchange1c extends Model {
 			$this->setEvents();
 			$settings['exchange1c_version'] = $version;
 			$this->model_setting_setting->editSetting('exchange1c', $settings);
-		} else {
-			//$message = "Модуль в обновлении не нуждается";
+//		} else {
+//			$message = "В обновлении не нуждается";
 		}
 		return $message;
 
-	} // update()
+	} // checkUpdates()
 
 
 	/**

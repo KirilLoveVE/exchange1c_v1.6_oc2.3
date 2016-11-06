@@ -248,7 +248,7 @@ class ControllerModuleExchange1c extends Controller {
 				$this->model_extension_extension->install('module', 'exchange1c');
 				$data['update'] = "Модуль установлен";
 			} else {
-				$data['update'] = $this->model_tool_exchange1c->update($settings);
+				$data['update'] = $this->model_tool_exchange1c->checkUpdates($settings);
 			}
 		}
 
