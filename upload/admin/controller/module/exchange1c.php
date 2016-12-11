@@ -226,6 +226,7 @@ class ControllerModuleExchange1c extends Controller {
 
 		$this->load->model('setting/setting');
 
+		$data['update'] = "";
 		$this->load->model('tool/exchange1c');
 		if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
 			// При нажатии кнопки сохранить
@@ -239,17 +240,15 @@ class ControllerModuleExchange1c extends Controller {
 			$this->response->redirect($this->url->link('extension/module', 'token=' . $this->session->data['token'], 'SSL'));
 		} else {
 			$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
-			$data['update'] = "";
 
 			if (!isset($settings['exchange1c_version'])) {
 				// Чистая установка
-				$this->install();
+				$this->install($settings);
 				$this->load->model('extension/extension');
 				$this->model_extension_extension->install('module', 'exchange1c');
 				$data['update'] = "Модуль установлен";
-			} else {
-				$data['update'] = $this->model_tool_exchange1c->checkUpdates($settings);
 			}
+			$data['update'] = $this->model_tool_exchange1c->checkUpdates($settings);
 		}
 
 		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
@@ -326,9 +325,6 @@ class ControllerModuleExchange1c extends Controller {
 		}
 
 		// Поля товара для записи
-//		$data['product_fields'] = array();
-//		$data['product_fields'][] = array('sku'	=> $this->language->get('text_product_sku'));
-//		$data['product_fields'][] = array('ean'	=> $this->language->get('text_product_ean'));
 		$data['product_fields'] = array(
 			'sku'	=> $this->language->get('text_product_sku')
 			,'ean'	=> $this->language->get('text_product_ean')
@@ -434,6 +430,7 @@ class ControllerModuleExchange1c extends Controller {
 		$params = array(
 			'cleaning_db' 							=> array('type' => 'button')
 			,'cleaning_links' 						=> array('type' => 'button')
+			,'cleaning_old_images' 					=> array('type' => 'button')
 			,'flush_quantity'						=> array('type' => 'radio', 'default' => 0)
 			,'watermark'							=> array('type' => 'image')
 			,'allow_ip'								=> array('type' => 'textarea')
@@ -482,6 +479,8 @@ class ControllerModuleExchange1c extends Controller {
 			,'seo_manufacturer_meta_keyword_template'	=> array('type' => 'input', 'width' => array(0,9,0))
 			,'order_currency'						=> array('type' => 'input')
 			,'ignore_price_zero'					=> array('type' => 'radio', 'default' => 1)
+			,'log_memory_use_view'					=> array('type' => 'radio', 'default' => 1)
+			,'log_debug_line_view'					=> array('type' => 'radio', 'default' => 1)
 			,'order_notify'							=> array('type' => 'radio', 'default' => 1)
 			,'product_options_mode'					=> array('type' => 'select', 'options' => $list_options)
 			,'product_options_subtract'				=> array('type' => 'radio', 'default' => 1)
@@ -566,6 +565,7 @@ class ControllerModuleExchange1c extends Controller {
 		if (version_compare(VERSION, '2.0.3.1', '>')) {
 			$this->load->model('customer/customer_group');
 			$data['customer_groups'] = $this->model_customer_customer_group->getCustomerGroups();
+			array_unshift($data['customer_groups'], array('customer_group_id'=>0,'sort_order'=>0,'name'=>'--- Выберите ---'));
 		} else {
 			$this->load->model('sale/customer_group');
 			$data['customer_groups'] = $this->model_sale_customer_group->getCustomerGroups();
@@ -621,9 +621,7 @@ class ControllerModuleExchange1c extends Controller {
 	/**
 	 * Установка модуля
 	 */
-	public function install() {
-
-		$settings = array();
+	public function install(&$settings) {
 
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->setEvents();
@@ -1494,6 +1492,31 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
+	 * Очистка старых ненужных картинок через админ-панель
+	 */
+	public function manualCleaningOldImages() {
+		$json = array();
+		$num = 0;
+		// Проверим разрешение
+		if ($this->user->hasPermission('modify', 'module/exchange1c'))  {
+			$this->load->model('tool/exchange1c');
+			$error = $this->model_tool_exchange1c->cleanOldImages("import_files/", $num);
+			if ($error) {
+				$json['error'] = $error;
+			} else {
+				$json['success'] = "Успешно удалено файлов: " . $num;
+			}
+		} else {
+			$json['error'] = "У Вас нет прав на изменение!";
+		}
+
+		$this->load->language('module/exchange1c');
+
+		$this->response->setOutput(json_encode($json));
+	} // manualCleaningLinks()
+
+
+	/**
 	 * Проверка существования каталогов
 	 */
 	private function checkDirectories($name) {
@@ -1503,10 +1526,14 @@ class ControllerModuleExchange1c extends Controller {
 			$path .= $dir[$i]."/";
 			//$this->log($path,2);
 			if (!is_dir($path)) {
-				mkdir($path, 0775);
+
+				@mkdir($path, 0775) or die ($error = "Ошибка создания директории '" . $path . "'");
+				if ($error) return $error;
+
 				$this->log("[zip] create folder: ".$path,2);
 			}
 		}
+		return "";
 	}
 
 
@@ -1514,16 +1541,22 @@ class ControllerModuleExchange1c extends Controller {
 	 * Распаковываем картинки
 	 */
 	private function extractImage($zipArc, $zip_entry, $name) {
+
+		$error = "";
+
 		$this->log("[zip]> extractImage() name = " . $name, 2);
 		if (substr($name, -1) == "/") {
 			if (is_dir(DIR_IMAGE.$name)) {
 				$this->log('[zip] directory exist: '.$name, 2);
 			} else {
 				$this->log('[zip] create directory: '.$name, 2);
-				mkdir(DIR_IMAGE.$name, 0775);
+				@mkdir(DIR_IMAGE.$name, 0775) or die ($error = "Ошибка создания директории '" . DIR_IMAGE.$name . "'");
+				if ($error) return $error;
 			}
 		} elseif (zip_entry_open($zipArc, $zip_entry, "r")) {
-			$this->checkDirectories($name);
+			$error = $this->checkDirectories($name);
+			if ($error) return $error;
+
 			if (is_file(DIR_IMAGE.$name)) {
 				$this->log('[zip] file exist: '.$name, 2);
 			} else {
@@ -1548,7 +1581,10 @@ class ControllerModuleExchange1c extends Controller {
 			}
 			zip_entry_close($zip_entry);
 		}
+
 		$this->log("[zip]< extractImage()", 2);
+		return $error;
+
 	} // extractImage()
 
 
@@ -1556,14 +1592,20 @@ class ControllerModuleExchange1c extends Controller {
 	 * Распаковываем XML
 	 */
 	private function extractXML($zipArc, $zip_entry, $name, &$xmlFiles) {
+
+		$error = "";
+
 		$this->log("[zip]> extractXML() name = " . $name, 2);
 		$cache = DIR_CACHE . 'exchange1c/';
+
 		if (substr($name, -1) == "/") {
-			if (is_dir(DIR_IMAGE.$name)) {
+			// это директория
+			if (is_dir($cache.$name)) {
 				$this->log('[zip] directory exist: '.$name, 2);
 			} else {
 				$this->log('[zip] create directory: '.$name, 2);
-				mkdir(DIR_IMAGE.$name, 0775);
+				@mkdir($cache.$name, 0775) or die ($error = "Ошибка создания директории '" . $cache.$name . "'");
+				if ($error) return $error;
 			}
 		} elseif (zip_entry_open($zipArc, $zip_entry, "r")) {
 			$dump = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
@@ -1585,16 +1627,25 @@ class ControllerModuleExchange1c extends Controller {
 			zip_entry_close($zip_entry);
 		}
 		$this->log("[zip]< extractXML()", 2);
+		return "";
+
 	} // extractXML()
 
 
 	/**
 	 * Распаковываем ZIP архив
 	 */
-	private function extractZip($zipFile) {
+	private function extractZip($zipFile, &$error) {
 		$this->log("[zip]> extractZip() zipFile = " . $zipFile, 2);
 		$xmlFiles = array();
 		$cache = DIR_CACHE . 'exchange1c/';
+
+		// Проверим на доступность записи в папку кэша
+		if (!is_writable($cache)) {
+			$error = "Папка '" . $cache . "' не доступна для записи, распаковка прервана";
+			return $xmlFiles;
+		}
+
 		$zipArc = zip_open($zipFile);
 		if (is_resource($zipArc)) {
 			while ($zip_entry = zip_read($zipArc)) {
@@ -1603,11 +1654,11 @@ class ControllerModuleExchange1c extends Controller {
 				if ($pos !== false) {
 					$this->extractImage($zipArc, $zip_entry, substr($name, $pos));
 				} else {
-					$this->extractXML($zipArc, $zip_entry, $name, $xmlFiles);
+					$error = $this->extractXML($zipArc, $zip_entry, $name, $xmlFiles);
+					if ($error) return $xmlFiles;
 				}
 			}
 		} else {
-			$this->log("[zip] Файл не является архивом", 2);
 			return $xmlFiles;
 		}
 		zip_close($zipArc);
@@ -1668,7 +1719,7 @@ class ControllerModuleExchange1c extends Controller {
 		$this->load->language('module/exchange1c');
 		$cache = DIR_CACHE . 'exchange1c/';
 		$json = array();
-		$no_error = 0;
+		$error = "";
 
 		// Разрешен ли IP
 		if ($this->config->get('exchange1c_allow_ip') != '') {
@@ -1681,14 +1732,18 @@ class ControllerModuleExchange1c extends Controller {
 			}
 		}
 
+		if ($this->config->get('exchange1c_flush_log')) {
+			$this->clearLog();
+		}
+
 		if (!empty($this->request->files['file']['name']) && is_file($this->request->files['file']['tmp_name'])) {
 
 			//$filename = basename(html_entity_decode($this->request->files['file']['name'], ENT_QUOTES, 'UTF-8'));
 
 			$max_size_file = $this->modeCatalogInit(array(),FALSE);
-			$xmlFiles = $this->extractZip($this->request->files['file']['tmp_name']);
-			//$this->log($xmlFiles, 2);
-			if (count($xmlFiles)) {
+			$xmlFiles = $this->extractZip($this->request->files['file']['tmp_name'], $error);
+
+			if (count($xmlFiles) && !$error) {
 
 				$goods = array();
 				$properties = array();
@@ -1708,15 +1763,15 @@ class ControllerModuleExchange1c extends Controller {
 				// Порядок обработки файлов
 				foreach ($xmlFiles as $file) {
 					$this->log('Обрабатывается файл основной: ' . $file, 2);
-					$no_error = $this->modeImport($cache . $file);
+					$error = $this->modeImport($cache . $file);
 				}
 				foreach ($properties as $file) {
 					$this->log('Обрабатывается файл свойств: ' . $file, 2);
-//					$no_error = $this->modeImport($cache . $file);
+//					$error = $this->modeImport($cache . $file);
 				}
 				foreach ($goods as $file) {
 					$this->log('Обрабатывается файл товаров: ' . $file, 2);
-					$no_error = $this->modeImport($cache . $file);
+					$error = $this->modeImport($cache . $file);
 				}
 
 			}
@@ -1724,22 +1779,23 @@ class ControllerModuleExchange1c extends Controller {
 				$import_file = $cache . $this->request->files['file']['name'];
 				move_uploaded_file($this->request->files['file']['tmp_name'], $import_file);
 				$this->log( "[i] Загружен файл: " . $this->request->files['file']['name'],2);
-				$no_error = $this->modeImport($import_file);
+				$error = $this->modeImport($import_file);
+				$this->log($error,2);
 //				unlink($import_file);
 			}
 		}
-		if ($no_error) {
+		if ($error) {
+			//$json['error'] = $this->language->get('text_upload_error');
+			$json['error'] = $error;
+			$this->log( "[!] Ручной обмен прошел ошибками", 2);
+
+		} else {
 			$json['success'] = $this->language->get('text_upload_success');
 			$this->log( "[i] Ручной обмен прошел без ошибок", 2);
 
 			// после обмена запускаем генерацию SEO
 			$this->load->model('tool/exchange1c');
 			$this->model_tool_exchange1c->seoGenerate();
-
-
-		} else {
-			$json['error'] = $this->language->get('text_upload_error');
-			$this->log( "[!] Ручной обмен прошел ошибками", 2);
 		}
 
 //		$this->cleanCacheDir();
@@ -1908,7 +1964,11 @@ class ControllerModuleExchange1c extends Controller {
 				if ($result === strlen($data)) {
 					chmod($uplod_file , 0664);
 					$this->echo_message(1, "The file " . $this->request->get['filename'] . " has been successfully uploaded");
-					$xmlfiles = $this->extractZip($uplod_file);
+					$xmlfiles = $this->extractZip($uplod_file, $error);
+					if ($error) {
+						$this->echo_message(0, "Error extract file: " . $uplod_file);
+						exit;
+					};
 					//unlink($uplod_file);
 				}
 				else {
@@ -1932,7 +1992,7 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	public function modeImport($manual = false) {
 
-		if ($manual) $this->log("[i] Ручная загрузка данных.",1);
+		if ($manual) $this->log("[i] Ручная загрузка данных.");
 
 		$cache = DIR_CACHE . 'exchange1c/';
 		if(!is_dir($cache)) mkdir($cache);
@@ -1944,7 +2004,7 @@ class ControllerModuleExchange1c extends Controller {
 			$importFile = $cache . $this->request->get['filename'];
 		else {
 			if (!$manual) $this->echo_message(0, "No import file name");
-			return 0;
+			return "Имя файла неопределено!";
 		}
 
 		// Определяем текущую локаль
@@ -1952,12 +2012,13 @@ class ControllerModuleExchange1c extends Controller {
 		$language_id = $this->model_tool_exchange1c->getLanguageId($this->config->get('config_language'));
 
 		// Загружаем файл
-		if (!$this->model_tool_exchange1c->importFile($importFile, $this->detectFileType($importFile))) {
+		$error = $this->model_tool_exchange1c->importFile($importFile, $this->detectFileType($importFile));
+		if ($error) {
 			if (!$manual) {
 				$this->echo_message(0, "Error processing file " . $importFile);
 			}
-			$this->log("[!] Ошибка загрузка файла: " . $importFile);
-			return 0;
+			$this->log("[!] Ошибка загрузки файла: " . $importFile);
+			return $error;
 		} else {
 			if (!$manual) {
 				$this->echo_message(1, "Successfully processed file " . $importFile);
@@ -1969,7 +2030,7 @@ class ControllerModuleExchange1c extends Controller {
 		//unlink($importFile);
 
 		$this->cache->delete('product');
-		return 1;
+		return "";
 	} // modeImport()
 
 	/**

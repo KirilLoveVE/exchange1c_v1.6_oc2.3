@@ -121,10 +121,13 @@
 						<div class="form-group">
 							<?php echo $html_cleaning_db ?>
 							<?php echo $html_cleaning_links ?>
+							<?php echo $html_cleaning_old_images ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_file_exchange; ?>
 							<?php echo $html_log_level; ?>
+							<?php echo $html_log_memory_use_view; ?>
+							<?php echo $html_log_debug_line_view; ?>
 							<?php echo $html_flush_log; ?>
 						</div>
 					</div><!-- tab general -->
@@ -401,7 +404,48 @@
 						<div class="form-group">
 							<?php echo $html_fill_parent_cats ?>
 						</div>
-					</div><!-- tab product -->
+
+						<legend><?php echo $lang['legend_category_properties_from_ts']; ?></legend>
+						<div class="table-responsive">
+							<div class="alert alert-info">
+								<i class="fa fa-info-circle"></i>
+								<?php echo $lang['desc_category_properties']; ?>
+							</div>
+							<table id="exchange1c_category_property" class="table table-bordered table-hover">
+								<thead>
+									<tr>
+										<td class="col-sm-2 text-left"><?php echo $lang['text_property_name_ts']; ?></td>
+										<td class="col-sm-7 text-left"><?php echo $lang['text_property_desc']; ?></td>
+										<td class="col-sm-1 text-left"><?php echo $lang['text_database_field']; ?></td>
+										<td class="col-sm-2 text-left"><?php echo $lang['text_product_field_cms']; ?></td>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>Картинка</td>
+										<td><?php echo $lang['desc_category_prop_image']; ?></td>
+										<td>image</td>
+										<td>Картинка</td>
+									</tr>
+									<tr>
+										<td>Сортировка</td>
+										<td><?php echo $lang['desc_category_prop_sort_order']; ?></td>
+										<td>image</td>
+										<td>Сортировка</td>
+									</tr>
+								</tbody>
+							</table>
+						</div> <!-- table -->
+
+						<legend><?php echo $lang['legend_category_name_split']; ?></legend>
+						<div class="table-responsive">
+							<div class="alert alert-info">
+								<i class="fa fa-info-circle"></i>
+								<?php echo $lang['desc_category_name_split']; ?>
+							</div>
+						</div> <!-- table -->
+
+					</div>
 
 					<!-- ЦЕНЫ -->
 					<div class="tab-pane" id="tab-prices">
@@ -431,7 +475,7 @@
 										<tr id="exchange1c_price_type_row<?php echo $price_row; ?>">
 											<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" /></td>
 											<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][id_cml]" value="<?php echo $obj['id_cml']; ?>" /></td>
-											<td class="text-left"><select class="form-control" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]">
+											<td class="text-left"><select class="form-control" id="customer_group" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]">
 											<?php foreach ($customer_groups as $customer_group) { ?>
 												<?php if ($customer_group['customer_group_id'] == $obj['customer_group_id']) { ?>
 													<option value="<?php echo $customer_group['customer_group_id']; ?>" selected="selected"><?php echo $customer_group['name']; ?></option>
@@ -454,7 +498,7 @@
 									<tr>
 										<td colspan="5"></td>
 										<td class="text-center">
-											<a onclick="addConfigPriceType();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></a>
+											<button type="button" id="btn_add_price_type" onclick="addConfigPriceType();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></button>
 										</td>
 									</tr>
 									<?php } ?>
@@ -692,7 +736,14 @@
 					</div>
 					<!-- СПРАВКА -->
 					<div class="tab-pane" id="tab-help">
-						В стадии разработки...
+						<div class="form-group">
+							<div class="col-sm-12">
+								<div class="alert alert-info"><i class="fa fa-info-circle"></i>
+									В планах. При полной выгрузке из торговой системы по идее все существующие товары, категории, а также, у товаров атрибуты, опции, остатки и цены, другими словами нужна полная перезапись магазина, но сохранить существующие id.<br />
+									Поэтому работа по этому режиму будет начата в версии 1.6.2.b12
+								</div>
+							</div>
+						</div>
 					<text class="news">
 					</div><!-- tab-help -->
 	 			</div><!-- tab-content -->
@@ -756,6 +807,7 @@ $('#exchange1c-button-upload').on('click', function() {
 	}, 500);
 });
 //--></script>
+
 
 <script type="text/javascript"><!--
 $('#exchange1c-button-cleaning_db').on('click', function() {
@@ -828,6 +880,41 @@ $('#exchange1c-button-cleaning_links').on('click', function() {
 	}
 });
 
+$('#exchange1c-button-cleaning_old_images').on('click', function() {
+	$('#form-clean').remove();
+	if (confirm('<?php echo $lang['text_confirm'] ?>')) {
+		$.ajax({
+			url: 'index.php?route=module/exchange1c/manualCleaningOldImages&token=<?php echo $token; ?>',
+			type: 'post',
+			dataType: 'json',
+			data: new FormData($('#form-clean')[0]),
+			cache: false,
+			contentType: false,
+			processData: false,
+			beforeSend: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-circle-o-notch fa-spin"></i>');
+				$('#button-clean').prop('disabled', true);
+			},
+			complete: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-trash-o"></i>');
+				$('#button-clean').prop('disabled', false);
+			},
+			success: function(json) {
+				if (json['error']) {
+					alert(json['error']);
+				}
+
+				if (json['success']) {
+					alert(json['success']);
+				}
+			},
+			error: function(xhr, ajaxOptions, thrownError) {
+				alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+			}
+		});
+	}
+});
+
 //--></script>
 
 <script type="text/javascript"><!--
@@ -836,7 +923,7 @@ function addConfigPriceType() {
 	html = '<tr id="exchange1c_price_type_row' + price_row + '">';
 	html += '<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][keyword]" value="" /></td>';
 	html += '<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[' + price_row + '][id_cml]" value="" /></td>';
-	html += '<td class="text-left"><select class="form-control" name="exchange1c_price_type[' + price_row + '][customer_group_id]">';
+	html += '<td class="text-left"><select class="form-control" id="customer_group" name="exchange1c_price_type[' + price_row + '][customer_group_id]">';
 	<?php foreach ($customer_groups as $customer_group) { ?>
 	html += '<option value="<?php echo $customer_group['customer_group_id']; ?>"><?php echo $customer_group['name']; ?></option>';
 	<?php } ?>
@@ -848,6 +935,7 @@ function addConfigPriceType() {
 
 	$('#exchange1c_price_type_id tbody').append(html);
 	price_row++;
+	$('select#customer_group').change();
 }
 //--></script>
 
@@ -933,6 +1021,7 @@ function image_upload(field, thumb) {
 	});
 };
 //--></script>
+
 
 
 <?php echo $footer; ?>

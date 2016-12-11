@@ -1,6 +1,6 @@
 <modification>
 	<name>Exchange Module for OpenCart 2.x</name>
-	<version>1.6.2.9</version>
+	<version>1.6.2.11</version>
 	<id>OpenCart Exchange</id> 
 	<author>KirilLoveVE</author>
 	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
@@ -59,20 +59,14 @@
 			$product_features_price = array();
 			$query = $this->db->query("SELECT `product_feature_id`, `price` FROM `" . DB_PREFIX . "product_price` WHERE `product_id` = " . (int)$this->request->get['product_id'] . " AND `customer_group_id` = " . $customer_group_id);
 			$product_features_price = array();
-			$product_features_tax = array();
 			$product_features_options = array();
 			$product_features_options_values = array();
 			foreach ($query->rows as $query_price) {
 				$product_features_price[$query_price['product_feature_id']] = array(
 					'value' => $query_price['price'],
-					'name'	=> $this->currency->format($this->tax->calculate($query_price['price'], $product_info['tax_class_id'], $this->config->get('config_tax')))
+					'tax'	=> $this->tax->calculate($query_price['price'], $product_info['tax_class_id'], $this->config->get('config_tax'))
 				);
-				if ($this->config->get('config_tax')) {
-					$product_features_tax[$query_price['product_feature_id']] = $this->currency->format((float)$product_info['special'] ? $product_info['special'] : $query_price['price']);
-				} else {
-					$product_features_tax[$query_price['product_feature_id']] = false;
-				}
-					foreach ($features as $feature) {
+				foreach ($features as $feature) {
 					if ($feature['product_feature_id'] == $query_price['product_feature_id']) {
 						if (!isset($product_features_options[$feature['product_feature_id']])) {
 							$product_features_options[$feature['product_feature_id']] = array();
@@ -83,11 +77,14 @@
 				}
 			}
 			$data['product_features_price'] = $product_features_price;
-			$data['product_features_tax'] = $product_features_tax;
 			$data['product_features_options'] = $product_features_options;
 			$data['product_features_options_values'] = $product_features_options_values;
+			$data['currency'] = array(
+				'symbol'  => $this->currency->getSymbolRight($this->session->data['currency']),
+				'decimal' => $this->currency->getDecimalPlace($this->session->data['currency'])
+			);
 
-			// Остатки и единицы
+			// Остатки в базовой единице
 			$product_quantity = array();
 			$product_units = array();
 			if ($this->config->get('config_stock_display') && !empty($product_features_options)) {
@@ -101,22 +98,21 @@
 					$quantity = &$product_quantity[$query_quantity['product_feature_id']];
 
 					if (!isset($quantity[$query_quantity['warehouse_id']])) {
-						$quantity[$query_quantity['warehouse_id']] = array();
-					}
-					$warehouse = &$quantity[$query_quantity['warehouse_id']];
-
-					if (!isset($warehouse)) {
-						$warehouse = $query_quantity['quantity'];
+						$quantity[$query_quantity['warehouse_id']] = $query_quantity['quantity'];
 					}
 
-					$query = $this->db->query("SELECT `u`.`name`, `u`.`rus_name1`, `pu`.`ratio`, `pu`.`product_feature_id` FROM `" . DB_PREFIX . "product_unit` `pu` LEFT JOIN `" . DB_PREFIX . "unit` `u` ON (`pu`.`unit_id` = `u`.`unit_id`) WHERE `pu`.`product_id` = " . $product_id);
+					$query = $this->db->query("SELECT `u`.`name`, `u`.`rus_name1`, `pu`.`ratio`, `pu`.`product_feature_id`, `u`.`unit_id` FROM `" . DB_PREFIX . "product_unit` `pu` LEFT JOIN `" . DB_PREFIX . "unit` `u` ON (`pu`.`unit_id` = `u`.`unit_id`) WHERE `pu`.`product_id` = " . $product_id);
 					if ($query->num_rows) {
-						$product_units[$unit_id] = array(
-							'rus_name'				=> $query->row['rus_name1'],
-							'name'					=> $query->row['name'],
-							'ratio'					=> $query->row['ratio'],
-							'product_feature_id'	=> $query->row['product_feature_id']
-						);
+						foreach ($query->rows as $row) {
+							if (isset($product_units[$row['unit_id']]))
+								continue;
+							$product_units[$row['unit_id']] = array(
+								'rus_name'				=> $row['rus_name1'],
+								'name'					=> $row['name'],
+								'ratio'					=> $row['ratio'],
+								'product_feature_id'	=> $row['product_feature_id']
+						  );
+						}
 					}
 				}
 			}
@@ -201,16 +197,6 @@
 		</operation>
 	</file>
 
-	<file path="catalog/controller/checkout/cart.php">
-		<operation>
-			<search><![CDATA[$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id);]]></search>
-			<add position="replace"><![CDATA[// +++ TESLA-CHITA
-				//-$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id);
-				$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id, $this->request->post['product_feature_id'], $this->request->post['unit_id']);
-				// --- TESLA-CHITA]]></add>
-		</operation>
-	</file>
-
   	<file path="system/library/cart.php">
 		<operation>
 			<search><![CDATA[$price = $product_query->row['price'];]]></search>
@@ -225,27 +211,6 @@
 					$price = $product_query->row['price'];
 				}
 				// --- TESLA-CHITA]]></add>
-		</operation>
-
-	  	<operation>
-			<search><![CDATA[public function add($product_id, $quantity = 1, $option = array(), $recurring_id = 0) {]]></search>
-			<add position="replace"><![CDATA[public function add_off($product_id, $quantity = 1, $option = array(), $recurring_id = 0) {]]></add>
-		</operation>
-
-	  	<operation>
-			<search><![CDATA[public function add_off($product_id, $quantity = 1, $option = array(), $recurring_id = 0) {]]></search>
-			<add position="before"><![CDATA[	// +++ TESLA-CHITA
-	public function add($product_id, $quantity = 1, $option = array(), $recurring_id = 0, $product_feature_id = 0, $unit_id = 0) {
-		$query = $this->db->query("SELECT COUNT(*) AS total FROM " . DB_PREFIX . "cart WHERE customer_id = '" . (int)$this->customer->getId() . "' AND session_id = '" . $this->db->escape($this->session->getId()) . "' AND product_id = '" . (int)$product_id . "' AND recurring_id = '" . (int)$recurring_id . "' AND `option` = '" . $this->db->escape(json_encode($option)) . "' AND `product_feature_id` = '" . (int)$product_feature_id . "' AND `unit_id` = '" . (int)$unit_id . "'");
-
-		if (!$query->row['total']) {
-			$this->db->query("INSERT " . DB_PREFIX . "cart SET customer_id = '" . (int)$this->customer->getId() . "', session_id = '" . $this->db->escape($this->session->getId()) . "', product_id = '" . (int)$product_id . "', recurring_id = '" . (int)$recurring_id . "', `option` = '" . $this->db->escape(json_encode($option)) . "', quantity = '" . (int)$quantity . "', date_added = NOW(), product_feature_id = '" . (int)$product_feature_id . "', unit_id = '" . (int)$unit_id . "'");
-		} else {
-			$this->db->query("UPDATE " . DB_PREFIX . "cart SET quantity = (quantity + " . (int)$quantity . ") WHERE customer_id = '" . (int)$this->customer->getId() . "' AND session_id = '" . $this->db->escape($this->session->getId()) . "' AND product_id = '" . (int)$product_id . "' AND recurring_id = '" . (int)$recurring_id . "' AND `option` = '" . $this->db->escape(json_encode($option)) . "' AND product_feature_id = '" . (int)$product_feature_id . "' AND unit_id = '" . (int)$unit_id . "'");
-		}
-	}
-	// --- TESLA-CHITA
-]]></add>
 		</operation>
 
 	  	<operation>
@@ -368,14 +333,12 @@ var unit_id = 0;
 
 	$str_features =  "var \$features = {";
 	$str_price =  "var \$price = {";
-	$str_tax =  "var \$tax = {";
 	$str_quantity = "// quantity{product_feature_id:{warehouse_id:{unit_id:quantity}}}\n";
+	$quantity_total =  0;
 	$str_quantity .=  "var \$quantity = {";
 	foreach ($product_features_options as $product_feature_id => $feature_option) {
 		// Цены
-		$str_price .= "'" . $product_feature_id . "':{'name':'" . $product_features_price[$product_feature_id]['name'] . "', 'value':'" . $product_features_price[$product_feature_id]['value'] . "'},";
-		// Налоги
-		$str_tax .= "'" . $product_feature_id . "':'" . $product_features_tax[$product_feature_id] . "',";
+		$str_price .= "'" . $product_feature_id . "':{'value':" . $product_features_price[$product_feature_id]['value'] . ",'tax':" . $product_features_price[$product_feature_id]['tax'] . "},";
 		// Характеристики
 		$str_features .= "'" . implode("_", $feature_option) . "':" . $product_feature_id . ",";
 		// Остатки
@@ -384,24 +347,30 @@ var unit_id = 0;
 
 		$str_quantity .= "{";
 		foreach ($quantity_array as $warehouse_id => $quantity) {
-			$str_quantity .= "'" . $warehouse_id . "':{";
-			foreach ($quantity as $unit_id => $unit) {
-				$str_quantity .= $unit_id . ":" . $unit['quantity'];
+			$str_quantity .= "'" . $warehouse_id . "':" . $quantity . ",";
+			if ($warehouse_id == 0) {
+				$quantity_total += $quantity;
 			}
-			$str_quantity .= "},";
 		}
 		$str_quantity .= "},";
 
 	}
 	echo $str_features . "};\n";
-	echo $str_price . "};\n";;
-	echo $str_tax . "};\n";;
-	echo $str_quantity . "};\n";;
+	echo $str_price . "};\n";
+	echo $str_quantity . "};\n";
+	echo "var quantity_total = " . $quantity_total . ";\n";
 	echo "var \$product_units = {";
-	foreach ($product_units as $unit_id => $unit_name) {
-		echo $unit_id . ":'" . $unit_name . "',";
+	$num = 1;
+	foreach ($product_units as $unit_id => $unit) {
+		if ($unit['ratio'] == 1) {
+			echo "0:{'unit_id':'" . $unit_id . "','name':'" . $unit['rus_name'] . "','ratio':".$unit['ratio']."},";
+		} else {
+			echo $num . ":{'unit_id':'" . $unit_id . "','name':'" . $unit['rus_name'] . "','ratio':".$unit['ratio']."},";
+			$num++;
+		}
 	}
-	echo "}\n";
+	echo "};\n";
+	echo "var \$currency = {'symbol':'".$currency['symbol']."','decimal':".$currency['decimal']."};\n";
 ?>
 
 
@@ -418,49 +387,43 @@ function displayQuantity() {
 	} else {
 
 		var str = "";
+		var quantity_warehouse = 0;
+		var str_war = "";
+
+		// Общий остаток по всем складам
+		var total_quantity = $quantity[product_feature_id][0];
 
 		// Перебираем все остатки по складам
-		$.each($quantity[product_feature_id],function(warehouse_id, quantity_all) {
+		$.each($quantity[product_feature_id],function(warehouse_id, product_quantity) {
 
 			// Нет складов, если warehouse_id = 0
 			if (warehouse_id == "0") {
 
 				// Перебираем все единицы измерений
-				$.each(quantity_all,function(unit_id, quantity) {
+				$.each(product_quantity,function(unit_id, quantity) {
 					//str += quantity+" ("+$product_units[unit_id]+"),";
 					str += "\n" + quantity;
 				});
 			}
-			// Остатки могут иметь несколько единиц измерений или одну
-			else if ($.type(quantity_all) == "object") {
+			// Остатки в выбранной единице
+			else if (unit_id != 0) {
 
 				// Название склада
-				var str_war = " Склад: "+$warehouses[warehouse_id]+": ";
-
-				// Общий остаток всех единиц
-				var total_unit_quantity = 0;
-
-				// Перебираем все единицы измерений
-				$.each(quantity_all,function(unit_id, quantity) {
-					if (quantity > 0) {
-						//str_war += quantity + " ("+$product_units[unit_id]+"),";
-						str_war += quantity;
-						total_unit_quantity += quantity;
-					}
-
-				});
-
-				// Добавляем в строку, если остаток больше нуля
-				if (total_unit_quantity > 0) {
-					str += str_war;
-				}
+				str_war = " Склад: "+$warehouses[warehouse_id]+": ";
 
 			} else {
-				// Одна единица измерения
-				str += " Склад: "+$warehouses[warehouse_id]+" = "+quantity_all;
+				if (product_quantity > 0) {
+					quantity_warehouse++;
+					// Базовая единица
+					str_war += " "+$warehouses[warehouse_id]+" = "+product_quantity+" ("+$product_units[0]['name']+")";
+				}
 			}
-
 		});
+		if (quantity_warehouse > 0) {
+			str = " "+$quantity[product_feature_id][0]+" ("+$product_units[0]['name']+") в "+quantity_warehouse+" магазинах: ("+str_war+")";
+		} else {
+			str = " нет в наличии";
+		}
 		return str;
 	}
 } // displayQuantity()
@@ -470,15 +433,15 @@ function displayQuantity() {
 // а также, для передачи в корзину, устанавливает значение product_feature_id
 function displaySelect() {
 	if (product_feature_id){
-		$('#price').text($price[product_feature_id]['name']);
-		$('#tax').text(text_tax+" "+$tax[product_feature_id]);
+		$('#price').text(Math.round($price[product_feature_id]['value']).toFixed($currency['decimal'])+$currency['symbol']);
+		$('#tax').text(text_tax+" "+Math.round($price[product_feature_id]['tax']).toFixed($currency['decimal'])+$currency['symbol']);
 		$('#stock').text(text_stock+" "+displayQuantity());
 		$('input[name=\'product_feature_id\']').val(product_feature_id);
 		//$('input[name=\'unit_id\']').val($product_units[unit_id]);
 	} else {
 		$('#price').text("");
 		$('#tax').text("");
-		$('#stock').text("");
+		$('#stock').text(text_stock+" "+quantity_total+" ("+$product_units[0]['name']+")");
 		$('input[name=\'product_feature_id\']').val(0);
 		//$('input[name=\'unit_id\']').val(0);
 	}
