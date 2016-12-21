@@ -1382,6 +1382,7 @@ class ControllerModuleExchange1c extends Controller {
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_group`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "unit_type`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "warehouse`");
+		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "attribute_value`");
 
 		// Удаляем все корректировки в базе
 
@@ -1527,6 +1528,7 @@ class ControllerModuleExchange1c extends Controller {
 			//$this->log($path,2);
 			if (!is_dir($path)) {
 
+				$error = "";
 				@mkdir($path, 0775) or die ($error = "Ошибка создания директории '" . $path . "'");
 				if ($error) return $error;
 
@@ -1767,7 +1769,7 @@ class ControllerModuleExchange1c extends Controller {
 				}
 				foreach ($properties as $file) {
 					$this->log('Обрабатывается файл свойств: ' . $file, 2);
-//					$error = $this->modeImport($cache . $file);
+					$error = $this->modeImport($cache . $file);
 				}
 				foreach ($goods as $file) {
 					$this->log('Обрабатывается файл товаров: ' . $file, 2);

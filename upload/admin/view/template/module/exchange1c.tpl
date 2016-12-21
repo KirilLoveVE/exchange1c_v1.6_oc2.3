@@ -430,7 +430,7 @@
 									<tr>
 										<td>Сортировка</td>
 										<td><?php echo $lang['desc_category_prop_sort_order']; ?></td>
-										<td>image</td>
+										<td>sort_order</td>
 										<td>Сортировка</td>
 									</tr>
 								</tbody>
