@@ -5250,7 +5250,9 @@ class ModelToolExchange1c extends Model {
 					,'Имя'			      => $order['payment_firstname']
 					,'Отчество'		      => $order['payment_patronymic']
 					,'АдресРегистрации' => array(
-						'Представление'	=> $order['shipping_address_1'].', '.$order['shipping_city'].', '.$order['shipping_postcode'].', '.$order['shipping_country']
+						//'Представление'	=> $order['shipping_address_1'].', '.$order['shipping_city'].', '.$order['shipping_postcode'].', '.$order['shipping_country']
+						// Посоветовал yuriygr c GitHub
+						'Представление'	=> $order['shipping_postcode'] . ', ' . $order['shipping_zone'] . ', ' . $order['shipping_city'] . ', ' . $order['shipping_address_1'] . ', '.$order['shipping_address_2']
 					)
 					,'Контакты' => array(
 						'Контакт1' => array(

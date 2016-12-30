@@ -2054,7 +2054,9 @@ class ControllerModuleExchange1c extends Controller {
 		);
 		echo header('Content-Type: text/html; charset=windows-1251', true);
 		if ($this->config->get('exchange1c_convert_orders_cp1251') == 1)
-			echo iconv('utf-8', 'cp1251', $orders);
+			// посоветовал yuriygr с GitHub
+			//echo iconv('utf-8', 'cp1251', $orders);
+			echo iconv('utf-8', 'cp1251//TRANSLIT', $orders);
 		else
 			echo $orders;
 	}
