@@ -447,7 +447,6 @@ class ControllerModuleExchange1c extends Controller {
 			,'create_new_product'					=> array('type' => 'radio', 'default' => 1)
 			,'create_new_category'					=> array('type' => 'radio', 'default' => 1)
 			,'synchronize_new_product_by'        	=> array('type' => 'select', 'options' => $select_sync_new_poroduct, 'default' => 'sku')
-			,'synchronize_uuid_to_id'				=> array('type' => 'radio', 'default' => 0)
 			,'status'								=> array('type' => 'radio', 'default' => 1)
 			,'flush_log'							=> array('type' => 'radio', 'default' => 1)
 			,'currency_convert'						=> array('type' => 'radio', 'default' => 1)
@@ -1362,6 +1361,8 @@ class ControllerModuleExchange1c extends Controller {
 		$this->load->model('setting/setting');
 		$this->model_setting_setting->deleteSetting('exchange1c');
 
+		$this->load->model('tool/exchange1c');
+
 		//$this->load->model('extension/modification');
 		//$modification = $this->model_extension_modification->getModificationByCode('exchange1c');
 		//if ($modification) $this->model_extension_modification->deleteModification($modification['modification_id']);
@@ -1391,10 +1392,6 @@ class ControllerModuleExchange1c extends Controller {
 
 		// Общее количество теперь можно хранить не только целое число (для совместимости)
 		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` CHANGE `quantity` `quantity` int(4) NOT NULL DEFAULT 0 COMMENT 'Количество'");
-
-		// Восстанавливаем корзину
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "cart` DROP COLUMN `unit_id`");
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "cart` DROP COLUMN `product_feature_id`");
 
 		$this->log->write("Отключен модуль " . $this->module_name);
 		$this->log->write("Удалены таблицы: product_quantity, category_to_1c, attribute_to_1c, manufacturer_to_1c, store_to_1c, product_quantity, product_price, product_to_1c, product_unit, unit, unit_group, unit_type, warehouse.");
@@ -1568,7 +1565,10 @@ class ControllerModuleExchange1c extends Controller {
 				$pos = strpos($dump, "<?php");
 				if ($pos !== false) {
 					$this->log("[!] ВНИМАНИЕ Файл '" . $name . "' является PHP скриптом и не будет записан!");
-				} elseif ($fd = fopen(DIR_IMAGE.$name,"w+")) {
+				} elseif ($fd = @fopen(DIR_IMAGE.$name,"w+")) {
+					if ($fd === false) {
+						return "Ошибка создания файла: " . DIR_IMAGE.$name . ", проверьте права доступа!";
+					}
 					$this->log('[zip] create file: '.$name, 2);
 					fwrite($fd, $dump);
 					fclose($fd);

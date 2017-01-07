@@ -116,9 +116,6 @@
 						</div>
 						<legend><?php echo $lang['legend_other']; ?></legend>
 						<div class="form-group">
-							<?php echo $html_synchronize_uuid_to_id ?>
-						</div>
-						<div class="form-group">
 							<?php echo $html_cleaning_db ?>
 							<?php echo $html_cleaning_links ?>
 							<?php echo $html_cleaning_old_images ?>
@@ -134,6 +131,11 @@
 
 					<!-- ТОВАРЫ -->
 					<div class="tab-pane" id="tab-product">
+						<legend><?php echo $lang['legend_synchronize']; ?></legend>
+						<div class="alert alert-info">
+							<i class="fa fa-info-circle"></i>
+							<?php echo $lang['desc_synchronize']; ?>
+						</div>
 						<legend><?php echo $lang['legend_new_product']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_create_new_product ?>
@@ -393,6 +395,11 @@
 
 					<!-- КАТЕГОРИИ -->
 					<div class="tab-pane" id="tab-category">
+						<legend><?php echo $lang['legend_synchronize']; ?></legend>
+						<div class="alert alert-info">
+							<i class="fa fa-info-circle"></i>
+							<?php echo $lang['desc_synchronize']; ?>
+						</div>
 						<legend><?php echo $lang['legend_new_category']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_create_new_category ?>
