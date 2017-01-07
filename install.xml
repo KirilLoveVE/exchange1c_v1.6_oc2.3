@@ -422,6 +422,8 @@ function displayQuantity() {
 		});
 		if (quantity_warehouse > 0) {
 			str = " "+$quantity[product_feature_id][0]+" ("+$product_units[0]['name']+") в "+quantity_warehouse+" магазинах: ("+str_war+")";
+		} else if (total_quantity > 0) {
+			str = " "+total_quantity+" ("+$product_units[0]['name']+")";
 		} else {
 			str = " нет в наличии";
 		}

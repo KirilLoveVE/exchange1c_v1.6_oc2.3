@@ -1093,10 +1093,11 @@ class ModelToolExchange1c extends Model {
 			$error = "Заполнение родительскими категориями отменено, т.к. не указан product_id!";
 		}
 
-		// Подгружаем только один раз
-		if (!empty($data['product_categories'])) {
-			return $error;
-		}
+//		// Подгружаем только один раз
+//		if (!empty($data['product_categories'])) {
+//			$this->log("Родительские категории уже заполнены.",2);
+//			return $error;
+//		}
 
 		// Определяем наличие поля main_category
 		$main_category = isset($this->TAB_FIELDS['product_to_category']['main_category']);
@@ -1781,7 +1782,7 @@ class ModelToolExchange1c extends Model {
 
 		$this->log("==> Начало записи характеристик...", 2);
 
-//		$this->log($data, 2);
+		$this->log($data, 2);
 
 		$min_price_value = 0;
 
@@ -1843,9 +1844,9 @@ class ModelToolExchange1c extends Model {
 	       		}
 	       	}
 
-	       	// ОСТАТКИ
+	       	// ОСТАТКИ ПО СКЛАДАМ
 	       	if (isset($feature['quantities'])) {
-	       		$this->log("> Запись остатков характеристики");
+	       		$this->log("> Запись остатков характеристики по складам");
 
 	       		foreach ($feature['quantities'] as $warehouse_id => $quantity) {
 	       			$product_filter = array(
@@ -1862,6 +1863,16 @@ class ModelToolExchange1c extends Model {
 					}
 	       		}
 	       	}
+	       	if (isset($feature['quantity'])) {
+	       		$this->log("> Запись общего остатка характеристики");
+       			$product_filter = array(
+       				'product_id'			=> $data['product_id'],
+       				'warehouse_id'			=> 0,
+       				'product_feature_id'	=> $product_feature_id
+				);
+				// так как не указана какая единица измерения, подразумевается - базовая
+       			$product_quantity_id = $this->setProductQuantity($product_filter, $feature['quantity']);
+       		}
 
 	       	// ЕДИНИЦЫ ИЗМЕРЕНИЯ
 	       	if (isset($feature['unit'])) {
