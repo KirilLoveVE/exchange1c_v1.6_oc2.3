@@ -152,7 +152,7 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	private function htmlButton($name) {
 		$tmpl = '<button id="exchange1c-button-'.$name.'" class="btn btn-primary" type="button" data-loading-text="' . $this->language->get('entry_button_'.$name). '">';
-		$tmpl .= '<i class="fa fa-trash-o fa-lg"></i> ' . $this->language->get('entry_button_'.$name) . '</button>';
+		$tmpl .= '<i class="fa fa-trash-o fa-lg"></i> ' . $this->language->get('text_button_'.$name) . '</button>';
 		return $tmpl;
 	} // htmlButton()
 
@@ -162,7 +162,7 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	private function htmlImage($name, $param) {
 		$tmpl = '<a title="" class="img_thumbnail" id="thumb-image0" aria-describedby="popover" href="" data-original-title="" data-toggle="image">';
-		$tmpl .= '<img src="' . $param['thumb'] . '" data-placeholder="' . $param['placeholder'] . '" alt="" />';
+		$tmpl .= '<img src="' . $param['thumb'] . '" data-placeholder="' . $param['ph'] . '" alt="" />';
 		$tmpl .= '<input name="exchange1c_' . $name . '" id="input_image0" value="' . $param['value'] . '" type="hidden" /></a>';
 		return $tmpl;
 	} // htmlImage()
@@ -174,7 +174,12 @@ class ControllerModuleExchange1c extends Controller {
 	private function htmlInput($name, $param, $type='text') {
 		$value = $this->getParam($name);
 		if (!$value && isset($param['default'])) $value = $param['default'];
-		$tmpl = '<input class="form-control" type="'.$type.'" id="exchange1c_'.$name.'" name="exchange1c_'.$name.'" value="'.$value.'">';
+		if ($this->language->get('ph_'.$name) != 'ph_'.$name) {
+			$placeholder = ' placeholder="' . $this->language->get('ph_'.$name) . '"';
+		} else {
+			$placeholder = '';
+		}
+		$tmpl = '<input class="form-control"' . $placeholder . ' type="'.$type.'" id="exchange1c_'.$name.'" name="exchange1c_'.$name.'" value="'.$value.'">';
 		return $tmpl;
 	} // htmlInput()
 
@@ -334,7 +339,7 @@ class ControllerModuleExchange1c extends Controller {
 		// Картинки
 		$images = array(
 			'watermark'	=> array(
-				'placeholder'	=> $this->model_tool_image->resize('no_image.png', 100, 100),
+				'ph'			=> $this->model_tool_image->resize('no_image.png', 100, 100),
 				'value'			=> $this->getParam('watermark'),
 				'thumb'			=> $this->getParam('watermark') ? $this->model_tool_image->resize($this->getParam('watermark'), 100, 100) : $this->model_tool_image->resize('no_image.png', 100, 100)
 			)
@@ -357,7 +362,7 @@ class ControllerModuleExchange1c extends Controller {
 		if (isset($this->request->post['exchange1c_seo_product_tags'])) {
 			$data['exchange1c_seo_product_tags'] = $this->request->post['exchange1c_seo_product_tags'];
 		} else {
-			$data['exchange1c_seo_product_tags'] = '{name}, {sku}, {brand}, {desc}, {cats}, {price}, {prod_id}, {cat_id}';
+			$data['exchange1c_seo_product_tags'] = '{name}, {sku}, {brand}, {desc}, {cats}, {prod_id}, {cat_id}';
 		}
 
 		if (isset($this->request->post['exchange1c_seo_category_tags'])) {
@@ -380,9 +385,10 @@ class ControllerModuleExchange1c extends Controller {
 			'disable'		=> $this->language->get('text_disable'),
 			'template'		=> $this->language->get('text_template')
 		);
-		$list_overwrite = array(
-			'if_empty'		=> $this->language->get('text_seo_if_empty'),
-			'overwrite'		=> $this->language->get('text_seo_overwrite')
+		$list_seo_mode = array(
+			'disable'		=> $this->language->get('text_disable'),
+			'if_empty'		=> $this->language->get('text_if_empty'),
+			'overwrite'		=> $this->language->get('text_overwrite')
 		);
 
 		// Статус товара по умолчанию при отсутствии
@@ -431,7 +437,7 @@ class ControllerModuleExchange1c extends Controller {
 			'cleaning_db' 							=> array('type' => 'button')
 			,'cleaning_links' 						=> array('type' => 'button')
 			,'cleaning_old_images' 					=> array('type' => 'button')
-			,'flush_quantity'						=> array('type' => 'radio', 'default' => 0)
+			,'flush_quantity_category'				=> array('type' => 'radio', 'default' => -1)
 			,'watermark'							=> array('type' => 'image')
 			,'allow_ip'								=> array('type' => 'textarea')
 			,'import_images'						=> array('type' => 'radio', 'default' => 1)
@@ -443,9 +449,11 @@ class ControllerModuleExchange1c extends Controller {
 			,'status_new_category'					=> array('type' => 'radio', 'default' => 1, 'text' => 'on_off')
 			,'description_html'						=> array('type' => 'radio', 'default' => 1)
 			,'fill_parent_cats'						=> array('type' => 'radio', 'default' => 1)
-			,'product_disable_if_zero'				=> array('type' => 'radio', 'default' => 0)
+			,'product_disable_if_quantity_zero'		=> array('type' => 'radio', 'default' => -1)
+			,'product_disable_if_price_zero'		=> array('type' => 'radio', 'default' => -1)
 			,'create_new_product'					=> array('type' => 'radio', 'default' => 1)
 			,'create_new_category'					=> array('type' => 'radio', 'default' => 1)
+			,'synchronize_by_code'					=> array('type' => 'radio', 'default' => -1)
 			,'synchronize_new_product_by'        	=> array('type' => 'select', 'options' => $select_sync_new_poroduct, 'default' => 'sku')
 			,'status'								=> array('type' => 'radio', 'default' => 1)
 			,'flush_log'							=> array('type' => 'radio', 'default' => 1)
@@ -483,37 +491,37 @@ class ControllerModuleExchange1c extends Controller {
 			,'order_notify'							=> array('type' => 'radio', 'default' => 1)
 			,'product_options_mode'					=> array('type' => 'select', 'options' => $list_options)
 			,'product_options_subtract'				=> array('type' => 'radio', 'default' => 1)
-			,'default_stock_status'				=> array('type'	=> 'select', 'options' => $stock_statuses)
-			,'log_level'						=> array('type' => 'select', 'options' => $log_level_list)
-			,'file_exchange'					=> array('type' => 'select', 'options' => $file_exchange_list)
-			,'seo_product_overwrite'			=> array('type' => 'select', 'options' => $list_overwrite, 'width' => array(1,2,9))
-			,'seo_product_seo_url'				=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
-			,'seo_product_meta_title'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
-			,'seo_product_meta_description'		=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
-			,'seo_product_meta_keyword'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
-			,'seo_product_tag'					=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
-			,'seo_category_overwrite'			=> array('type' => 'select', 'options' => $list_overwrite, 'width' => array(1,2,9))
-			,'seo_category_seo_url'				=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
-			,'seo_category_meta_title'			=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
-			,'seo_category_meta_description'	=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
-			,'seo_category_meta_keyword'		=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
-			,'seo_manufacturer_overwrite'		=> array('type' => 'select', 'options' => $list_overwrite, 'width' => array(1,2,9))
-			,'seo_manufacturer_seo_url'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
-			,'seo_manufacturer_meta_title'		=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
-			,'seo_manufacturer_meta_description' => array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
-			,'seo_manufacturer_meta_keyword'	=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
-			,'order_status_to_exchange'			=> array('type' => 'select', 'options' => $order_statuses)
-			,'order_status_change'				=> array('type' => 'select', 'options' => $order_statuses)
-			,'order_status_canceled'			=> array('type' => 'select', 'options' => $order_statuses)
-			,'order_status_completed'			=> array('type' => 'select', 'options' => $order_statuses)
-			,'order_new_notify_subject'			=> array('type' => 'input')
-			,'order_new_notify_text'			=> array('type' => 'textarea')
-			,'order_export_notify_subject'		=> array('type' => 'input')
-			,'order_export_notify_text'			=> array('type' => 'textarea')
-			,'order_canceled_notify_subject'	=> array('type' => 'input')
-			,'order_canceled_notify_text'		=> array('type' => 'textarea')
-			,'order_completed_notify_subject'	=> array('type' => 'input')
-			,'order_completed_notify_text'		=> array('type' => 'textarea')
+			,'default_stock_status'					=> array('type'	=> 'select', 'options' => $stock_statuses)
+			,'log_level'							=> array('type' => 'select', 'options' => $log_level_list)
+			,'file_exchange'						=> array('type' => 'select', 'options' => $file_exchange_list)
+			,'seo_product_mode'						=> array('type' => 'select', 'options' => $list_seo_mode, 'width' => array(1,2,9))
+			,'seo_product_seo_url'					=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_product_meta_title'				=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_product_meta_description'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_product_meta_keyword'				=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_product_tag'						=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_category_mode'					=> array('type' => 'select', 'options' => $list_seo_mode, 'width' => array(1,2,9))
+			,'seo_category_seo_url'					=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
+			,'seo_category_meta_title'				=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
+			,'seo_category_meta_description'		=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
+			,'seo_category_meta_keyword'			=> array('type' => 'select', 'options' => $list_category, 'width' => array(1,2,0))
+			,'seo_manufacturer_mode'				=> array('type' => 'select', 'options' => $list_seo_mode, 'width' => array(1,2,9))
+			,'seo_manufacturer_seo_url'				=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_manufacturer_meta_title'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_manufacturer_meta_description'	 => array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'seo_manufacturer_meta_keyword'		=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'order_status_to_exchange'				=> array('type' => 'select', 'options' => $order_statuses)
+			,'order_status_change'					=> array('type' => 'select', 'options' => $order_statuses)
+			,'order_status_canceled'				=> array('type' => 'select', 'options' => $order_statuses)
+			,'order_status_completed'				=> array('type' => 'select', 'options' => $order_statuses)
+			,'order_new_notify_subject'				=> array('type' => 'input')
+			,'order_new_notify_text'				=> array('type' => 'textarea')
+			,'order_export_notify_subject'			=> array('type' => 'input')
+			,'order_export_notify_text'				=> array('type' => 'textarea')
+			,'order_canceled_notify_subject'		=> array('type' => 'input')
+			,'order_canceled_notify_text'			=> array('type' => 'textarea')
+			,'order_completed_notify_subject'		=> array('type' => 'input')
+			,'order_completed_notify_text'			=> array('type' => 'textarea')
 
 		);
 
@@ -1734,7 +1742,7 @@ class ControllerModuleExchange1c extends Controller {
 			}
 		}
 
-		if ($this->config->get('exchange1c_flush_log')) {
+		if ($this->config->get('exchange1c_flush_log') == 1) {
 			$this->clearLog();
 		}
 

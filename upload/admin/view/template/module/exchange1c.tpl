@@ -121,6 +121,7 @@
 							<?php echo $html_cleaning_old_images ?>
 						</div>
 						<div class="form-group">
+							<?php echo $html_synchronize_by_code; ?>
 							<?php echo $html_file_exchange; ?>
 							<?php echo $html_log_level; ?>
 							<?php echo $html_log_memory_use_view; ?>
@@ -459,6 +460,7 @@
 						<legend><?php echo $lang['legend_prices']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_price_types_auto_load ?>
+							<?php echo $html_product_disable_if_price_zero ?>
 						</div>
 						<div class="alert alert-info">
 							<i class="fa fa-info-circle"></i>
@@ -468,12 +470,12 @@
 							<table id="exchange1c_price_type_id" class="table table-bordered table-hover">
 								<thead>
 									<tr>
-										<td class="col-sm-3 text-left"><?php echo $lang['entry_config_price_type']; ?></td>
-										<td class="col-sm-3 text-left"><?php echo $lang['entry_config_price_id_cml']; ?></td>
-										<td class="col-sm-3 text-left"><?php echo $lang['entry_customer_group']; ?></td>
-										<td class="col-sm-1 text-right"><?php echo $lang['entry_quantity']; ?></td>
-										<td class="col-sm-1 text-right"><?php echo $lang['entry_priority']; ?></td>
-										<td class="col-sm-1 text-right"><?php echo $lang['entry_action']; ?></td>
+										<td class="col-sm-3 text-left"><?php echo $lang['text_config_price_type']; ?></td>
+										<td class="col-sm-3 text-left"><?php echo $lang['text_config_price_id_cml']; ?></td>
+										<td class="col-sm-3 text-left"><?php echo $lang['text_customer_group']; ?></td>
+										<td class="col-sm-1 text-right"><?php echo $lang['text_quantity']; ?></td>
+										<td class="col-sm-1 text-right"><?php echo $lang['text_priority']; ?></td>
+										<td class="col-sm-1 text-right"><?php echo $lang['text_action']; ?></td>
 									</tr>
 								</thead>
 								<tbody>
@@ -525,8 +527,8 @@
 						<legend><?php echo $lang['legend_stock']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_default_stock_status; ?>
-							<?php echo $html_product_disable_if_zero ?>
-							<?php echo $html_flush_quantity ?>
+							<?php echo $html_product_disable_if_quantity_zero ?>
+							<?php echo $html_flush_quantity_category ?>
 						</div>
 					</div>
 
@@ -535,7 +537,7 @@
 						<!-- SEO товар -->
 						<legend><?php echo $lang['legend_seo_product']; ?></legend>
 						<div class="form-group">
-							<?php echo $html_seo_product_overwrite; ?>
+							<?php echo $html_seo_product_mode; ?>
 							<label class="col-sm-12 text-left">
 								<?php echo $lang['label_available_patterns']; echo $exchange1c_seo_product_tags; ?>
 								<input type="hidden" name="exchange1c_seo_product_tags" value="<?php echo $exchange1c_seo_product_tags; ?>"/>
@@ -570,7 +572,7 @@
 						<!-- SEO категория -->
 						<legend><?php echo $lang['legend_seo_category']; ?></legend>
 						<div class="form-group">
-							<?php echo $html_seo_category_overwrite; ?>
+							<?php echo $html_seo_category_mode; ?>
 							<label class="col-sm-12 text-left">
 								<?php echo $lang['label_available_patterns']; echo $exchange1c_seo_category_tags; ?>
 							</label>
@@ -601,7 +603,7 @@
 						<!-- SEO Производителя -->
 						<legend><?php echo $lang['legend_seo_manufacturer']; ?></legend>
 						<div class="form-group">
-							<?php echo $html_seo_manufacturer_overwrite; ?>
+							<?php echo $html_seo_manufacturer_mode; ?>
 							<label class="col-sm-12 text-left">
 								<?php echo $lang['label_available_patterns']; echo $exchange1c_seo_manufacturer_tags; ?>
 							</label>
@@ -746,8 +748,7 @@
 						<div class="form-group">
 							<div class="col-sm-12">
 								<div class="alert alert-info"><i class="fa fa-info-circle"></i>
-									В планах. При полной выгрузке из торговой системы по идее все существующие товары, категории, а также, у товаров атрибуты, опции, остатки и цены, другими словами нужна полная перезапись магазина, но сохранить существующие id.<br />
-									Поэтому работа по этому режиму будет начата в версии 1.6.2.b12
+									В стадии разработки
 								</div>
 							</div>
 						</div>
