@@ -575,11 +575,11 @@ class ModelToolExchange1c extends Model {
 
 
 	/**
-	 * Получает SEO_URL для существующего товара
+	 * Получает SEO_URL
 	 */
-	private function getProductSeoUrl($product_id) {
+	private function getSeoUrl($element, $id) {
 
-    	$query = $this->query("SELECT `keyword` FROM `" . DB_PREFIX . "url_alias` WHERE `query` = 'product_id=" . (string)$product_id . "'");
+    	$query = $this->query("SELECT `keyword` FROM `" . DB_PREFIX . "url_alias` WHERE `query` = '" . $element . "=" . (string)$id . "'");
     	if ($query->num_rows) {
     		return $query->row['keyword'];
     	}
@@ -689,6 +689,7 @@ class ModelToolExchange1c extends Model {
 		// Сопоставляем значения
 		$tags = array(
 			'{name}'		=> isset($data['name']) 			? $data['name'] 								: '',
+			'{fullname}'	=> isset($data['full_name']) 		? $data['full_name'] 							: '',
 			'{sku}'			=> isset($data['sku'])				? $data['sku'] 									: '',
 			'{brand}'		=> isset($data['manufacturer_id'])	? $this->getProductManufacturerString($data['manufacturer_id']) : '',
 			'{desc}'		=> isset($data['description'])		? $data['description'] 							: '',
@@ -706,7 +707,7 @@ class ModelToolExchange1c extends Model {
 
 		foreach ($seo_fields as $field=>$param) {
 			if ($field == 'seo_url') {
-				$data['seo_url'] = $this->getProductSeoUrl($data['product_id']);
+				$data['seo_url'] = $this->getSeoUrl("product_id", $data['product_id']);
 			} else {
 				$fields_list[] = $field;
 			}
@@ -732,22 +733,30 @@ class ModelToolExchange1c extends Model {
 			$template = '';
 			if ($this->config->get('exchange1c_seo_product_'.$field) == 'template') {
 				$template = $this->config->get('exchange1c_seo_product_'.$field.'_template');
+
+				if (!$template) {
+					unset($data[$field]);
+					continue;
+				}
+
 				if ($this->config->get('exchange1c_seo_product_mode') == 'overwrite') {
 					// Перезаписывать
 					$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
 					$this->log("Новое значение поля '" . $field . "' = '" . $data[$field] . "'", 2);
 				} else {
 					// Только если поле пустое
-					$this->log("Старое значение поля '".$field."' = '" . $data[$field] . "'");
+					$this->log("Старое значение поля '".$field."' = '" . $data[$field] . "'", 2);
 					if (empty($data[$field])) {
 						$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
 					} else {
 						$this->log("Пропускаем, поле '" . $field . "' не пустое", 2);
 						unset($data[$field]);
+						continue;
 					}
 				}
 			} else {
 				unset($data[$field]);
+				continue;
 			}
 		}
 
@@ -785,8 +794,11 @@ class ModelToolExchange1c extends Model {
 		// Получим поля для сравнения
 		$fields_list = array();
 		foreach ($seo_fields as $field=>$param) {
-			if ($field == 'seo_url') continue;
-			$fields_list[] = $field;
+			if ($field == 'seo_url') {
+				$data['seo_url'] = $this->getSeoUrl("category_id", $data['category_id']);
+			} else {
+				$fields_list[] = $field;
+			}
 		}
 		$fields	= implode($fields_list,', ');
 		$query = $this->query("SELECT " . $fields . " FROM `" . DB_PREFIX . "category_description` WHERE `category_id` = " . $data['category_id'] . " AND `language_id` = " . $this->LANG_ID);
@@ -804,51 +816,38 @@ class ModelToolExchange1c extends Model {
 
 		// Формируем массив с замененными значениями
 		foreach ($seo_fields as $field=>$param) {
-
-
 			$template = '';
 			if ($this->config->get('exchange1c_seo_category_'.$field) == 'template') {
 				$template = $this->config->get('exchange1c_seo_category_'.$field.'_template');
-			} elseif ($this->config->get('exchange1c_seo_category_'.$field) == 'import') {
-				// из свойства которое считалось при обмене
-			} else {
-				// Пропускаем если ни один способ не задан
-				continue;
-			}
 
-			// Пустой шаблон, пропускаем генерацию SEO
-			if (!$template) {
-				$this->log("Пустой шаблон");
-				continue;
-			}
-
-			if ($this->config->get('exchange1c_seo_category_mode') == 'overwrite') {
-				// Перезаписывать
-				$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
-			} else {
-				// Только если поле пустое
-				if (empty($data[$field])) {
-					$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
-				} else {
-					$this->log("Поле '" . $field . "' не пустое", 2);
+				if (!$template) {
+					unset($data[$field]);
+					continue;
 				}
-			}
 
+				if ($this->config->get('exchange1c_seo_category_mode') == 'overwrite') {
+					// Перезаписывать
+					$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
+					$this->log("Новое значение поля '" . $field . "' = '" . $data[$field] . "'", 2);
+				} else {
+					// Только если поле пустое
+					$this->log("Старое значение поля '".$field."' = '" . $data[$field] . "'", 2);
+					if (empty($data[$field])) {
+						$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
+					} else {
+						$this->log("Пропускаем, поле '" . $field . "' не пустое", 2);
+						unset($data[$field]);
+					}
+				}
+
+			} else {
+				unset($data[$field]);
+				continue;
+			}
 		}
 
 		if (isset($data['seo_url'])) {
-			if ($this->config->get('exchange1c_seo_category_mode') == 'overwrite') {
-				$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
-			} else {
-				$query = $this->query("SELECT keyword FROM `" . DB_PREFIX . "url_alias` WHERE `query` = 'category_id=" . $data['category_id'] . "'");
-				if ($query->num_rows) {
-					$data['seo_url'] = $query->row['keyword'];
-					if (empty($data['seo_url']))
-						$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
-				} else {
-					$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
-				}
-			}
+			$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
 		}
 		$this->log("<== Завершено формирование SEO для категории category_id: " . $data['category_id']);
 
@@ -880,8 +879,11 @@ class ModelToolExchange1c extends Model {
 			// Получим поля для сравнения
 			$fields_list = array();
 			foreach ($seo_fields as $field=>$param) {
-				if ($field == 'seo_url') continue;
-				$fields_list[] = $field;
+				if ($field == 'seo_url') {
+					$data['seo_url'] = $this->getSeoUrl("manufacturer_id", $data['manufacturer_id']);
+				} else {
+					$fields_list[] = $field;
+				}
 			}
 			$fields	= implode($fields_list,', ');
 
@@ -906,37 +908,35 @@ class ModelToolExchange1c extends Model {
 			$template = '';
 			if ($this->config->get('exchange1c_seo_manufacturer_'.$field) == 'template') {
 				$template = $this->config->get('exchange1c_seo_manufacturer_'.$field.'_template');
-			} elseif ($this->config->get('exchange1c_seo_manufacturer_'.$field) == 'import') {
-				// из свойства которое считалось при обмене
-			}
 
-			if ($this->config->get('exchange1c_seo_manufacturer_mode') == 'overwrite') {
-				// Перезаписывать
-				$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
-			} else {
-				// Только если поле пустое
-				if (empty($data[$field])) {
-					$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
-				} else {
-					$this->log("Поле '" . $field . "' не пустое", 2);
+				if (!$template) {
+					unset($data[$field]);
+					continue;
 				}
+
+				if ($this->config->get('exchange1c_seo_manufacturer_mode') == 'overwrite') {
+					// Перезаписывать
+					$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
+					$this->log("Новое значение поля '" . $field . "' = '" . $data[$field] . "'", 2);
+				} else {
+					// Только если поле пустое
+					$this->log("Старое значение поля '".$field."' = '" . $data[$field] . "'", 2);
+					if (empty($data[$field])) {
+						$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
+					} else {
+						$this->log("Пропускаем, поле '" . $field . "' не пустое", 2);
+						unset($data[$field]);
+					}
+				}
+			} else {
+				unset($data[$field]);
+				continue;
 			}
 
 		}
 
 		if (isset($data['seo_url'])) {
-			if ($this->config->get('exchange1c_seo_manufacturer_mode') == 'overwrite') {
-				$this->setSeoURL('manufacturer_id', $data['manufacturer_id'], $data['seo_url']);
-			} else {
-				$query = $this->query("SELECT keyword FROM `" . DB_PREFIX . "url_alias` WHERE `query` = 'manufacturer_id=" . $data['manufacturer_id'] . "'");
-				if ($query->num_rows) {
-					$data['seo_url'] = $query->row['keyword'];
-					if (empty($data['seo_url']))
-						$this->setSeoURL('manufacturer_id', $data['manufacturer_id'], $data['seo_url']);
-				} else {
-					$this->setSeoURL('manufacturer_id', $data['manufacturer_id'], $data['seo_url']);
-				}
-			}
+			$this->setSeoURL('manufacturer_id', $data['manufacturer_id'], $data['seo_url']);
 		}
 		$this->log("> Сформирована SEO для категории manufacturer_id: " . $data['manufacturer_id']);
 
@@ -1402,10 +1402,11 @@ class ModelToolExchange1c extends Model {
 				// Запись иерархии категорий если были изменения
 				$this->updateHierarchical($data);
 
-				// SEO
-				$this->seoGenerateCategory($data);
 			}
 		}
+
+		// SEO
+		$this->seoGenerateCategory($data);
 
 		// Если было обновление описания
 		$this->updateCategoryDescription($data);
@@ -4490,6 +4491,9 @@ $this->log($price_data, 2);
 
 					if ($price->ЦенаЗаЕдиницу) {
 						$data_price['price']		= (float)$price->ЦенаЗаЕдиницу;
+					} else {
+						$this->log("Невозможно прочитать цену, т.к. отсутствует <ЦенаЗаЕдиницу>. Проверьте формат файла! Предложение будет пропущено.", 2);
+			 			continue;
 					}
 
 					// автоматическая конвертация в основную валюту CMS
@@ -4505,11 +4509,6 @@ $this->log($price_data, 2);
 					if ($this->config->get('exchange1c_ignore_price_zero') == 1 && $data_price['price'] == 0) {
 						$this->log("Нулевая цена, старая цена не меняется", 2);
 						continue;
-					}
-
-					if (!isset($data_price['price'])) {
-						$this->log("Невозможно прочитать цену, т.к. отсутствует <ЦенаЗаЕдиницу>. Проверьте формат файла! Предложение будет пропущено.", 2);
-			 			continue;
 					}
 
 					// если это не базовая единица
@@ -6234,9 +6233,6 @@ $this->log($price_data, 2);
 			$error = $this->parseOffersPack($xml->ПакетПредложений);
 			if ($error)	return "Ошибка загрузки пакета предложений:\n" . $error;
 			unset($xml->ПакетПредложений);
-
-			// После загрузки пакета предложений формируем SEO
-			//$this->seoGenerate();
 
 		}
 

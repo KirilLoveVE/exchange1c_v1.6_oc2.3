@@ -362,7 +362,7 @@ class ControllerModuleExchange1c extends Controller {
 		if (isset($this->request->post['exchange1c_seo_product_tags'])) {
 			$data['exchange1c_seo_product_tags'] = $this->request->post['exchange1c_seo_product_tags'];
 		} else {
-			$data['exchange1c_seo_product_tags'] = '{name}, {sku}, {brand}, {desc}, {cats}, {prod_id}, {cat_id}';
+			$data['exchange1c_seo_product_tags'] = '{name}, {fullname}, {sku}, {brand}, {desc}, {cats}, {prod_id}, {cat_id}';
 		}
 
 		if (isset($this->request->post['exchange1c_seo_category_tags'])) {
