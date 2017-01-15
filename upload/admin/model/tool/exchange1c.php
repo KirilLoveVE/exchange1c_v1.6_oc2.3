@@ -244,7 +244,7 @@ class ModelToolExchange1c extends Model {
 		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'option_value`');
 		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'order_option`');
 		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'option`');
-		$this->query('DELETE FROM ' . DB_PREFIX . 'url_alias WHERE query LIKE "%product_id=%"');
+		$this->query('DELETE FROM `' . DB_PREFIX . 'url_alias` WHERE `query` LIKE "product_id=%"');
 		$result .=  "Опции товаров\n";
 
 		// Очищает таблицы категорий
@@ -255,7 +255,7 @@ class ModelToolExchange1c extends Model {
 		$this->query('TRUNCATE TABLE ' . DB_PREFIX . 'category_to_layout');
 		$this->query('TRUNCATE TABLE ' . DB_PREFIX . 'category_path');
 		$this->query('TRUNCATE TABLE ' . DB_PREFIX . 'category_to_1c');
-		$this->query('DELETE FROM ' . DB_PREFIX . 'url_alias WHERE query LIKE "%category_id=%"');
+		$this->query('DELETE FROM `' . DB_PREFIX . 'url_alias` WHERE `query` LIKE "category_id=%"');
 		$result .=  "Категории\n";
 
 		// Очищает таблицы от всех производителей
@@ -268,7 +268,7 @@ class ModelToolExchange1c extends Model {
 			$this->query('TRUNCATE TABLE ' . DB_PREFIX . 'manufacturer_description');
 		}
 		$this->query('TRUNCATE TABLE ' . DB_PREFIX . 'manufacturer_to_store');
-		$this->query('DELETE FROM ' . DB_PREFIX . 'url_alias WHERE query LIKE "%manufacturer_id=%"');
+		$this->query('DELETE FROM `' . DB_PREFIX . 'url_alias` WHERE `query` LIKE "manufacturer_id=%"');
 		$result .=  "Производители\n";
 
 		// Очищает атрибуты
@@ -285,11 +285,6 @@ class ModelToolExchange1c extends Model {
 			$result .=  "Значения атрибутов\n";
 		}
 		$result .=  "Атрибуты\n";
-		// Выставляем кол-во товаров в 0
-		//$this->log("Очистка остатков...",2);
-		//$this->query("UPDATE `" . DB_PREFIX . "product` SET `quantity` = 0");
-		//$this->query("TRUNCATE TABLE `" . DB_PREFIX . "warehouse`");
-		//$result .=  "Обнулены все остатки\n";
 
 		// Удаляем все цены
 		$this->log("Очистка цен...",2);
@@ -720,7 +715,7 @@ class ModelToolExchange1c extends Model {
 		if ($query->num_rows) {
 			foreach ($fields_list as $field) {
 				$data[$field] = $query->row[$field];
-				$this->log('field: '.$field,2);
+				//$this->log('field: '.$field,2);
 			}
 		}
 		if (!isset($data['name']) && isset($query->row['name'])) {
@@ -759,10 +754,10 @@ class ModelToolExchange1c extends Model {
 				continue;
 			}
 		}
-
 		if (isset($data['seo_url']) && $data['product_id']) {
 			$this->setSeoURL('product_id', $data['product_id'], $data['seo_url']);
 		}
+
 		$this->log("<== Завершено формирование SEO для товара product_id: " . $data['product_id']);
 
 	} // seoGenerateProduct()
@@ -846,9 +841,6 @@ class ModelToolExchange1c extends Model {
 			}
 		}
 
-		if (isset($data['seo_url'])) {
-			$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
-		}
 		$this->log("<== Завершено формирование SEO для категории category_id: " . $data['category_id']);
 
 	} // seoGenerateCategory()
@@ -1408,6 +1400,10 @@ class ModelToolExchange1c extends Model {
 		// SEO
 		$this->seoGenerateCategory($data);
 
+		if (isset($data['seo_url'])) {
+			$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
+		}
+
 		// Если было обновление описания
 		$this->updateCategoryDescription($data);
 
@@ -1454,6 +1450,10 @@ class ModelToolExchange1c extends Model {
 
 		// Формируем SEO
  		$this->seoGenerateCategory($data);
+
+		if (isset($data['seo_url'])) {
+			$this->setSeoURL('category_id', $data['category_id'], $data['seo_url']);
+		}
 
 		// Подготовим строку запроса для описания категории
 		$fields = $this->prepareStrQueryDescription($data, 'set');
@@ -2058,20 +2058,6 @@ class ModelToolExchange1c extends Model {
 
 
 	/**
-	 * Удаление характеристик и опций у товара
-	 */
-	private function OFFdeleteProductFeatures($product_id) {
-
-		$this->log("==> deleteFeatures()",2);
-		// Удалим старые характеристики
-		$query = $this->query("DELETE FROM `" . DB_PREFIX . "product_feature` WHERE `product_id` = " . $product_id);
-		// Удалим старые значения характеристики
-		$query = $this->query("DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_id` = " . $product_id);
-
-	} // deleteProductFeatures()
-
-
-	/**
 	 * **************************************** ФУНКЦИИ ДЛЯ РАБОТЫ С ТОВАРОМ ******************************************
 	 */
 
@@ -2281,25 +2267,25 @@ class ModelToolExchange1c extends Model {
 	private function updateProduct(&$data) {
 
 		$this->log("==> Начато обновление товара в базе...",2);
-		//$this->log($data,2);
+		$this->log($data,2);
 
 		$update = false;
 
 		// ФИЛЬТР ОБНОВЛЕНИЯ
-		if ($this->config->get('exchange1c_import_product_name') == 'disable') {
+		if ($this->config->get('exchange1c_import_product_name') == 'disable' && isset($data['name'])) {
 			unset($data['name']);
 			$this->log("[i] Обновление названия отключено",2);
 		}
-		if ($this->config->get('exchange1c_import_categories') <> 1) {
+		if ($this->config->get('exchange1c_import_categories') <> 1 && isset($data['product_categories'])) {
 			unset($data['product_categories']);
 			$this->log("[i] Обновление категорий отключено",2);
 		}
-		if ($this->config->get('exchange1c_import_product_description') <> 1) {
+		if ($this->config->get('exchange1c_import_product_description') <> 1 && isset($data['description'])) {
 			unset($data['description']);
 			$this->log("[i] Обновление описаний товаров отключено",2);
 		}
 
-		if ($this->config->get('exchange1c_import_product_manufacturer') <> 1) {
+		if ($this->config->get('exchange1c_import_product_manufacturer') <> 1 && isset($data['manufacturer_id'])) {
 			unset($data['manufacturer_id']);
 			$this->log("[i] Обновление производителя в товаре отключено",2);
 		}
@@ -2315,18 +2301,21 @@ class ModelToolExchange1c extends Model {
 			// Формируем список опций из всех характеристик
 			$error = $this->setProductFeaturesOptions($data);
 			if ($error) return $error;
+
+			unset($data['features']);
 		}
 
 		// общий остаток товара
 		if (isset($data['quantity'])) {
 			$error = $this->setQuantity($data['product_id'], $data['quantity']);
 			if ($error) return $error;
-			if ($this->config->get('exchange1c_product_disable_if_zero') == 1) {
+			if ($this->config->get('exchange1c_product_disable_if_quantity_zero') == 1) {
 				if ($data['quantity'] <= 0) {
 					$data['status'] = 0;
 					$this->log("[!] Товар отключен, так как остаток нулевой");
 				}
 			}
+			unset($data['quantity']);
 		}
 
 		// Остатки товара по складам
@@ -2341,13 +2330,15 @@ class ModelToolExchange1c extends Model {
 				// так как не указана какая единица измерения, подразумевается - базовая
 	       		$product_quantity_id = $this->setProductQuantity($product_filter, $quantity);
    			}
+   			unset($data['quantities']);
 		}
 
 		// цены без характеристик
 		if (isset($data['prices'])) {
 			//$this->log($data['prices'], 2);
-			$error = $this->setPrice($data['product_id'], $data['prices']);
+			$error = $this->setPrice($data);
 			if ($error) return $error;
+			unset($data['prices']);
 		}
 
 		// Полное наименование из 1С в товар
@@ -2515,14 +2506,19 @@ class ModelToolExchange1c extends Model {
 
  		}
 
-		// SEO формируем
-		$this->seoGenerateProduct($data);
 
  		// Если не найден товар...
  		if (!$data['product_id']) {
  			if ($this->config->get('exchange1c_create_new_product') == 1) {
  				$error = $this->addProduct($data);
  				if ($error) return $error;
+
+				// SEO формируем
+				$this->seoGenerateProduct($data);
+
+				// Обновляем описание товара
+				$this->updateProductDescription($data);
+
  			} else {
 				$this->log("[!] Новый товар запрещено создавать!");
 				return "";
@@ -2530,6 +2526,10 @@ class ModelToolExchange1c extends Model {
  		} else {
  			$error = $this->updateProduct($data);
  			if ($error) return $error;
+
+			// SEO формируем
+			$this->seoGenerateProduct($data);
+
  		}
 
 		// Записываем атрибуты в товар
@@ -3472,7 +3472,12 @@ class ModelToolExchange1c extends Model {
 						continue;
 					} else {
 						$this->log("Не найден в базе, нужно удалить файл: " . $path, 2);
-						$num++;
+						$result = @unlink(DIR_IMAGE . $path);
+						if ($result) {
+							$num++;
+						} else {
+							$this->log("Ошибка удаления файла: " . $path, 2);
+						}
 					}
 
 				} elseif (is_dir(DIR_IMAGE . $path)) {
@@ -4337,29 +4342,26 @@ class ModelToolExchange1c extends Model {
 	/**
 	 * Обновляет основную цену в товаре
 	 */
-	private function setPrice($product_id, $data_prices) {
+	private function setPrice(&$data) {
 
 		$this->log("==> Начата установка основной цены в товар", 2);
 
-		foreach ($data_prices as $price) {
-
-			if ($this->config->get('exchange1c_product_disable_if_price_zero') == 1 && $price['price'] <= 0) {
-				$status = ", `status` = 0";
-			} else {
-				$status = "";
-			}
+		foreach ($data['prices'] as $price) {
 
 			if ($price['default']) {
-				$this->query("UPDATE `" . DB_PREFIX . "product` SET `price` = " . (float)$price['price'] . "" . $status . " WHERE `product_id` = " . $product_id);
-				$this->log("Цена обновлена: " . $price['price'], 2);
+				if ($this->config->get('exchange1c_product_disable_if_price_zero') == 1 && (float)$price['price'] <= 0) {
+					$data['status'] = 0;
+				}
+				$data['price'] = $price['price'];
+				$this->log("<== Завершена установка основной цены в товар", 2);
+				return "";
 // отключил так как при загрузке характеристик с УТ 10.3 возникли ошибки, цены были загружены еще раньше, массив содержит только цену и основная цена или нет
 //			} else{
 //				$this->setDiscountPrice($price, $product_id);
 			}
 		}
 
-		$this->log("<== Завершена установка основной цены в товар", 2);
-		return "";
+		return "Не найдена основная цена на товар!";
 	}
 
 
@@ -4475,7 +4477,7 @@ $this->log($price_data, 2);
 		foreach ($xml->Цена as $price) {
 			$price_cml_id	= (string)$price->ИдТипаЦены;
 			$data_price = array();
-			$this->log($price, 2);
+			//$this->log($price, 2);
 
 			foreach ($offers_pack['price_types'] as $config_price_type) {
 				//$this->log($config_price_type, 2);
@@ -4575,23 +4577,6 @@ $this->log($price_data, 2);
 
 
 	/**
-	 * Получает основную цену товара
-	 */
-	private function OFFgetProductPrice($product_id) {
-
-		$query = $this->query("SELECT `price` FROM `" . DB_PREFIX . "product` WHERE `product_id` = '" . $product_id . "'");
-        if ($query->num_rows) {
-        	$this->log("Основная цена товара: " . $query->row['price'], 2);
-        	return $query->row['price'];
-       	}
-
-  		$this->log("Ошибка при получении основной цены, товар не найден по product_id: " . $product_id, 2);
-       	return false;
-
-	} // getProductPrice()
-
-
-	/**
 	 * Получение наименования производителя по manufacturer_id
 	 */
 	private function getManufacturerName($manufacturer_id, &$error) {
@@ -4604,7 +4589,7 @@ $this->log($price_data, 2);
 		$query = $this->query("SELECT `name` FROM `" . DB_PREFIX . "manufacturer` WHERE `manufacturer_id` = " . $manufacturer_id);
 		$name = isset($query->row['name']) ? $query->row['name'] : "";
 
-		$this->log("Найдено название производителя: '" . $name . "' по id:" . $manufacturer_id, 2);
+		$this->log("Найдено название производителя: '" . $name . "' по id: " . $manufacturer_id, 2);
 		return $name;
 
 	} // getManufacturerName()
@@ -6279,11 +6264,11 @@ $this->log($price_data, 2);
 		}
 		if ($version == '1.6.2.b12') {
 			$version = '1.6.2.b13';
-			$message = "Обновлен до версии ".$version."<br />Исправлены ошибки, доработаны опции";
+			$message = "Обновлен до версии ".$version."<br />Исправлены ошибки, доработан модуль";
 		}
 		if ($version == '1.6.2.b13') {
 			$version = '1.6.2.b14';
-			$message = "Обновлен до версии ".$version."<br />Исправлены ошибки, доработаны опции";
+			$message = "Обновлен до версии ".$version."<br />Исправлены ошибки, доработан модуль";
 		}
 
 
@@ -6291,6 +6276,7 @@ $this->log($price_data, 2);
 			$this->setEvents();
 			$settings['exchange1c_version'] = $version;
 			$this->model_setting_setting->editSetting('exchange1c', $settings);
+			$message .= "<br />ВНИМАНИЕ! после обновления необходимо проверить все настройки и сохранить!";
 //		} else {
 //			$message = "В обновлении не нуждается";
 		}
