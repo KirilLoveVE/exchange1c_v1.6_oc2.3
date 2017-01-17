@@ -386,10 +386,12 @@ class ControllerModuleExchange1c extends Controller {
 			'template'		=> $this->language->get('text_template')
 		);
 		$list_seo_mode = array(
-			'disable'		=> $this->language->get('text_disable'),
-			'if_empty'		=> $this->language->get('text_if_empty'),
-			'overwrite'		=> $this->language->get('text_overwrite')
+			'disable'		=> $this->language->get('text_disable')
 		);
+		if ($this->config->get('config_seo_url') == 1) {
+			$list_seo_mode['if_empty'] 	= $this->language->get('text_if_empty');
+			$list_seo_mode['overwrite']	= $this->language->get('text_overwrite');
+		}
 
 		// Статус товара по умолчанию при отсутствии
 		$this->load->model('localisation/stock_status');
@@ -460,8 +462,8 @@ class ControllerModuleExchange1c extends Controller {
 			,'currency_convert'						=> array('type' => 'radio', 'default' => 1)
 			,'convert_orders_cp1251'				=> array('type' => 'radio', 'default' => 1)
 			,'parse_only_types_item'				=> array('type' => 'input')
-			,'username'								=> array('type' => 'input', 'default' => 'exchange1c')
-			,'password'								=> array('type' => 'input', 'default' => 'exchange1c')
+			,'username'								=> array('type' => 'input',)
+			,'password'								=> array('type' => 'input',)
 			,'price_types_auto_load'				=> array('type' => 'radio', 'default' => 1)
 			,'seo_product_seo_url_import'			=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
 			,'seo_product_seo_url_template'			=> array('type' => 'input', 'width' => array(0,9,0))

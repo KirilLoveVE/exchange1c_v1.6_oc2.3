@@ -572,15 +572,15 @@ class ModelToolExchange1c extends Model {
 	/**
 	 * Получает SEO_URL
 	 */
-	private function getSeoUrl($element, $id) {
+	private function getSeoUrl($element, $id, $last_symbol = "") {
 
     	$query = $this->query("SELECT `keyword` FROM `" . DB_PREFIX . "url_alias` WHERE `query` = '" . $element . "=" . (string)$id . "'");
     	if ($query->num_rows) {
-    		return $query->row['keyword'];
+    		return $query->row['keyword'] . $last_symbol;
     	}
     	return "";
 
-	} // getProductSeoUrl()
+	} // getSeoUrl()
 
 
 	/**
@@ -588,7 +588,11 @@ class ModelToolExchange1c extends Model {
 	 */
     private function getProductManufacturerString($manufacturer_id) {
 
-		$query = $this->query("SELECT `name` FROM `" . DB_PREFIX . "manufacturer_description` WHERE `language_id` = " . $this->LANG_ID . " AND `manufacturer_id` = " . $manufacturer_id);
+		if (isset($this->TAB_FIELDS['manufacturer_description']['name'])) {
+			$query = $this->query("SELECT `name` FROM `" . DB_PREFIX . "manufacturer_description` WHERE `language_id` = " . $this->LANG_ID . " AND `manufacturer_id` = " . $manufacturer_id);
+		} else {
+			$query = $this->query("SELECT `name` FROM `" . DB_PREFIX . "manufacturer` WHERE `manufacturer_id` = " . $manufacturer_id);
+		}
 		if ($query->num_rows) {
 			return $query->row['name'];
 		}
@@ -1123,10 +1127,10 @@ class ModelToolExchange1c extends Model {
 		}
 
 //		// Подгружаем только один раз
-//		if (!empty($data['product_categories'])) {
-//			$this->log("Родительские категории уже заполнены.",2);
-//			return $error;
-//		}
+		if (!empty($data['product_categories'])) {
+			$this->log("Нет категорий у товаров.",2);
+			return "";
+		}
 
 		// Определяем наличие поля main_category
 		$main_category = isset($this->TAB_FIELDS['product_to_category']['main_category']);
@@ -2069,8 +2073,8 @@ class ModelToolExchange1c extends Model {
 
 		$this->log("==> Начало добавления товара в базу", 2);
 
-		if ($this->config->get('exchange1c_status_new_product') == 0){
-			$data['status'] = 0;
+		if ($this->config->get('exchange1c_status_new_product') == 1 && $data['new_product']){
+			$data['status'] = 1;
 		}
 
 		// Подготовим список полей по которым есть данные
@@ -2467,7 +2471,7 @@ class ModelToolExchange1c extends Model {
 		}
 
 
- 		if (!$data['product_id'] && !isset($data['code'])) {
+ 		if (!$data['product_id']) {
 
 			// Синхронизация по артикулу
  			if ($this->config->get('exchange1c_synchronize_new_product_by') == 'sku') {
@@ -2493,7 +2497,9 @@ class ModelToolExchange1c extends Model {
  			} elseif ($this->config->get('exchange1c_synchronize_new_product_by') == 'ean') {
 
  				if (empty($data['ean'])) {
- 					return "При синхронизации по штрихкоду, штрихкод не должен быть пустым! Проверьте товар " . $data['name'];
+ 					$error = "При синхронизации по штрихкоду, штрихкод не должен быть пустым! Проверьте товар " . $data['name'];
+ 					$this->log("[ERROR] " . $error);
+ 					return $error;
  				}
 
  				$this->log("[i] Товар новый, ищем по штрихкоду: " . $data['ean'], 2);
@@ -4361,7 +4367,11 @@ class ModelToolExchange1c extends Model {
 			}
 		}
 
-		return "Не найдена основная цена на товар!";
+		if ($this->config->get('exchange1c_product_disable_if_price_zero') == 1) {
+			$data['status'] = 0;
+		}
+		$this->log("[!] На товар отсутствует основная цена, цена не будет изменена!");
+		return "";
 	}
 
 
@@ -4539,7 +4549,12 @@ $this->log($price_data, 2);
 			 		}
 
 		 			// истина если цена для группы по-умолчанию
-					$data_price['default'] 	= $data_price['customer_group_id'] == $this->config->get('config_customer_group_id') ? true : false;
+					if ($this->config->get('config_customer_group_id') != 1) {
+						$error = "В настройках модуля не указана группа покупателей по-умолчанию, поэтому невозможно понять какая цена будет основной!";
+						if ($error) return $error;
+					} else {
+						$data_price['default'] 	= $data_price['customer_group_id'] == $this->config->get('config_customer_group_id') ? true : false;
+					}
 
 					$this->log("Цена '" . $data_price['name'] . "'",2);
 
@@ -6176,18 +6191,26 @@ $this->log($price_data, 2);
 			foreach(libxml_get_errors() as $error) {
 				$this->log($error->message);
 			}
-			return "Файл не является стандартом XML, подробности в журнале";
+			$error = "Файл не является стандартом XML, подробности в журнале";
+			$this->log("[ERROR] " . $error);
+			return $error;
 		}
 		$this->log("XML успешно прочитан",2);
 
 		// Файл стандарта Commerce ML
 		$error = $this->checkCML($xml);
-		if ($error)	return $error;
+		if ($error)	{
+			$this->log("[ERROR] " . $error);
+			return $error;
+		}
 
 		// IMPORT.XML, OFFERS.XML
 		if ($xml->Классификатор) {
 			$classifier = $this->parseClassifier($xml->Классификатор, $error);
-			if ($error) return $error;
+			if ($error) {
+				$this->log("[ERROR] " . $error);
+				return $error;
+			}
 			unset($xml->Классификатор);
 		} else {
 			// CML 2.08 + Битрикс
@@ -6196,7 +6219,6 @@ $this->log($price_data, 2);
 
 		if ($xml->Каталог) {
 			//$this->clearLog();
-
 			// Запишем в лог дату и время начала обмена
 
 			$this->log("-------------------- ЗАГРУЗКА КАТАЛОГА --------------------",2);
@@ -6205,7 +6227,11 @@ $this->log($price_data, 2);
 			}
 
 			$error = $this->parseDirectory($xml->Каталог, $classifier);
-			if ($error) return "Ошибка загрузки каталога:\n" . $error;
+			if ($error) {
+				$error .= "Ошибка загрузки каталога:\n" . $error;
+				$this->log("[ERROR] " . $error);
+				return $error;
+			}
 
 			unset($xml->Каталог);
 		}
@@ -6216,7 +6242,11 @@ $this->log($price_data, 2);
 
 			// Пакет предложений
 			$error = $this->parseOffersPack($xml->ПакетПредложений);
-			if ($error)	return "Ошибка загрузки пакета предложений:\n" . $error;
+			if ($error)	{
+				$error .= "Ошибка загрузки пакета предложений:\n" . $error;
+				$this->log("[ERROR] " . $error);
+				return $error;
+			}
 			unset($xml->ПакетПредложений);
 
 		}
@@ -6230,7 +6260,11 @@ $this->log($price_data, 2);
 			// Документ (заказ)
 			foreach ($xml->Документ as $doc) {
 				$error = $this->parseDocument($doc);
-				if ($error)	return "Ошибка загрузки документов:\n" . $error;
+				if ($error)	{
+					$error .= "Ошибка загрузки документов:\n" . $error;
+					$this->log("[ERROR] " . $error);
+					return $error;
+				}
 			}
 			unset($xml->Документ);
 		}
@@ -6264,11 +6298,15 @@ $this->log($price_data, 2);
 		}
 		if ($version == '1.6.2.b12') {
 			$version = '1.6.2.b13';
-			$message = "Обновлен до версии ".$version."<br />Исправлены ошибки, доработан модуль";
+			$message = "Установлено обновление с версии 1.6.2.b12 на ".$version."<br />Исправлены ошибки, доработан модуль";
 		}
 		if ($version == '1.6.2.b13') {
 			$version = '1.6.2.b14';
-			$message = "Обновлен до версии ".$version."<br />Исправлены ошибки, доработан модуль";
+			$message = "Установлено обновление с версии 1.6.2.b13 на ".$version."<br />Исправлены ошибки, доработан модуль";
+		}
+		if ($version == '1.6.2.b14') {
+			$version = '1.6.2.b15';
+			$message = "Установлено обновление с версии 1.6.2.b14 на ".$version."<br />Исправлены ошибки, доработан модуль";
 		}
 
 
