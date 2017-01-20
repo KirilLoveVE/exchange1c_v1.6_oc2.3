@@ -1031,5 +1031,30 @@ function image_upload(field, thumb) {
 //--></script>
 
 
+<script type="text/javascript"><!--
+
+function checkOptions() {
+
+	var val = $('input[name="exchange1c_synchronize_by_code"]:checked').val();
+
+	if (val == 1) {
+		$('select[name="exchange1c_synchronize_new_product_by"]').attr('disabled', 'disabled');
+	} else {
+		$('select[name="exchange1c_synchronize_new_product_by"]').attr('disabled', null);
+	}
+
+} // checkOptions
+
+$('input[name="exchange1c_synchronize_by_code"]').change(function(){
+	checkOptions();
+})
+
+
+$(document).ready(function() {
+	checkOptions();
+});
+
+//--></script>
+
 
 <?php echo $footer; ?>

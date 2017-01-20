@@ -135,6 +135,7 @@ class ControllerModuleExchange1c extends Controller {
 			$text1 = 'text_yes';
 			$text0 = 'text_no';
 		}
+		$id = isset($param['id']) ? ' id="'.$param['id'].'"' : '';
 		$tmpl = '<label class="radio-inline">';
 		$tmpl .= '<input type="radio" name="exchange1c_'.$name.'" value="1"'.($value == 1 ? ' checked = "checked"' : '').'>';
 		$tmpl .= '&nbsp;'.$this->language->get($text1);
@@ -173,7 +174,7 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	private function htmlInput($name, $param, $type='text') {
 		$value = $this->getParam($name);
-		if (!$value && isset($param['default'])) $value = $param['default'];
+		if (empty($value) && !empty($param['default'])) $value = $param['default'];
 		if ($this->language->get('ph_'.$name) != 'ph_'.$name) {
 			$placeholder = ' placeholder="' . $this->language->get('ph_'.$name) . '"';
 		} else {
@@ -362,7 +363,7 @@ class ControllerModuleExchange1c extends Controller {
 		if (isset($this->request->post['exchange1c_seo_product_tags'])) {
 			$data['exchange1c_seo_product_tags'] = $this->request->post['exchange1c_seo_product_tags'];
 		} else {
-			$data['exchange1c_seo_product_tags'] = '{name}, {fullname}, {sku}, {brand}, {desc}, {cats}, {prod_id}, {cat_id}';
+			$data['exchange1c_seo_product_tags'] = '{name}, {fullname}, {sku}, {brand}, {desc}, {model}, {cats}, {prod_id}, {cat_id}';
 		}
 
 		if (isset($this->request->post['exchange1c_seo_category_tags'])) {

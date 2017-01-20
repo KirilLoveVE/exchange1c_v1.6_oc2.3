@@ -690,6 +690,7 @@ class ModelToolExchange1c extends Model {
 			'{name}'		=> isset($data['name']) 			? $data['name'] 								: '',
 			'{fullname}'	=> isset($data['full_name']) 		? $data['full_name'] 							: '',
 			'{sku}'			=> isset($data['sku'])				? $data['sku'] 									: '',
+			'{model}'		=> isset($data['model'])			? $data['model'] 								: '',
 			'{brand}'		=> isset($data['manufacturer_id'])	? $this->getProductManufacturerString($data['manufacturer_id']) : '',
 			'{desc}'		=> isset($data['description'])		? $data['description'] 							: '',
 			'{cats}'		=> $this->getProductCategoriesString($data['product_id'])							,
@@ -1121,13 +1122,13 @@ class ModelToolExchange1c extends Model {
 
 		$error = "";
 
-		$this->log('==> fillParentsCategories(data)',2);
+		$this->log('==> Начато заполнение родительских категорий',2);
 		if (!$data['product_id']) {
 			$error = "Заполнение родительскими категориями отменено, т.к. не указан product_id!";
 		}
 
 //		// Подгружаем только один раз
-		if (!empty($data['product_categories'])) {
+		if (empty($data['product_categories'])) {
 			$this->log("Нет категорий у товаров.",2);
 			return "";
 		}
@@ -1506,15 +1507,26 @@ class ModelToolExchange1c extends Model {
 				}
 				$data['parent_id']		= $parent_id;
 				$data['status']			= 1;
+
+				// Сортировка категории (по просьбе Val)
 				$data['sort_order']		= $category->Сортировка ? (int)$category->Сортировка : 0;
+
+				// Картинка категории (по просьбе Val)
+				if ($category->Картинка) {
+					$data['image']		= (string)$category->Картинка;
+				}
 
 				if ($parent_id == 0)
 					$data['top']		= 1;
 
 				// Определяем наименование и порядок, сортировка - число до точки, наименование все что после точки
 				$split = $this->splitNameStr((string)$category->Наименование, false);
-				$data['sort_order']	= $split['order'];
-				$data['name']	= $split['name'];
+				if ($split['order']) {
+					$data['sort_order']	= $split['order'];
+				}
+				if ($split['name']) {
+					$data['name']	= $split['name'];
+				}
 
 				// Свойства для группы
 				if ($category->ЗначенияСвойств && isset($classifier['attributes'])) {
@@ -1527,8 +1539,10 @@ class ModelToolExchange1c extends Model {
 					foreach ($data['attributes'] as $attribute) {
 						if ($attribute['name'] == 'Картинка') {
 							$data['image'] = "catalog/" . $attribute['value'];
+							$this->log("Установлена картинка для категории из свойства = " . $data['image']);
 						} elseif ($attribute['name'] == 'Сортировка') {
 							$data['sort_order'] = $attribute['value'];
+							$this->log("Установлена сортировка для категории из свойства = " . $data['sort_order']);
 						}
 					}
 				}
@@ -2456,22 +2470,23 @@ class ModelToolExchange1c extends Model {
 
 		$data['product_id'] = 0;
 
-		// Если синхронизация происходит по Коду с 1С
+		// Поиск существующего товара
 		if (isset($data['code']) && $this->config->get('exchange1c_synchronize_by_code') == 1) {
+
+			// Синхронизация по Коду с 1С
 			$data['product_id'] = $this->getProductIdByCode($data['code']);
 			$this->log("Синхронизация товара по Коду: " . $data['code'], 2);
 
-		} elseif (!$data['product_id']) {
-			if (!$data['product_cml_id']) {
-				return "Не задан Ид товара из торговой системы";
-			} else {
-				$data['product_id'] = $this->getProductIdByCML($data['product_cml_id']);
+		} else {
+
+			// Синхронизация по Ид
+			if (!$data['product_id']) {
+				if (!$data['product_cml_id']) {
+					return "Не задан Ид товара из торговой системы";
+				} else {
+					$data['product_id'] = $this->getProductIdByCML($data['product_cml_id']);
+				}
 			}
-
-		}
-
-
- 		if (!$data['product_id']) {
 
 			// Синхронизация по артикулу
  			if ($this->config->get('exchange1c_synchronize_new_product_by') == 'sku') {
@@ -2510,8 +2525,7 @@ class ModelToolExchange1c extends Model {
  			if ($data['product_id'])
 				$this->query("INSERT INTO `" . DB_PREFIX . "product_to_1c` SET `product_id` = '" . (int)$data['product_id'] . "', `1c_id` = '" . $this->db->escape($data['product_cml_id']) . "'");
 
- 		}
-
+		}
 
  		// Если не найден товар...
  		if (!$data['product_id']) {
@@ -3615,8 +3629,14 @@ class ModelToolExchange1c extends Model {
 					foreach ($product->Группы->Ид as $category_cml_id) {
 
 						$category_id = $this->getCategoryIdBycml_id((string)$category_cml_id);
-						if ($category_id)
+						if ($category_id) {
 							$data['product_categories'][] = $category_id;
+						} else {
+							$error = "Не загружены категории. Необходимо сначала загрузить import_****.xml с категорями";
+							return $result;
+						}
+
+
 					}
 				}
 
@@ -3663,6 +3683,10 @@ class ModelToolExchange1c extends Model {
 				else
 					$data['unit'] = $this->parseProductUnit($product->БазоваяЕдиница);
 				unset($unit_name);
+			} else {
+				if (!isset($data['unit'])) {
+					$data['unit'] = $this->parseProductUnit("шт");
+				}
 			}
 
 		} // foreach
@@ -4350,7 +4374,7 @@ class ModelToolExchange1c extends Model {
 	 */
 	private function setPrice(&$data) {
 
-		$this->log("==> Начата установка основной цены в товар", 2);
+		$this->log("==> Начата установка цен на товар", 2);
 
 		foreach ($data['prices'] as $price) {
 
@@ -4361,9 +4385,9 @@ class ModelToolExchange1c extends Model {
 				$data['price'] = $price['price'];
 				$this->log("<== Завершена установка основной цены в товар", 2);
 				return "";
-// отключил так как при загрузке характеристик с УТ 10.3 возникли ошибки, цены были загружены еще раньше, массив содержит только цену и основная цена или нет
-//			} else{
-//				$this->setDiscountPrice($price, $product_id);
+			} else{
+				$this->log($price, 2);
+				$this->setProductPrice($price, $data['product_id'], 0);
 			}
 		}
 
@@ -4372,7 +4396,7 @@ class ModelToolExchange1c extends Model {
 		}
 		$this->log("[!] На товар отсутствует основная цена, цена не будет изменена!");
 		return "";
-	}
+	} // setPrice()
 
 
 	/**
@@ -4433,6 +4457,12 @@ $this->log($price_data, 2);
 				$this->query("UPDATE `" . DB_PREFIX . "product_price` SET " . $fields . " WHERE `product_id` = " . $product_id . " AND `product_feature_id` = " . $product_feature_id . " AND `customer_group_id` = " . $price_data['customer_group_id']);
 			}
 		}
+
+		// Если это не группа по умолчанию, добавляем цену в скидки
+		if ($price_data['customer_group_id'] <> $this->config->get('config_customer_group_id')) {
+			$this->setDiscountPrice($price_data, $product_id);
+		}
+
 		$this->log("> Установлена цена товара, product_price_id = " . $product_price_id, 2);
 
 		return $product_price_id;
@@ -4481,16 +4511,16 @@ $this->log($price_data, 2);
 		}
 
 		$this->log("==> Начато чтение цен", 2);
-		//$this->log($xml, 2);
+		$this->log($xml, 2);
 		//$this->log($offers_pack, 2);
 
 		foreach ($xml->Цена as $price) {
 			$price_cml_id	= (string)$price->ИдТипаЦены;
 			$data_price = array();
-			//$this->log($price, 2);
+			$this->log($price, 2);
 
 			foreach ($offers_pack['price_types'] as $config_price_type) {
-				//$this->log($config_price_type, 2);
+				$this->log($config_price_type, 2);
 				if ($config_price_type['id_cml'] == $price_cml_id) {
 
 					// найдена цена
@@ -4536,6 +4566,9 @@ $this->log($price_data, 2);
 					$data_price['unit_id']		= $this->getUnitId($data_price['unit_name']);
 
 					if (!empty($data_price['unit_id'])) {
+						if (!isset($data['unit'])) {
+							$data['unit'] = $this->parseProductUnit($product->БазоваяЕдиница);
+						}
 						// Значит в наименовании единицы измерения был прописан не наименование а международный код
 						if (array_search($data_price['unit_name'], $data['unit'])) {
 							$data_price['unit_id'] = $data['unit']['unit_id'];
@@ -4549,11 +4582,10 @@ $this->log($price_data, 2);
 			 		}
 
 		 			// истина если цена для группы по-умолчанию
-					if ($this->config->get('config_customer_group_id') != 1) {
-						$error = "В настройках модуля не указана группа покупателей по-умолчанию, поэтому невозможно понять какая цена будет основной!";
-						if ($error) return $error;
+					if ($this->config->get('config_customer_group_id') == $data_price['customer_group_id']) {
+						$data_price['default'] = true;
 					} else {
-						$data_price['default'] 	= $data_price['customer_group_id'] == $this->config->get('config_customer_group_id') ? true : false;
+						$data_price['default'] = false;
 					}
 
 					$this->log("Цена '" . $data_price['name'] . "'",2);
@@ -4564,7 +4596,7 @@ $this->log($price_data, 2);
 			}
 
  		}
-		//$this->log($result, 2);
+		$this->log($result, 2);
 		return $result;
 
  	} // parsePrices()
@@ -5118,10 +5150,10 @@ $this->log($price_data, 2);
 				} else {
 					$data['quantity'] = $quantity_total;
 				}
-			}
 
-			if ($this->config->get('exchange1c_product_disable_if_quantity_zero') == 1 && $data['quantity'] <= 0) {
-				$data['status'] = 0;
+				if ($this->config->get('exchange1c_product_disable_if_quantity_zero') == 1 && $data['quantity'] <= 0) {
+					$data['status'] = 0;
+				}
 			}
 
 			$data['product_cml_id'] = $product_cml_id;
@@ -6228,7 +6260,7 @@ $this->log($price_data, 2);
 
 			$error = $this->parseDirectory($xml->Каталог, $classifier);
 			if ($error) {
-				$error .= "Ошибка загрузки каталога:\n" . $error;
+				$error = "Ошибка загрузки каталога:\n" . $error;
 				$this->log("[ERROR] " . $error);
 				return $error;
 			}
@@ -6308,13 +6340,23 @@ $this->log($price_data, 2);
 			$version = '1.6.2.b15';
 			$message = "Установлено обновление с версии 1.6.2.b14 на ".$version."<br />Исправлены ошибки, доработан модуль";
 		}
+		if ($version == '1.6.2.b15') {
+			$version = '1.6.2.b16';
+			$message = "Установлено обновление с версии 1.6.2.b15 на ".$version."<ul>
+<li>По просьбе одного клиента добавлена загрузка Сортировки к категориям. Пример такой <Группы><Группа><Сортировка>2</Сортировка></Группа></Группы><br />
+<li>По просьбе одного клиента добавлена загрузка картинок к категориям. Пример такой <Группы><Группа><Картинка>category/tel/knig_I_tel.jpg</Картинка></Группа></Группы><br />
+<li>Выявлена ошибка - не заполнялись родительские категории, исправил, моя ошибка была<br />
+<li>Исправлена ошибка - не записывались дополнительные цены товара для разных групп покупателей (стандартная таблица product_discount, а в product_price записывались)<br />
+<li>Найдена ошибка в формате XML 2.10 когда 1С выгружает несколько import, в одном находятся категории и типы цен, а в другом товары. При ручной загрузке import товаров без категорий, будет выдана ошибка и сообщено что необходимо сначала загрузить категории.
+</ul>";
+		}
 
 
 		if ($old_version != $version) {
 			$this->setEvents();
 			$settings['exchange1c_version'] = $version;
 			$this->model_setting_setting->editSetting('exchange1c', $settings);
-			$message .= "<br />ВНИМАНИЕ! после обновления необходимо проверить все настройки и сохранить!";
+			$message .= "<br /><strong>ВНИМАНИЕ! после обновления необходимо проверить все настройки и сохранить!</strong>";
 //		} else {
 //			$message = "В обновлении не нуждается";
 		}
