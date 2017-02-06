@@ -332,7 +332,8 @@ class ControllerModuleExchange1c extends Controller {
 
 		// Поля товара для записи
 		$data['product_fields'] = array(
-			'sku'	=> $this->language->get('text_product_sku')
+			''		=> $this->language->get('text_not_import')
+			,'sku'	=> $this->language->get('text_product_sku')
 			,'ean'	=> $this->language->get('text_product_ean')
 			,'mpn'	=> $this->language->get('text_product_mpn')
 		);
@@ -439,12 +440,14 @@ class ControllerModuleExchange1c extends Controller {
 		$params = array(
 			'cleaning_db' 							=> array('type' => 'button')
 			,'cleaning_links' 						=> array('type' => 'button')
+			,'cleaning_cache' 						=> array('type' => 'button')
 			,'cleaning_old_images' 					=> array('type' => 'button')
 			,'flush_quantity_category'				=> array('type' => 'radio', 'default' => -1)
 			,'watermark'							=> array('type' => 'image')
 			,'allow_ip'								=> array('type' => 'textarea')
 			,'import_images'						=> array('type' => 'radio', 'default' => 1)
 			,'import_categories'					=> array('type' => 'radio', 'default' => 1)
+			,'import_product_categories'			=> array('type' => 'radio', 'default' => 1)
 			,'import_product_name'					=> array('type' => 'select', 'options' => $select_import_product, 'default' => 'name')
 			,'import_product_description'			=> array('type' => 'radio', 'default' => 1)
 			,'import_product_manufacturer'			=> array('type' => 'radio', 'default' => 1)
@@ -513,18 +516,11 @@ class ControllerModuleExchange1c extends Controller {
 			,'seo_manufacturer_meta_title'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
 			,'seo_manufacturer_meta_description'	 => array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
 			,'seo_manufacturer_meta_keyword'		=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
+			,'order_modify_exchange'				=> array('type' => 'radio', 'default' => 1)
 			,'order_status_to_exchange'				=> array('type' => 'select', 'options' => $order_statuses)
 			,'order_status_change'					=> array('type' => 'select', 'options' => $order_statuses)
-			,'order_status_canceled'				=> array('type' => 'select', 'options' => $order_statuses)
-			,'order_status_completed'				=> array('type' => 'select', 'options' => $order_statuses)
-			,'order_new_notify_subject'				=> array('type' => 'input')
-			,'order_new_notify_text'				=> array('type' => 'textarea')
-			,'order_export_notify_subject'			=> array('type' => 'input')
-			,'order_export_notify_text'				=> array('type' => 'textarea')
-			,'order_canceled_notify_subject'		=> array('type' => 'input')
-			,'order_canceled_notify_text'			=> array('type' => 'textarea')
-			,'order_completed_notify_subject'		=> array('type' => 'input')
-			,'order_completed_notify_text'			=> array('type' => 'textarea')
+			,'order_notify_subject'					=> array('type' => 'input')
+			,'order_notify_text'					=> array('type' => 'textarea')
 
 		);
 
@@ -1497,6 +1493,7 @@ class ControllerModuleExchange1c extends Controller {
 		$this->load->language('module/exchange1c');
 
 		$this->response->setOutput(json_encode($json));
+
 	} // manualCleaningLinks()
 
 
@@ -1505,15 +1502,14 @@ class ControllerModuleExchange1c extends Controller {
 	 */
 	public function manualCleaningOldImages() {
 		$json = array();
-		$num = 0;
 		// Проверим разрешение
 		if ($this->user->hasPermission('modify', 'module/exchange1c'))  {
 			$this->load->model('tool/exchange1c');
-			$error = $this->model_tool_exchange1c->cleanOldImages("import_files/", $num);
-			if ($error) {
-				$json['error'] = $error;
+			$result = $this->model_tool_exchange1c->cleanOldImages("import_files/");
+			if ($result['error']) {
+				$json['error'] = $result['error'];
 			} else {
-				$json['success'] = "Успешно удалено файлов: " . $num;
+				$json['success'] = "Успешно удалено файлов: " . $result['num'];
 			}
 		} else {
 			$json['error'] = "У Вас нет прав на изменение!";
@@ -1522,7 +1518,35 @@ class ControllerModuleExchange1c extends Controller {
 		$this->load->language('module/exchange1c');
 
 		$this->response->setOutput(json_encode($json));
+
 	} // manualCleaningLinks()
+
+
+	/**
+	 * Очистка кэша: системного, картинок
+	 */
+	public function manualCleaningCache() {
+		$json = array();
+		// Проверим разрешение
+		if ($this->user->hasPermission('modify', 'module/exchange1c'))  {
+			$this->load->model('tool/exchange1c');
+
+			$result = $this->cleanCache();
+
+			if (!$result) {
+				$json['error'] = "Ошибка очистки кэша";
+			} else {
+				$json['success'] = "Кэш успешно очищен: \n" . $result;
+			}
+		} else {
+			$json['error'] = "У Вас нет прав на изменение!";
+		}
+
+		$this->load->language('module/exchange1c');
+
+		$this->response->setOutput(json_encode($json));
+
+	} // manualCleaningCache()
 
 
 	/**
@@ -1811,7 +1835,6 @@ class ControllerModuleExchange1c extends Controller {
 			$this->model_tool_exchange1c->seoGenerate();
 		}
 
-//		$this->cleanCacheDir();
 		$this->cache->delete('product');
 		$this->response->setOutput(json_encode($json));
 
@@ -2104,18 +2127,38 @@ class ControllerModuleExchange1c extends Controller {
 	/**
 	 * Очистка папки cache
 	 */
-	private function cleanCacheDir() {
+	private function cleanCache() {
 		// Проверяем есть ли директория
+		$result = "";
 		if (file_exists(DIR_CACHE . 'exchange1c')) {
 			if (is_dir(DIR_CACHE . 'exchange1c')) {
-				return $this->cleanDir(DIR_CACHE . 'exchange1c/');
+				$this->cleanDir(DIR_CACHE . 'exchange1c/');
 			}
 			else {
 				unlink(DIR_CACHE . 'exchange1c');
 			}
 		}
-		mkdir (DIR_CACHE . 'exchange1c');
-	} // cleanCacheDir()
+		@mkdir (DIR_CACHE . 'exchange1c');
+		$result .= "Очищен кэш модуля: /system/storage/cache/exchange1c/*\n";
+
+		// очистка системного кэша
+		$files = glob(DIR_CACHE . 'cache.*');
+		foreach ($files as $file) {
+			$this->cleanDir($file);
+		}
+        $result .= "Очищен системный кэш: /system/storage/cache/cache*\n";
+
+		// очистка кэша картинок
+		$imgfiles = glob(DIR_IMAGE . 'cache/*');
+		foreach ($imgfiles as $imgfile) {
+			$this->cleanDir($imgfile);
+			$this->log("Удаление картинки: " . $imgfile ,2);
+		}
+		$result .= "Очищен кэш картинок: /image/cache/*\n";
+
+		return $result;
+
+	} // cleanCache()
 
 
 	/**
@@ -2142,21 +2185,29 @@ class ControllerModuleExchange1c extends Controller {
 	 * Очистка папки рекурсивно
 	 */
 	private function cleanDir($root, $self = false) {
-		$dir = dir($root);
-		while ($file = $dir->read()) {
-			if ($file == '.' || $file == '..') continue;
-			if (file_exists($root . $file)) {
-				if (is_file($root . $file)) { unlink($root . $file); continue; }
-				if (is_dir($root . $file)) { $this->cleanDir($root . $file . '/', true); continue; }
-				var_dump ($file);
+		if (is_file($root)) {
+			unlink($root);
+		} else {
+			if (substr($root, -1)!= '/') {
+				$root .= '/';
 			}
-			var_dump($file);
+			$dir = dir($root);
+			while ($file = $dir->read()) {
+				if ($file == '.' || $file == '..') continue;
+				if ($file == 'index.html') continue;
+				if (file_exists($root . $file)) {
+					if (is_file($root . $file)) { unlink($root . $file); continue; }
+					if (is_dir($root . $file)) { $this->cleanDir($root . $file . '/', true); continue; }
+					//var_dump ($file);
+				}
+				//var_dump($file);
+			}
 		}
 		if ($self) {
 			if(file_exists($root) && is_dir($root)) {
 				rmdir($root); return 0;
 			}
-			var_dump($root);
+			//var_dump($root);
 		}
 		return 0;
 	} // cleanDir()
@@ -2224,7 +2275,10 @@ class ControllerModuleExchange1c extends Controller {
 		$this->log("Экспорт модуля " . $this->module_name,1);
 		// создаем папку export в кэше
 
-		$filename = DIR_CACHE . 'opencart2-exchange1c_' . $this->config->get('exchange1c_version') . '.ocmod.zip';
+		// Короткое название версии
+		$cms_short_version = substr($this->config->get('exchange1c_CMS_version'),0,3);
+
+		$filename = DIR_CACHE . 'opencart' . $cms_short_version . '-exchange1c_' . $this->config->get('exchange1c_version') . '.ocmod.zip';
 		if (is_file($filename))
 			unlink($filename);
 
@@ -2234,8 +2288,13 @@ class ControllerModuleExchange1c extends Controller {
 		$zip = new ZipArchive;
 		$zip->open($filename, ZIPARCHIVE::CREATE);
 		$zip->addFile(DIR_APPLICATION . 'controller/module/exchange1c.php', 'upload/admin/controller/module/exchange1c.php');
-		$zip->addFile(DIR_APPLICATION . 'language/english/module/exchange1c.php', 'upload/admin/language/english/module/exchange1c.php');
-		$zip->addFile(DIR_APPLICATION . 'language/russian/module/exchange1c.php', 'upload/admin/language/russian/module/exchange1c.php');
+		if (version_compare($this->config->get('exchange1c_CMS_version'), '2.3', '=')) {
+			$zip->addFile(DIR_APPLICATION . 'language/en-gb/extension/module/exchange1c.php', 'upload/admin/language/english/module/exchange1c.php');
+			$zip->addFile(DIR_APPLICATION . 'language/ru-ru/extension/module/exchange1c.php', 'upload/admin/language/russian/module/exchange1c.php');
+		} else {
+			$zip->addFile(DIR_APPLICATION . 'language/english/module/exchange1c.php', 'upload/admin/language/english/module/exchange1c.php');
+			$zip->addFile(DIR_APPLICATION . 'language/russian/module/exchange1c.php', 'upload/admin/language/russian/module/exchange1c.php');
+		}
 		$zip->addFile(DIR_APPLICATION . 'model/tool/exchange1c.php', 'upload/admin/model/tool/exchange1c.php');
 		$zip->addFile(DIR_APPLICATION . 'view/template/module/exchange1c.tpl', 'upload/admin/view/template/module/exchange1c.tpl');
 		$zip->addFile($cms_folder . 'export/exchange1c.php', 'upload/export/exchange1c.php');

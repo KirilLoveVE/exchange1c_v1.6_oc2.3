@@ -15,7 +15,9 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 // RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization},L]
 
 // Configuration
-require_once('../admin/config.php');
+if (is_file('../admin/config.php')) {
+	require_once('../admin/config.php');
+}
 
 require_once(DIR_SYSTEM . 'startup.php');
 require_once(DIR_SYSTEM . 'library/currency.php');
@@ -58,9 +60,9 @@ foreach ($query->rows as $result) {
 	if (!$result['serialized']) {
 		$config->set($result['key'], $result['value']);
 	} else {
+		// Для старых версий
+		//$config->set($result['key'], unserialize($result['value']));
 		$config->set($result['key'], json_decode($result['value'], true));
-//		Для старых версий
-//		$config->set($result['key'], unserialize($result['value']));
 	}
 }
 
@@ -276,7 +278,7 @@ if (isset($request->get['module'])) {
 		break;
 
 		default:
-			echo "available: export, remove";
+			echo "available: module=export, module=remove";
 	}
 
 }

@@ -119,6 +119,7 @@
 							<?php echo $html_cleaning_db ?>
 							<?php echo $html_cleaning_links ?>
 							<?php echo $html_cleaning_old_images ?>
+							<?php echo $html_cleaning_cache ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_synchronize_by_code; ?>
@@ -145,13 +146,11 @@
 							<?php echo $html_synchronize_new_product_by ?>
 							<?php echo $html_status_new_product ?>
 						</div>
-						<div class="form-group">
-						</div>
-						<legend><?php echo $lang['legend_existing_product']; ?></legend>
+						<legend><?php echo $lang['legend_import_product_fields']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_import_product_name ?>
 							<?php echo $html_import_product_description ?>
-							<?php echo $html_import_categories ?>
+							<?php echo $html_import_product_categories ?>
 							<?php echo $html_import_product_manufacturer ?>
 							<?php echo $html_import_images ?>
 							<?php echo $html_parse_only_types_item ?>
@@ -172,6 +171,60 @@
 						<div class="form-group">
 							<?php echo $html_watermark ?>
 						</div>
+
+						<legend><?php echo $lang['legend_product_properties_from_ts']; ?></legend>
+						<div class="alert alert-info">
+							<i class="fa fa-info-circle"></i>
+							<?php echo $lang['desc_product_properties_from_ts']; ?>
+						</div>
+						<div class="table-responsive">
+							<table id="exchange1c_property" class="table table-bordered table-hover">
+								<thead>
+									<tr>
+										<td class="col-sm-1 text-left"><?php echo $lang['text_database_field']; ?></td>
+										<td class="col-sm-2 text-left"><?php echo $lang['text_property_name_ts']; ?></td>
+										<td class="col-sm-6 text-left"><?php echo $lang['text_template']; ?></td>
+										<td class="col-sm-2 text-left"><?php echo $lang['text_product_field']; ?></td>
+										<td class="col-sm-1 text-right"><?php echo $lang['text_action']; ?></td>
+									</tr>
+								</thead>
+								<tbody>
+									<?php $property_row = 0 ?>
+									<?php foreach ($exchange1c_properties as $property_id => $property) { ?>
+										<tr id="exchange1c_property_row<?php echo $property_row ?>">
+											<?php foreach ($product_fields as $name => $description) { ?>
+												<?php if ($name == $property['product_field_name']) { ?>
+												<td class="col-sm-1 text-left" id="property_index<?php echo $property_id; ?>"><?php echo $name; ?></td>
+												<?php } ?>
+											<?php } ?>
+											<td class="text-left"><input class="form-control" type="text" name="exchange1c_properties[<?php echo $property_id ?>][name]" value="<?php echo $property['name']; ?>" /></td>
+											<td class="text-left"><input class="form-control" type="text" name="exchange1c_properties[<?php echo $property_id ?>][template]" value="<?php echo $property['template']; ?>">
+											<td class="text-left"><select class="form-control" name="exchange1c_properties[<?php echo $property_id ?>][product_field_name]" onchange="changeProductField(<?php echo $property_row ?>, this.options[this.selectedIndex].value)">
+											<?php foreach ($product_fields as $name => $description) { ?>
+												<?php if ($name == $property['product_field_name']) { ?>
+													<option value="<?php echo $name ?>" selected="selected"><?php echo $description ?></option>
+												<?php } else { ?>
+													<option value="<?php echo $name ?>"><?php echo $description ?></option>
+												<?php } ?>
+											<?php } ?>
+											</select></td>
+											<td class="text-center">
+											<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_property_row<?php echo $property_row ?>').remove() : false;"><i class="fa fa-minus-circle"></i></button>
+											</td>
+										</tr>
+										<?php $property_row++ ?>
+									<?php } // foreach ?>
+								</tbody>
+								<tfoot>
+									<tr>
+										<td colspan="4"></td>
+										<td class="text-center">
+											<a onclick="addProperty();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></a>
+										</td>
+									</tr>
+								</tfoot>
+							</table>
+						</div> <!-- table -->
 
 						<legend><?php echo $lang['legend_product_std_from_ts']; ?></legend>
 						<div class="table-responsive">
@@ -338,64 +391,14 @@
 								</tbody>
 							</table>
 						</div> <!-- table -->
-
-						<legend><?php echo $lang['legend_product_properties_from_ts']; ?></legend>
-						<div class="alert alert-info">
-							<i class="fa fa-info-circle"></i>
-							<?php echo $lang['desc_product_properties_from_ts']; ?>
-						</div>
-						<div class="table-responsive">
-							<table id="exchange1c_property_id" class="table table-bordered table-hover">
-								<thead>
-									<tr>
-										<td class="col-sm-1 text-left"><?php echo $lang['text_database_field']; ?></td>
-										<td class="col-sm-2 text-left"><?php echo $lang['text_property_name_ts']; ?></td>
-										<td class="col-sm-6 text-left"><?php echo $lang['text_template']; ?></td>
-										<td class="col-sm-2 text-left"><?php echo $lang['text_product_field']; ?></td>
-										<td class="col-sm-1 text-right"><?php echo $lang['text_action']; ?></td>
-									</tr>
-								</thead>
-								<tbody>
-									<?php $property_row = 0 ?>
-									<?php foreach ($exchange1c_properties as $property_id => $property) { ?>
-										<tr id="exchange1c_property_row<?php echo $property_row ?>">
-											<?php foreach ($product_fields as $name => $description) { ?>
-												<?php if ($name == $property['product_field_name']) { ?>
-												<td class="col-sm-1 text-left" id="property_index<?php echo $property_id; ?>"><?php echo $name; ?></td>
-												<?php } ?>
-											<?php } ?>
-											<td class="text-left"><input class="form-control" type="text" name="exchange1c_properties[<?php echo $property_id ?>][name]" value="<?php echo $property['name']; ?>" /></td>
-											<td class="text-left"><input class="form-control" type="text" name="exchange1c_properties[<?php echo $property_id ?>][template]" value="<?php echo $property['template']; ?>">
-											<td class="text-left"><select class="form-control" name="exchange1c_properties[<?php echo $property_id ?>][product_field_name]" onchange="changeProductField(<?php echo $property_row ?>, this.options[this.selectedIndex].value)">
-											<?php foreach ($product_fields as $name => $description) { ?>
-												<?php if ($name == $property['product_field_name']) { ?>
-													<option value="<?php echo $name ?>" selected="selected"><?php echo $description ?></option>
-												<?php } else { ?>
-													<option value="<?php echo $name ?>"><?php echo $description ?></option>
-												<?php } ?>
-											<?php } ?>
-											</select></td>
-											<td class="text-center">
-											<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_property_row<?php echo $property_row ?>').remove() : false;"><i class="fa fa-minus-circle"></i></button>
-											</td>
-										</tr>
-										<?php $property_row++ ?>
-									<?php } // foreach ?>
-								</tbody>
-								<tfoot>
-									<tr>
-										<td colspan="4"></td>
-										<td class="text-center">
-											<a onclick="addProperty();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></a>
-										</td>
-									</tr>
-								</tfoot>
-							</table>
-						</div> <!-- table -->
 					</div>
+					<!-- ТОВАРЫ -->
 
 					<!-- КАТЕГОРИИ -->
 					<div class="tab-pane" id="tab-category">
+						<div class="form-group">
+							<?php echo $html_import_categories ?>
+						</div>
 						<legend><?php echo $lang['legend_synchronize']; ?></legend>
 						<div class="alert alert-info">
 							<i class="fa fa-info-circle"></i>
@@ -454,6 +457,7 @@
 						</div> <!-- table -->
 
 					</div>
+					<!-- КАТЕГОРИИ -->
 
 					<!-- ЦЕНЫ -->
 					<div class="tab-pane" id="tab-prices">
@@ -521,6 +525,7 @@
 							<?php echo $html_currency_convert ?>
 						</div>
 					</div>
+					<!-- ЦЕНЫ -->
 
 					<!-- ОСТАТКИ -->
 					<div class="tab-pane" id="tab-stock">
@@ -531,6 +536,7 @@
 							<?php echo $html_flush_quantity_category ?>
 						</div>
 					</div>
+					<!-- ОСТАТКИ -->
 
 					<!-- SEO -->
 					<div class="tab-pane" id="tab-seo">
@@ -635,35 +641,17 @@
 
 					<!-- ЗАКАЗЫ -->
 					<div class="tab-pane" id="tab-order">
+						<legend><?php echo $lang['legend_orders_to_exchange']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_order_modify_exchange; ?>
+							<?php echo $html_order_status_to_exchange; ?>
+							<?php echo $html_order_status_change; ?>
+						</div>
+						<legend><?php echo $lang['legend_orders_notify']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_order_notify; ?>
-						</div>
-						<legend><?php echo $lang['legend_orders_new']; ?></legend>
-						<div class="form-group">
-							<?php echo $html_order_status_to_exchange; ?>
-							<?php echo $html_order_new_notify_subject; ?>
-							<?php echo $html_order_new_notify_text; ?>
-							<?php echo $lang['text_under_development']; ?>
-						</div>
-						<legend><?php echo $lang['legend_orders_export']; ?></legend>
-						<div class="form-group">
-							<?php echo $html_order_status_change; ?>
-							<?php echo $html_order_export_notify_subject; ?>
-							<?php echo $html_order_export_notify_text; ?>
-							<?php echo $lang['text_under_development']; ?>
-						</div>
-						<legend><?php echo $lang['legend_orders_canceled']; ?></legend>
-						<div class="form-group">
-							<?php echo $html_order_status_canceled; ?>
-							<?php echo $html_order_canceled_notify_subject; ?>
-							<?php echo $html_order_canceled_notify_text; ?>
-							<?php echo $lang['text_under_development']; ?>
-						</div>
-						<legend><?php echo $lang['legend_orders_completed']; ?></legend>
-						<div class="form-group">
-							<?php echo $html_order_status_completed; ?>
-							<?php echo $html_order_completed_notify_subject; ?>
-							<?php echo $html_order_completed_notify_text; ?>
+							<?php echo $html_order_notify_subject; ?>
+							<?php echo $html_order_notify_text; ?>
 							<?php echo $lang['text_under_development']; ?>
 						</div>
 						<div class="form-group">
@@ -923,6 +911,42 @@ $('#exchange1c-button-cleaning_old_images').on('click', function() {
 	}
 });
 
+
+$('#exchange1c-button-cleaning_cache').on('click', function() {
+	$('#form-clean').remove();
+	if (confirm('<?php echo $lang['text_confirm'] ?>')) {
+		$.ajax({
+			url: 'index.php?route=module/exchange1c/manualCleaningCache&token=<?php echo $token; ?>',
+			type: 'post',
+			dataType: 'json',
+			data: new FormData($('#form-clean')[0]),
+			cache: false,
+			contentType: false,
+			processData: false,
+			beforeSend: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-circle-o-notch fa-spin"></i>');
+				$('#button-clean').prop('disabled', true);
+			},
+			complete: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-trash-o"></i>');
+				$('#button-clean').prop('disabled', false);
+			},
+			success: function(json) {
+				if (json['error']) {
+					alert(json['error']);
+				}
+
+				if (json['success']) {
+					alert(json['success']);
+				}
+			},
+			error: function(xhr, ajaxOptions, thrownError) {
+				alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+			}
+		});
+	}
+});
+
 //--></script>
 
 <script type="text/javascript"><!--
@@ -985,7 +1009,7 @@ function addProperty() {
 	html += '<td class="text-center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_property_row' + property_row + '\').remove() : false; property_row--;"><i class="fa fa-minus-circle"></i></button></td>';
 	html += '</tr>';
 
-	$('#exchange1c_property_id tbody').append(html);
+	$('#exchange1c_property tbody').append(html);
 	property_row++;
 
 <?php foreach ($product_fields as $field_name => $description) { ?>
