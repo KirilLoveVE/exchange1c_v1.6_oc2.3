@@ -2330,7 +2330,8 @@ class ModelToolExchange1c extends Model {
 				unset($product_review[$property['id']]);
 			} else {
 				// Добавим в товар
-				$this->query("INSERT INTO `" . DB_PREFIX . "review` SET `1c_id` = '".$property['id']."',`product_id` = " . $data['product_id'] . ", `status` = 1, `author` = '" . $property['name'] . "', `rating` = " . $property['rate'] . ", `text` = '" .  $property['yes'].$property['no'].$property['text'] . "', `date_added` = '".$property['date']."'");
+				$text = '<i class="fa fa-plus-square"></i> ' .$this->db->escape($property['yes']).'<br><i class="fa fa-minus-square"></i> '.$this->db->escape($property['no']).'<br>'.$this->db->escape($property['text']);
+				$this->query("INSERT INTO `" . DB_PREFIX . "review` SET `1c_id` = '".$property['id']."',`product_id` = " . $data['product_id'] . ", `status` = 1, `author` = '" . $this->db->escape($property['name']) . "', `rating` = " . $property['rate'] . ", `text` = '" .  $text . "', `date_added` = '".$property['date']."'");
 				$this->log("Отзыв от '" . $this->db->escape($property['name']) . "' записан в товар id: " . $data['product_id'],2);
 			}
 		}
