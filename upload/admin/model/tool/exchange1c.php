@@ -3250,12 +3250,14 @@ class ModelToolExchange1c extends Model {
 			// Фильтруем по таблице свойств
 			$attributes_filter = $this->config->get('exchange1c_properties');
 			//$this->log($attributes_filter, 2);
-			foreach ($attributes_filter as $attr_filter) {
-				$this->log("Свойство из таблицы: '" . $attr_filter['name'] . "'", 2);
-				if ($attr_filter['name'] == $name && $attr_filter['product_field_name'] == '') {
-					$value = "";
-					$this->log("Свойство отключено для загрузки в товар", 2);
-					break;
+			if (!empty($attributes_filter)) {
+				foreach ($attributes_filter as $attr_filter) {
+					$this->log("Свойство из таблицы: '" . $attr_filter['name'] . "'", 2);
+					if ($attr_filter['name'] == $name && $attr_filter['product_field_name'] == '') {
+						$value = "";
+						$this->log("Свойство отключено для загрузки в товар", 2);
+						break;
+					}
 				}
 			}
 
