@@ -6724,6 +6724,30 @@ $this->log($price_data, 2);
 
 	} // update1_6_2_b12()
 
+	/**
+	 * Устанавливает обновления
+	 */
+	private function update1_6_2_b17($version, &$message) {
 
+		$result = 1; // включено обновление
+		$new_version = '1.6.2.b17';
+		$message .= ($message ? "<br />" : "") . "Устанавливаются обновления до версии " . $new_version . "...<br />";
+
+		if (isset($this->TAB_FIELDS['review']['1c_id'])) {
+			if ($result) {
+				$result = @$this->query("ALTER TABLE `" . DB_PREFIX . "review` ADD `1c_id` VARCHAR(64) NOT NULL");
+				$message .= ($result ? "Успешно удалено поле " : "Ошибка при удалении поля ") . "'1c_id' в таблице 'review'<br />";
+			}
+		}
+
+		if ($result) {
+			$version = $new_version;
+			$message .= "Обновление прошло успешно";
+		} else {
+			$message .= "Обновление не произведено!";
+		}
+		return 	$version;
+
+	} // update1_6_2_b17()
 }
 
