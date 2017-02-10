@@ -845,7 +845,11 @@ class ModelToolExchange1c extends Model {
 					// Только если поле пустое
 					$this->log("Старое значение поля '".$field."' = '" . $data[$field] . "'", 2);
 					if (empty($data[$field])) {
-						$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
+						if ($field == 'seo_url') {
+							$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
+						} else {
+							$data[$field] = $this->seoGenerateString($template, $tags, isset($param['trans']));
+						}
 					} else {
 						$this->log("Пропускаем, поле '" . $field . "' не пустое", 2);
 						unset($data[$field]);
@@ -1923,18 +1927,12 @@ class ModelToolExchange1c extends Model {
 	       			$this->setProductPrice($price_data, $data['product_id'], $product_feature_id);
 
 					// основная минимальная цена товара
+
 					if (!isset($data['prices'])) {
 						$data['prices'] = array();
-						$data['prices'][$cml_id] = array(
-							'default'	=> $price_data['default'],
-							'price'		=> 0
-						);
-					} elseif (!isset($data['prices'][$cml_id])) {
-						$data['prices'][$cml_id] = array(
-							'default'	=> $price_data['default'],
-							'price'		=> 0
-						);
 					}
+					$data['prices'][$cml_id] = $price_data;
+					$data['prices'][$cml_id]['price'] = 0;
 
 //					$this->log($price_data, 2);
 
@@ -2413,7 +2411,7 @@ class ModelToolExchange1c extends Model {
 
 		// цены без характеристик
 		if (isset($data['prices'])) {
-			//$this->log($data['prices'], 2);
+			$this->log($data['prices'], 2);
 			$error = $this->setPrice($data);
 			if ($error) return $error;
 			unset($data['prices']);
@@ -3250,12 +3248,14 @@ class ModelToolExchange1c extends Model {
 			// Фильтруем по таблице свойств
 			$attributes_filter = $this->config->get('exchange1c_properties');
 			//$this->log($attributes_filter, 2);
-			foreach ($attributes_filter as $attr_filter) {
-				$this->log("Свойство из таблицы: '" . $attr_filter['name'] . "'", 2);
-				if ($attr_filter['name'] == $name && $attr_filter['product_field_name'] == '') {
-					$value = "";
-					$this->log("Свойство отключено для загрузки в товар", 2);
-					break;
+			if (is_array($attributes_filter)) {
+				foreach ($attributes_filter as $attr_filter) {
+					$this->log("Свойство из таблицы: '" . $attr_filter['name'] . "'", 2);
+					if ($attr_filter['name'] == $name && $attr_filter['product_field_name'] == '') {
+						$value = "";
+						$this->log("Свойство отключено для загрузки в товар", 2);
+						break;
+					}
 				}
 			}
 
@@ -3380,7 +3380,7 @@ class ModelToolExchange1c extends Model {
 			$this->query("UPDATE `" . DB_PREFIX . "manufacturer` SET " . $sql . " WHERE `manufacturer_id` = " . $data['manufacturer_id']);
 		}
 
-		if ($this->TAB_FIELDS['manufacturer_description']) {
+		if (isset($this->TAB_FIELDS['manufacturer_description'])) {
 
 	        $this->seoGenerateManufacturer($data);
 			$query = $this->query("SELECT `name`,`description`,`meta_title`,`meta_description`,`meta_keyword` FROM `" . DB_PREFIX . "manufacturer_description` WHERE `manufacturer_id` = " . $data['manufacturer_id'] . " AND `language_id` = " . $this->LANG_ID);
@@ -3925,7 +3925,7 @@ class ModelToolExchange1c extends Model {
 	private function getWarehouseBycml_id($cml_id) {
 
 		$this->log("==> getWarehouseBycml_id(cml_id=".$cml_id.")", 2);
-		$query = $this->query('SELECT * FROM `' . DB_PREFIX . 'warehouse` WHERE `1c_id` = "' . $this->db->escape($cml_id) . '"');
+		$query = $this->query('SELECT `warehouse_id` FROM `' . DB_PREFIX . 'warehouse` WHERE `1c_id` = "' . $this->db->escape($cml_id) . '"');
 
 		if ($query->num_rows) {
 			$this->log("<== getWarehouseBycml_id(), warehouse_id = " . $query->row['warehouse_id'], 2);
@@ -4542,6 +4542,7 @@ class ModelToolExchange1c extends Model {
 	private function setPrice(&$data) {
 
 		$this->log("==> Начата установка цен на товар", 2);
+		$this->log($data['prices'], 2);
 
 		foreach ($data['prices'] as $price) {
 
@@ -4557,9 +4558,10 @@ class ModelToolExchange1c extends Model {
 			}
 		}
 
-		if ($this->config->get('exchange1c_product_disable_if_price_zero') == 1) {
-			$data['status'] = 0;
-		}
+		// Отключил так как товар с характеристиками отключался
+//		if ($this->config->get('exchange1c_product_disable_if_price_zero') == 1) {
+//			$data['status'] = 0;
+//		}
 		$this->log("[!] На товар отсутствует основная цена, цена не будет изменена!");
 		$this->log($data, 2);
 		return "";
@@ -4692,6 +4694,7 @@ $this->log($price_data, 2);
 
 					// найдена цена
 					$data_price = $config_price_type;
+                    $this->log($data_price, 2);
 
 					if (!$data_price) {
 						$error = "Не найдена цена товара в настройках по Ид: " . $price_cml_id;
@@ -4714,6 +4717,9 @@ $this->log($price_data, 2);
 							}
 						}
 					}
+
+					$this->log($price, 2);
+					$this->log($data_price, 2);
 
 					// Если включено пропускать нулевые цены и новая цена будет нулевой, то старая цена не будет изменена
 					if ($this->config->get('exchange1c_ignore_price_zero') == 1 && $data_price['price'] == 0) {
@@ -5257,6 +5263,7 @@ $this->log($price_data, 2);
 					if (!isset($offers_pack['price_types']))
 						$offers_pack['price_types'] = $this->getConfigPriceType();
 					$data['features'][$feature_cml_id]['prices'] = $this->parsePrice($offer->Цены, $offers_pack, $data, $error);
+					$this->log($data['features'][$feature_cml_id]['prices'], 2);
 				} else {
 					$data['prices'] = $this->parsePrice($offer->Цены, $offers_pack, $data, $error);
 				}
@@ -5556,10 +5563,10 @@ $this->log($price_data, 2);
 		// Выгрузка заказов по статусам
 		if ($params['exchange_status'] != 0) {
 			// Если указано с каким статусом выгружать заказы
-			$query = $this->query("SELECT order_id FROM `" . DB_PREFIX . "order` WHERE `order_status_id` = " . $params['exchange_status']);
+			$query = $this->query("SELECT `order_id`,`order_status_id` FROM `" . DB_PREFIX . "order` WHERE `order_status_id` = " . $params['exchange_status']);
 		} else {
 			// Иначе выгружаем заказы с последей выгрузки, если не определа то все
-			$query = $this->query("SELECT order_id FROM `" . DB_PREFIX . "order` WHERE `date_added` >= '" . $params['from_date'] . "'");
+			$query = $this->query("SELECT `order_id`,`order_status_id` FROM `" . DB_PREFIX . "order` WHERE `date_added` >= '" . $params['from_date'] . "'");
 		}
 		if ($query->num_rows) {
 			foreach ($query->rows as $row) {
@@ -5569,11 +5576,11 @@ $this->log($price_data, 2);
 
 		// Выгрузка измененных заказов
 		if ($this->config->get('exchange1c_order_modify_exchange') ==  1) {
-			$query = $this->query("SELECT order_id FROM `" . DB_PREFIX . "order` WHERE DATE(date_modified) >= DATE('" . $this->config->get('exchange1c_order_date') . "')");
+			$query = $this->query("SELECT `order_id`,`order_status_id` FROM `" . DB_PREFIX . "order` WHERE DATE(`date_modified`) >= DATE('" . $this->config->get('exchange1c_order_date') . "')");
 		}
 		if ($query->num_rows) {
 			foreach ($query->rows as $row) {
-				$order_export[$row['order_id']] = 1;
+				$order_export[$row['order_id']] = $row['order_status_id'];
 			}
 		}
 
@@ -5581,8 +5588,8 @@ $this->log($price_data, 2);
 		$document_counter = 0;
 
 		if (count($order_export)) {
-			foreach ($order_export as $order_id => $order_data) {
-				// $order_data - пока не используется
+			foreach ($order_export as $order_id => $order_status_id) {
+				// $order_status_id - пока не используется
 				$order = $this->model_sale_order->getOrder($order_id);
 				$this->log("> Выгружается заказ #" . $order['order_id']);
 				$date = date('Y-m-d', strtotime($order['date_added']));
@@ -6571,6 +6578,19 @@ $this->log($price_data, 2);
 <li>Частично сделана работа таблицы загрузки свойств из торговой системы, в ней пока можно исключить ненужные Вам свойства
 <li>Исправлена ошибка возникающая при добавлении производителя: undefinex index: manufacturer_description в модели, функция addManufacturer() и updateManufacturer()
 <li>Исправлена функция очистки старых картинок, может возникнуть ошибка при вызове модели ("to expected to be a reference value given in")
+</ul>';
+		}
+		if ($version == '1.6.2.b21') {
+			$version = '1.6.2.b22';
+			$message = 'Установлено обновление с версии 1.6.2.b22 на '.$version.'<ul>
+<li>Исправлена ошибка при записи цен с использованием характеристик
+<li>Исправлена авторизация при разных режимах работы веб-сервера
+</ul>';
+		}
+		if ($version == '1.6.2.b22') {
+			$version = '1.6.2.b23';
+			$message = 'Установлено обновление с версии 1.6.2.b23 на '.$version.'<ul>
+<li>Исправлена очередная ошибка при записи цен с использованием характеристик
 </ul>';
 		}
 
