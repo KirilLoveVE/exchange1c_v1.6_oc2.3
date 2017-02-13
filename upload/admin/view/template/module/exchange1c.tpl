@@ -114,6 +114,9 @@
 						<div class="form-group">
 							<?php echo $html_allow_ip; ?>
 						</div>
+						<div class="form-group">
+							<?php echo $html_export_module_to_all; ?>
+						</div>
 						<legend><?php echo $lang['legend_other']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_cleaning_db ?>
@@ -145,6 +148,10 @@
 						<div class="form-group">
 							<?php echo $html_synchronize_new_product_by ?>
 							<?php echo $html_status_new_product ?>
+						</div>
+						<legend><?php echo $lang['legend_import_attributes']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_synchronize_attribute_by ?>
 						</div>
 						<legend><?php echo $lang['legend_import_product_fields']; ?></legend>
 						<div class="form-group">
@@ -461,8 +468,8 @@
 
 					<!-- ЦЕНЫ -->
 					<div class="tab-pane" id="tab-prices">
-						<legend><?php echo $lang['legend_prices']; ?></legend>
 						<div class="form-group">
+							<?php echo $html_price_import_to ?>
 							<?php echo $html_price_types_auto_load ?>
 							<?php echo $html_product_disable_if_price_zero ?>
 						</div>
@@ -470,6 +477,7 @@
 							<i class="fa fa-info-circle"></i>
 							<?php echo $lang['desc_prices']; ?>
 						</div>
+						<legend><?php echo $lang['legend_prices']; ?></legend>
 						<div class="table-responsive">
 							<table id="exchange1c_price_type_id" class="table table-bordered table-hover">
 								<thead>
@@ -541,6 +549,10 @@
 					<!-- SEO -->
 					<div class="tab-pane" id="tab-seo">
 						<!-- SEO товар -->
+						<legend><?php echo $lang['legend_generate_seo']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_generate_seo ?>
+						</div>
 						<legend><?php echo $lang['legend_seo_product']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_seo_product_mode; ?>
@@ -917,6 +929,41 @@ $('#exchange1c-button-cleaning_cache').on('click', function() {
 	if (confirm('<?php echo $lang['text_confirm'] ?>')) {
 		$.ajax({
 			url: 'index.php?route=module/exchange1c/manualCleaningCache&token=<?php echo $token; ?>',
+			type: 'post',
+			dataType: 'json',
+			data: new FormData($('#form-clean')[0]),
+			cache: false,
+			contentType: false,
+			processData: false,
+			beforeSend: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-circle-o-notch fa-spin"></i>');
+				$('#button-clean').prop('disabled', true);
+			},
+			complete: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-trash-o"></i>');
+				$('#button-clean').prop('disabled', false);
+			},
+			success: function(json) {
+				if (json['error']) {
+					alert(json['error']);
+				}
+
+				if (json['success']) {
+					alert(json['success']);
+				}
+			},
+			error: function(xhr, ajaxOptions, thrownError) {
+				alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+			}
+		});
+	}
+});
+
+$('#exchange1c-button-generate_seo').on('click', function() {
+	$('#form-clean').remove();
+	if (confirm('<?php echo $lang['text_confirm'] ?>')) {
+		$.ajax({
+			url: 'index.php?route=module/exchange1c/manualGenerateSeo&token=<?php echo $token; ?>',
 			type: 'post',
 			dataType: 'json',
 			data: new FormData($('#form-clean')[0]),

@@ -364,7 +364,7 @@ class ControllerModuleExchange1c extends Controller {
 		if (isset($this->request->post['exchange1c_seo_product_tags'])) {
 			$data['exchange1c_seo_product_tags'] = $this->request->post['exchange1c_seo_product_tags'];
 		} else {
-			$data['exchange1c_seo_product_tags'] = '{name}, {fullname}, {sku}, {brand}, {desc}, {model}, {cats}, {prod_id}, {cat_id}';
+			$data['exchange1c_seo_product_tags'] = '{name}, {fullname}, {sku}, {brand}, {model}, {cats}, {prod_id}, {cat_id}';
 		}
 
 		if (isset($this->request->post['exchange1c_seo_category_tags'])) {
@@ -436,12 +436,23 @@ class ControllerModuleExchange1c extends Controller {
 			'ean'		=> $this->language->get('text_product_ean')
 		);
 
+		$select_sync_attributes = array(
+			'guid'    	=> $this->language->get('text_guid'),
+			'name'		=> $this->language->get('text_name'),
+		);
+
+		$list_price_import_to = array(
+			'discount'    	=> $this->language->get('text_discount'),
+			'special'		=> $this->language->get('text_special'),
+		);
+
 		// Генерация опций
 		$params = array(
 			'cleaning_db' 							=> array('type' => 'button')
 			,'cleaning_links' 						=> array('type' => 'button')
 			,'cleaning_cache' 						=> array('type' => 'button')
 			,'cleaning_old_images' 					=> array('type' => 'button')
+			,'generate_seo' 						=> array('type' => 'button')
 			,'flush_quantity_category'				=> array('type' => 'radio', 'default' => -1)
 			,'watermark'							=> array('type' => 'image')
 			,'allow_ip'								=> array('type' => 'textarea')
@@ -461,6 +472,7 @@ class ControllerModuleExchange1c extends Controller {
 			,'create_new_category'					=> array('type' => 'radio', 'default' => 1)
 			,'synchronize_by_code'					=> array('type' => 'radio', 'default' => -1)
 			,'synchronize_new_product_by'        	=> array('type' => 'select', 'options' => $select_sync_new_poroduct, 'default' => 'sku')
+			,'synchronize_attribute_by' 	      	=> array('type' => 'select', 'options' => $select_sync_attributes, 'default' => 'guid')
 			,'status'								=> array('type' => 'radio', 'default' => 1)
 			,'flush_log'							=> array('type' => 'radio', 'default' => 1)
 			,'currency_convert'						=> array('type' => 'radio', 'default' => 1)
@@ -521,6 +533,9 @@ class ControllerModuleExchange1c extends Controller {
 			,'order_status_change'					=> array('type' => 'select', 'options' => $order_statuses)
 			,'order_notify_subject'					=> array('type' => 'input')
 			,'order_notify_text'					=> array('type' => 'textarea')
+			,'set_quantity_if_zero'					=> array('type' => 'input')
+			,'export_module_to_all'					=> array('type' => 'radio', 'default' => -1)
+			,'price_import_to'						=> array('type' => 'select', 'options' => $list_price_import_to)
 
 		);
 
@@ -1526,6 +1541,7 @@ class ControllerModuleExchange1c extends Controller {
 	 * Очистка кэша: системного, картинок
 	 */
 	public function manualCleaningCache() {
+
 		$json = array();
 		// Проверим разрешение
 		if ($this->user->hasPermission('modify', 'module/exchange1c'))  {
@@ -1547,6 +1563,34 @@ class ControllerModuleExchange1c extends Controller {
 		$this->response->setOutput(json_encode($json));
 
 	} // manualCleaningCache()
+
+
+	/**
+	 * Генерация SEO на все товары
+	 */
+	public function manualGenerateSeo() {
+
+		$json = array();
+		// Проверим разрешение
+		if ($this->user->hasPermission('modify', 'module/exchange1c'))  {
+			$this->load->model('tool/exchange1c');
+
+			$result = $this->model_tool_exchange1c->seoGenerate();
+
+			if ($result['error']) {
+				$json['error'] = "Ошибка формирования SEO\n" . $result['error'];
+			} else {
+				$json['success'] = "SEO успешно сформирован, обработано:\nТоваров: " . $result['product'] . "\nКатегорий: " . $result['category'] . "\nПроизводителей: " . $result['manufacturer'];
+			}
+		} else {
+			$json['error'] = "У Вас нет прав на изменение!";
+		}
+
+		$this->load->language('module/exchange1c');
+
+		$this->response->setOutput(json_encode($json));
+
+	} // manualGenerateSeo()
 
 
 	/**
@@ -2259,20 +2303,22 @@ class ControllerModuleExchange1c extends Controller {
 	*/
 	public function modeExportModule() {
 
-		// Разрешен ли IP
-		if ($this->config->get('exchange1c_allow_ip') != '') {
-			$ip = $_SERVER['REMOTE_ADDR'];
-			$allow_ips = explode("\r\n", $this->config->get('exchange1c_allow_ip'));
-			if (!in_array($ip, $allow_ips)) {
-				echo("Ваш IP адрес " . $ip . " не найден в списке разрешенных");
+		if ($this->config->get('exchange1c_export_module_to_all') != 1) {
+			// Разрешен ли IP
+			if ($this->config->get('exchange1c_allow_ip') != '') {
+				$ip = $_SERVER['REMOTE_ADDR'];
+				$allow_ips = explode("\r\n", $this->config->get('exchange1c_allow_ip'));
+				if (!in_array($_SERVER['REMOTE_ADDR'], $allow_ips)) {
+					echo("Ваш IP адрес " . $_SERVER['REMOTE_ADDR'] . " не найден в списке разрешенных");
+					return false;
+				}
+			} else {
+				echo("Список IP адресов пуст, задайте адрес");
 				return false;
 			}
-		} else {
-			echo("Список IP адресов пуст, задайте адрес");
-			return false;
 		}
 
-		$this->log("Экспорт модуля " . $this->module_name,1);
+		$this->log("Экспорт модуля " . $this->module_name . " для IP " . $_SERVER['REMOTE_ADDR']);
 		// создаем папку export в кэше
 
 		// Короткое название версии
