@@ -2199,19 +2199,15 @@ class ModelToolExchange1c extends Model {
 		if ($this->FULL_IMPORT) {
 			// Удалим старые неиспользуемые опции из товара
 			foreach ($old_options as $option) {
-				$query = $this->query("DELETE FROM `" . DB_PREFIX . "product_option` WHERE `product_option_id` = " . $option);
+				$this->query("DELETE FROM `" . DB_PREFIX . "product_option` WHERE `product_option_id` = " . $option);
 			}
-		}
 
-		if ($this->FULL_IMPORT) {
 			// Удалим старые неиспользуемые значения опции из товара
 			foreach ($old_values as $value) {
 				$this->query("DELETE FROM `" . DB_PREFIX . "product_option_value` WHERE `product_option_value_id` = " . $value);
 			}
-		}
 
-		if ($this->FULL_IMPORT) {
-			// Удалим старые неиспользуемые значения опции из товара
+			// Удалим старые неиспользуемые характеристики из товара
 			foreach ($old_features_values as $value) {
 				$this->query("DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_feature_value_id` = " . $value);
 			}
@@ -5170,6 +5166,13 @@ $this->log($price_data, 2);
 				$option_name = "";
 				$option_value = "";
 				foreach ($xml->ХарактеристикиТовара->ХарактеристикаТовара as $feature_option) {
+					// проверка пустых значений Характеристики
+					if ('' == trim((string)$feature_option->Наименование)){
+						$this->log("==> Предупреждение: обнаружено пустое наименование характеристики", 2);
+					}
+					if ('' == trim((string)$feature_option->Значение)){
+						$this->log("==> Предупреждение: обнаружено пустое значение характеристики", 2);
+					}
 					// разбиваем название опции
 					$matches_option_name = $this->splitNameStr(htmlspecialchars(trim((string)$feature_option->Наименование)));
 					$option_name .= ($option_name ? "," : "") . $matches_option_name['name'];
@@ -5248,7 +5251,15 @@ $this->log($price_data, 2);
 
 		}
 		$feature['options'] = $feature_options;
+
+		if ( empty($feature['name']) ) {
+			$feature['name'] = $product_name . " | " . $option_name . " => " . $option_value;
+		} else {
+			$feature['name'].=" | " . $option_name . " => " . $option_value;
+		}
+
 		$data['features'][$feature_cml_id] = $feature;
+
 
 		$this->log("<== Завершено чтение характеристики", 2);
 		return "";
@@ -5378,26 +5389,78 @@ $this->log($price_data, 2);
 					if ($error) return $error;
 				} else {
 					// Если нет секции характеристика (XML 2.07, УТ 11.3)
-					$this->log("Нет секции <ХарактеристикаТовара>", 2);
+					$this->log("Нет секции <ХарактеристикаТовара> в CML. Ищем характеристику по 1c_ID в базе CMS", 2);
 					//$this->log($data,2);
 					//$this->log($offer,2);
-					$name = (string)$offer->Наименование;
-					$split_name = $this->splitNameStr($name, true);
-                    $option_name 		= "Характеристика";
-                    $option_value		= $split_name['option'];
 
-					$data['features'][$feature_cml_id]['name'] = $option_value;
+					$product_feature_id = $this->getProductFeatureId($feature_cml_id);
+					if ($product_feature_id) {
+						// Если характеристика уже существует в базе. Берём её и обновляем.
+						$this->log("Характеристика найдена в CMS. Обновляем её....", 2);
 
-					$option_id 			= $this->setOption($option_name);
-					$option_value_id 	= $this->setOptionValue($option_id, $option_value, 0);
-					$data['features'][$feature_cml_id]['options'][$option_value_id]	= array(
-						'name'				=> $option_name,
-						'value_sort_order'	=> 0,
-						'value'				=> $option_value,
-						'option_id'			=> $option_id,
-						'option_value_id'	=> $option_value_id,
-						'subtract'			=> $this->config->get('exchange1c_product_options_subtract') == 1 ? 1 : 0
-					);
+						// нам нужен ИД языка для чтения правильного имени и значения опции из базы
+						if (!$this->LANG_ID) {
+							$this->LANG_ID = $this->getLanguageId($this->config->get('config_language'));
+						}
+
+						// читаем из базы имя характеристики, имя и значение соответствующей опции
+						$sql_str = "
+							SELECT pf.name AS feature_name, pov.option_value_id, pov.option_id, od.name AS option_name, ovd.name AS option_value_name
+							FROM `" . DB_PREFIX . "product_feature` AS pf 
+							INNER JOIN  `" . DB_PREFIX . "product_feature_value`    AS pfv ON pf.product_feature_id       = pfv.product_feature_id
+							INNER JOIN  `" . DB_PREFIX . "product_option_value`     AS pov ON pfv.product_option_value_id = pov.product_option_value_id
+							INNER JOIN  `" . DB_PREFIX . "option_description`       AS od  ON pov.option_id               = od.option_id
+							INNER JOIN  `" . DB_PREFIX . "option_value_description` AS ovd ON pov.option_value_id         = ovd.option_value_id
+
+							WHERE 
+								pf.1c_id = '" . $feature_cml_id . "' AND od.language_id = " . $this->LANG_ID . " AND ovd.language_id = " . $this->LANG_ID . "";
+
+						$query = $this->query($sql_str);
+						$product_feature_data = $query->num_rows ? $query->row : 0;
+
+						if (!empty($product_feature_data)) {
+
+							// формируем секцию features массива $data 
+
+							$data['features'][$feature_cml_id]['name'] = $product_feature_data["feature_name"];
+							$data['features'][$feature_cml_id]['options'][$product_feature_data["option_value_id"]] = array(
+								'name' => $product_feature_data["option_name"],
+								'value_sort_order' => 0,
+								'value' => $product_feature_data["option_value_name"],
+								'option_id' => $product_feature_data["option_id"],
+								'option_value_id' => $product_feature_data["option_value_id"],
+								'subtract' => $this->config->get('exchange1c_product_options_subtract') == 1 ? 1 : 0
+							);
+							$this->log("Характеристика и соответствующие ей опции успешно обновлены.", 2);
+
+						} else {
+							$this->log("Ошибка! Обновление Характеристики не произошло по причине отсутствия соответствующей ей опции.", 2);
+						}
+
+
+					} else {
+						// Характеристики не существует в базе. Создаём её из наименования из CML
+						$this->log("Характеристика НЕ найдена в CMS. Создаём её и опцию продукта из наименования Commerce ML.", 2);
+						$name = (string)$offer->Наименование;
+						$split_name = $this->splitNameStr($name, true);
+						$option_name = "Характеристика";
+						$option_value = $split_name['option'];
+
+						$data['features'][$feature_cml_id]['name'] = $option_value;
+
+						$option_id = $this->setOption($option_name);
+						$option_value_id = $this->setOptionValue($option_id, $option_value, 0);
+
+
+						$data['features'][$feature_cml_id]['options'][$option_value_id] = array(
+							'name' => $option_name,
+							'value_sort_order' => 0,
+							'value' => $option_value,
+							'option_id' => $option_id,
+							'option_value_id' => $option_value_id,
+							'subtract' => $this->config->get('exchange1c_product_options_subtract') == 1 ? 1 : 0
+						);
+					}
 
 				}
 			}
