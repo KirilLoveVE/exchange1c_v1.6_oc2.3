@@ -1,6 +1,6 @@
 <modification>
 	<name>Exchange Module for OpenCart 2.x</name>
-	<version>1.6.2.b13</version>
+	<version>1.6.3.3</version>
 	<id>OpenCart Exchange</id> 
 	<author>KirilLoveVE</author>
 	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
@@ -38,7 +38,7 @@
 			$product_id = (int)$this->request->get['product_id'];
 			// Характеристики
 			$product_option_values = array();
-			$sql = "SELECT product_feature_id, pfv.product_option_id, product_option_value_id FROM `" . DB_PREFIX . "product_feature_value` pfv LEFT JOIN `" . DB_PREFIX . "product_option` po ON (pfv.product_option_id = po.product_option_id) LEFT JOIN `" . DB_PREFIX . "option`o ON (o.option_id = po.option_id) WHERE pfv.product_id = " . $this->request->get['product_id'] . " ORDER BY o.sort_order";
+			$sql = "SELECT `pfv`.`product_feature_id`, `pov`.`product_option_id`, `pfv`.`product_option_value_id` FROM `" . DB_PREFIX . "product_feature_value` `pfv` LEFT JOIN `" . DB_PREFIX . "product_option_value` `pov` ON (`pfv`.`product_option_value_id` = `pov`.`product_option_value_id`) LEFT JOIN `" . DB_PREFIX . "option` `o` ON (`pov`.`option_id` = `o`.`option_id`) WHERE `pfv`.`product_id` = " . $this->request->get['product_id'] . " ORDER BY `o`.`sort_order`";
 			$query = $this->db->query($sql);
 			$features = $query->rows;
 			foreach ($features as $feature_value) {
@@ -58,7 +58,7 @@
 			$customer_group_id = $this->customer->isLogged()? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
 			$product_features_price = array();
 			$query = $this->db->query("SELECT `product_feature_id`, `price` FROM `" . DB_PREFIX . "product_price` WHERE `product_id` = " . (int)$this->request->get['product_id'] . " AND `customer_group_id` = " . $customer_group_id);
-			$data['currency'] = array(
+			$data['currency_data'] = array(
 				'symbol'  => $this->currency->getSymbolRight($this->session->data['currency']),
 				'decimal' => $this->currency->getDecimalPlace($this->session->data['currency']),
 				'value'	  => $this->currency->getValue($this->session->data['currency'])
@@ -68,8 +68,8 @@
 			$product_features_options_values = array();
 			foreach ($query->rows as $query_price) {
 				$product_features_price[$query_price['product_feature_id']] = array(
-					'value' => $query_price['price'] * $data['currency']['value'],
-					'tax'	=> $this->tax->calculate($query_price['price'], $product_info['tax_class_id'], $this->config->get('config_tax')) * $data['currency']['value']
+					'value' => $query_price['price'] * $data['currency_data']['value'],
+					'tax'	=> $this->tax->calculate($query_price['price'], $product_info['tax_class_id'], $this->config->get('config_tax')) * $data['currency_data']['value']
 				);
 				foreach ($features as $feature) {
 					if ($feature['product_feature_id'] == $query_price['product_feature_id']) {
@@ -128,14 +128,6 @@
 				$data['warehouses'][$query_warehouse['warehouse_id']] = $query_warehouse['name'];
 			}
 			// --- TESLA-CHITA
-]]></add>
-		</operation>
-		<operation>
-			<search><![CDATA[if (!$option_value['subtract'] || ($option_value['quantity'] > 0)) {]]></search>
-			<add position="replace"><![CDATA[// +++ TESLA-CHITA
-					//-if (!$option_value['subtract'] || ($option_value['quantity'] > 0)) {
-					if ($option_value['subtract']) {
-						// --- TESLA-CHITA
 ]]></add>
 		</operation>
 		<operation>
@@ -349,9 +341,7 @@ var unit_id = 0;
 		$str_quantity .= "{";
 		foreach ($quantity_array as $warehouse_id => $quantity) {
 			$str_quantity .= "'" . $warehouse_id . "':" . $quantity . ",";
-			if ($warehouse_id == 0) {
-				$quantity_total += $quantity;
-			}
+			$quantity_total += $quantity;
 		}
 		$str_quantity .= "},";
 
@@ -371,7 +361,7 @@ var unit_id = 0;
 		}
 	}
 	echo "};\n";
-	echo "var \$currency = {'symbol':'".$currency['symbol']."','decimal':".$currency['decimal']."};\n";
+	echo "var \$currency_data = {'symbol':'".$currency_data['symbol']."','decimal':".$currency_data['decimal']."};\n";
 ?>
 
 
@@ -391,8 +381,12 @@ function displayQuantity() {
 		var quantity_warehouse = 0;
 		var str_war = "";
 
-		// Общий остаток по всем складам
-		var total_quantity = $quantity[product_feature_id][0];
+		// Базовая единица
+		if ($product_units[0]['name']) {
+			str_unit = " ("+$product_units[0]['name']+")";
+		} else {
+			str_unit = "";
+		}
 
 		// Перебираем все остатки по складам
 		$.each($quantity[product_feature_id],function(warehouse_id, product_quantity) {
@@ -415,15 +409,14 @@ function displayQuantity() {
 			} else {
 				if (product_quantity > 0) {
 					quantity_warehouse++;
-					// Базовая единица
-					str_war += " "+$warehouses[warehouse_id]+" = "+product_quantity+" ("+$product_units[0]['name']+")";
+					str_war += " "+$warehouses[warehouse_id]+" = "+product_quantity+str_unit;
 				}
 			}
 		});
 		if (quantity_warehouse > 0) {
-			str = " "+$quantity[product_feature_id][0]+" ("+$product_units[0]['name']+") в "+quantity_warehouse+" магазинах: ("+str_war+")";
-		} else if (total_quantity > 0) {
-			str = " "+total_quantity+" ("+$product_units[0]['name']+")";
+			str = " "+quantity_total+str_unit+" в "+quantity_warehouse+" магазинах: ("+str_war+")";
+		} else if (quantity_total > 0) {
+			str = " "+quantity_total+str_unit+" по опциям: " + $quantity[product_feature_id][0];
 		} else {
 			str = " нет в наличии";
 		}
@@ -436,8 +429,8 @@ function displayQuantity() {
 // а также, для передачи в корзину, устанавливает значение product_feature_id
 function displaySelect() {
 	if (product_feature_id){
-		$('#price').text(Math.round($price[product_feature_id]['value']).toFixed($currency['decimal'])+$currency['symbol']);
-		$('#tax').text(text_tax+" "+Math.round($price[product_feature_id]['tax']).toFixed($currency['decimal'])+$currency['symbol']);
+		$('#price').text(Math.round($price[product_feature_id]['value']).toFixed($currency_data['decimal'])+$currency_data['symbol']);
+		$('#tax').text(text_tax+" "+Math.round($price[product_feature_id]['tax']).toFixed($currency_data['decimal'])+$currency_data['symbol']);
 		$('#stock').text(text_stock+" "+displayQuantity());
 		$('input[name=\'product_feature_id\']').val(product_feature_id);
 		//$('input[name=\'unit_id\']').val($product_units[unit_id]);

@@ -1,20 +1,13 @@
 <?php
 
 // Принудительное использование HTTP авторизации, если она отключена на сервере
-$remote_user = isset($_SERVER["REMOTE_USER"]) ? $_SERVER["REMOTE_USER"] : (isset($_SERVER["REDIRECT_REMOTE_USER"]) ? $_SERVER["REDIRECT_REMOTE_USER"] : "");
-$strTmp = base64_decode(substr($remote_user,6));
-if ($strTmp) {
-	list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+	$remote_user = isset($_SERVER["REMOTE_USER"]) ? $_SERVER["REMOTE_USER"] : (isset($_SERVER["REDIRECT_REMOTE_USER"]) ? $_SERVER["REDIRECT_REMOTE_USER"] : "");
+	$strTmp = base64_decode(substr($remote_user,6));
+	if ($strTmp) {
+		list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
+	}
 }
-
-//if (!isset($_SERVER['PHP_AUTH_USER'])) {
-//	if (isset($_SERVER["REMOTE_USER"]) && isset($_SERVER["REDIRECT_REMOTE_USER"])){
-//		$remote_user = $_SERVER["REMOTE_USER"] ? $_SERVER["REMOTE_USER"]: $_SERVER["REDIRECT_REMOTE_USER"];
-//		$strTmp = base64_decode(substr($remote_user,6));
-//		if($strTmp)
-//			list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
-//	}
-//}
 
 // В .htaccess надо добавить строчки после RewriteEngine On:
 // RewriteCond %{HTTP:Authorization} ^Basic.*
@@ -79,9 +72,25 @@ if (!$store_query->num_rows) {
 
 // Log
 $log = new Log($config->get('config_error_filename'));
-//$log = new Log('exchange1c_ts.log');
-//$log = new Log('exchange1c_'.$_SERVER["REMOTE_ADDR"].'_'.date('dmy').'.log');
 $registry->set('log', $log);
+
+// Используются только для отладки (начало)
+$log->write("Client IP address: " . $_SERVER['REMOTE_ADDR']);
+if (isset($remote_user))
+	$log->write("remote_user: " . $remote_user);
+
+if (isset($_SERVER['PHP_AUTH_USER']))
+	$log->write("PHP_AUTH_USER: " . $_SERVER['PHP_AUTH_USER']);
+
+if (isset($_SERVER['REMOTE_USER']))
+	$log->write("REMOTE_USER: " . $_SERVER['REMOTE_USER']);
+
+if (isset($_SERVER['REDIRECT_REMOTE_USER']))
+	$log->write("REDIRECT_REMOTE_USER: " . $_SERVER['REDIRECT_REMOTE_USER']);
+
+if (isset($_SERVER['PHP_AUTH_PW']))
+	$log->write("PHP_AUTH_PW: " . $_SERVER['PHP_AUTH_PW']);
+// Используются только для отладки (конец)
 
 // Error Handler
 function error_handler($errno, $errstr, $errfile, $errline) {

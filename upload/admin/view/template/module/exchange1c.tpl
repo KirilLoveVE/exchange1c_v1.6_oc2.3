@@ -123,8 +123,10 @@
 							<?php echo $html_cleaning_links ?>
 							<?php echo $html_cleaning_old_images ?>
 							<?php echo $html_cleaning_cache ?>
+							<?php echo $html_remove_doubles_links; ?>
 						</div>
 						<div class="form-group">
+							<?php echo $html_name_exchange; ?>
 							<?php echo $html_synchronize_by_code; ?>
 							<?php echo $html_file_exchange; ?>
 							<?php echo $html_log_level; ?>
@@ -147,7 +149,8 @@
 						</div>
 						<div class="form-group">
 							<?php echo $html_synchronize_new_product_by ?>
-							<?php echo $html_status_new_product ?>
+							<?php //echo $html_status_new_product ?>
+							<?php //echo $html_disable_product_full_import ?>
 						</div>
 						<legend><?php echo $lang['legend_import_attributes']; ?></legend>
 						<div class="form-group">
@@ -155,7 +158,11 @@
 						</div>
 						<legend><?php echo $lang['legend_import_product_fields']; ?></legend>
 						<div class="form-group">
-							<?php echo $html_import_product_name ?>
+							<div id="import_product_name_field_select">
+								<?php echo $html_import_product_name ?>
+							</div>
+						</div>
+						<div class="form-group">
 							<?php echo $html_import_product_description ?>
 							<?php echo $html_import_product_categories ?>
 							<?php echo $html_import_product_manufacturer ?>
@@ -171,6 +178,7 @@
 							<?php echo $lang['desc_product_features_name']; ?>
 						</div>
 						<div class="form-group">
+							<?php echo $html_clean_options ?>
 							<?php echo $html_product_options_mode ?>
 							<?php echo $html_product_options_subtract ?>
 						</div>
@@ -247,7 +255,7 @@
 								<tbody>
 									<tr>
 										<td>Ид</td>
-										<td><?php echo $lang['desc_product_1c_id']; ?></td>
+										<td><?php echo $lang['desc_product_guid']; ?></td>
 										<td>1c_id</td>
 										<td>product_to_1c</td>
 									</tr>
@@ -469,7 +477,6 @@
 					<!-- ЦЕНЫ -->
 					<div class="tab-pane" id="tab-prices">
 						<div class="form-group">
-							<?php echo $html_price_import_to ?>
 							<?php echo $html_price_types_auto_load ?>
 							<?php echo $html_product_disable_if_price_zero ?>
 						</div>
@@ -484,10 +491,11 @@
 									<tr>
 										<td class="col-sm-3 text-left"><?php echo $lang['text_config_price_type']; ?></td>
 										<td class="col-sm-3 text-left"><?php echo $lang['text_config_price_id_cml']; ?></td>
-										<td class="col-sm-3 text-left"><?php echo $lang['text_customer_group']; ?></td>
+										<td class="col-sm-2 text-left"><?php echo $lang['text_customer_group']; ?></td>
+										<td class="text-left" style="width: 10%;"><?php echo $lang['text_table']; ?></td>
 										<td class="col-sm-1 text-right"><?php echo $lang['text_quantity']; ?></td>
 										<td class="col-sm-1 text-right"><?php echo $lang['text_priority']; ?></td>
-										<td class="col-sm-1 text-right"><?php echo $lang['text_action']; ?></td>
+										<td><?php echo $lang['text_action']; ?></td>
 									</tr>
 								</thead>
 								<tbody>
@@ -495,7 +503,7 @@
 									<?php foreach ($exchange1c_price_type as $obj) { ?>
 										<tr id="exchange1c_price_type_row<?php echo $price_row; ?>">
 											<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][keyword]" value="<?php echo $obj['keyword']; ?>" /></td>
-											<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][id_cml]" value="<?php echo $obj['id_cml']; ?>" /></td>
+											<td class="text-left"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][guid]" value="<?php echo isset($obj['guid']) ? $obj['guid'] : ''; ?>" /></td>
 											<td class="text-left"><select class="form-control" id="customer_group" name="exchange1c_price_type[<?php echo $price_row; ?>][customer_group_id]">
 											<?php foreach ($customer_groups as $customer_group) { ?>
 												<?php if ($customer_group['customer_group_id'] == $obj['customer_group_id']) { ?>
@@ -505,6 +513,14 @@
 												<?php } ?>
 											<?php } ?>
 											</select></td>
+											<td class="text-left"><select class="form-control" id="table_price" name="exchange1c_price_type[<?php echo $price_row; ?>][table_price]">
+											<?php foreach ($table_prices as $table_price) { ?>
+												<?php if ($table_price['name'] == $obj['table_price']) { ?>
+													<option value="<?php echo $table_price['name']; ?>" selected="selected"><?php echo $table_price['desc']; ?></option>
+												<?php } else { ?>
+													<option value="<?php echo $table_price['name']; ?>"><?php echo $table_price['desc']; ?></option>
+												<?php } ?>
+											<?php } ?>
 											<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][quantity]" value="<?php echo $obj['quantity']; ?>" size="2" /></td>
 											<td class="text-center"><input class="form-control" type="text" name="exchange1c_price_type[<?php echo $price_row; ?>][priority]" value="<?php echo $obj['priority']; ?>" size="2" /></td>
 											<td class="text-center">
@@ -517,7 +533,7 @@
 								<tfoot>
 									<?php if (count($customer_groups)) { ?>
 									<tr>
-										<td colspan="5"></td>
+										<td colspan="6"></td>
 										<td class="text-center">
 											<button type="button" id="btn_add_price_type" onclick="addConfigPriceType();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></button>
 										</td>
@@ -542,6 +558,7 @@
 							<?php echo $html_default_stock_status; ?>
 							<?php echo $html_product_disable_if_quantity_zero ?>
 							<?php echo $html_flush_quantity_category ?>
+							<?php echo $html_flush_quantity ?>
 						</div>
 					</div>
 					<!-- ОСТАТКИ -->
@@ -653,22 +670,205 @@
 
 					<!-- ЗАКАЗЫ -->
 					<div class="tab-pane" id="tab-order">
-						<legend><?php echo $lang['legend_orders_to_exchange']; ?></legend>
+						<legend><?php echo $lang['legend_orders_to_export']; ?></legend>
+						<div class="alert alert-info">
+							<i class="fa fa-info-circle"></i>
+							<?php echo $lang['i_orders_to_export']; ?>
+						</div>
+						<div class="form-group">
+							<label class="col-sm-2 control-label"><?php echo $lang['entry_order_date_export'] ?></label>
+							<div class="col-sm-2">
+								<div class="form-control"><?php echo $order_date_export ?></div>
+							</div>
+							<div class="col-sm-8">
+								<div class="alert alert-info"><i class="fa fa-info-circle"></i>
+									<?php echo $lang['desc_order_date_export'] ?>
+								</div>
+							</div>
+						</div>
+						<legend><?php echo $lang['legend_settings_order_export']; ?></legend>
+						<div class="table-responsive">
+							<table id="orders_export" class="table table-bordered table-hover">
+								<thead>
+									<tr>
+										<td class="col-sm-2 text-left"><?php echo $lang['text_order_status']; ?></td>
+										<td class="col-sm-9 text-left"><?php echo $lang['text_setting_auto_notify']; ?></td>
+										<td class="col-sm-1 text-center"><?php echo $lang['text_action']; ?></td>
+									</tr>
+								</thead>
+								<tbody>
+									<?php $order_export_row = 0 ?>
+									<?php foreach ($exchange1c_order_export as $row_id => $data_row) { ?>
+										<tr id="exchange1c_order_export_row<?php echo $order_export_row ?>">
+											<td class="text-left"><select class="form-control" name="exchange1c_order_export[<?php echo $row_id ?>][order_status]">
+											<?php foreach ($order_statuses as $status_id => $name) { ?>
+												<?php if ($data_row['order_status'] == $status_id) { ?>
+													<option value="<?php echo $status_id ?>" selected="selected"><?php echo $name ?></option>
+												<?php } else { ?>
+													<option value="<?php echo $status_id ?>"><?php echo $name ?></option>
+												<?php } ?>
+											<?php } ?>
+											</select></td>
+											<td class="text-left">
+												<div><?php echo $lang['text_order_notify']; ?><input class="form-control" type="checkbox" name="exchange1c_order_export[<?php echo $row_id ?>][notify]"<?php echo isset($data_row['notify']) ? 'checked' : '' ?>></div>
+												<div><?php echo $lang['text_mail_subject']; ?><input class="form-control" type="text" name="exchange1c_order_export[<?php echo $row_id ?>][subject]" value="<?php echo $data_row['subject'] ?>"></div>
+												<div><?php echo $lang['text_mail_text']; ?><textarea class="form-control" rows="5" name="exchange1c_order_export[<?php echo $row_id ?>][text]"><?php echo $data_row['text'] ?></textarea></div>
+											</td>
+											<td class="text-center">
+											<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_order_export_row<?php echo $order_export_row ?>').remove() : false;"><i class="fa fa-minus-circle"></i></button>
+											</td>
+										</tr>
+										<?php $order_export_row++ ?>
+									<?php } // foreach ?>
+								</tbody>
+								<tfoot>
+									<tr>
+										<td colspan="2"></td>
+										<td class="text-center">
+											<a onclick="addOrderExport();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></a>
+										</td>
+									</tr>
+								</tfoot>
+							</table>
+						</div> <!-- table -->
+
+						<legend><?php echo $lang['legend_add_settings_order_export']; ?></legend>
+						<div class="alert alert-info">
+							<i class="fa fa-info-circle"></i>
+							<?php echo $lang['i_add_settings_order_export']; ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_fio_corrector; ?>
+							<?php echo $html_order_date_ship; ?>
+							<?php echo $html_convert_orders_cp1251; ?>
+							<?php echo $html_compatibility_unf16; ?>
+							<?php echo $html_order_currency; ?>
+						</div>
+
+						<legend><?php echo $lang['legend_event_handing']; ?></legend>
+						<div class="alert alert-info">
+							<i class="fa fa-info-circle"></i>
+							<?php echo $lang['i_event_handing']; ?>
+						</div>
+
+						<legend><?php echo $lang['legend_setting_event_orders']; ?></legend>
+						<div class="table-responsive">
+							<table id="orders_import" class="table table-bordered table-hover">
+								<thead>
+									<tr>
+										<td class="col-sm-2 text-left"><?php echo $lang['text_order_event']; ?></td>
+										<td class="col-sm-2 text-left"><?php echo $lang['text_order_status']; ?></td>
+										<td class="col-sm-7 text-left"><?php echo $lang['text_setting_auto_notify']; ?></td>
+										<td class="col-sm-1 text-center"><?php echo $lang['text_action']; ?></td>
+									</tr>
+								</thead>
+								<tbody>
+									<?php $order_import_row = 0 ?>
+									<?php foreach ($exchange1c_order_import as $row_id => $data_row) { ?>
+										<tr id="exchange1c_order_import_row<?php echo $order_export_row ?>">
+											<td class="text-left"><select class="form-control" name="exchange1c_order_import[<?php echo $row_id ?>][order_event]">
+											<?php foreach ($order_event as $event_id => $name) { ?>
+												<?php if ($data_row['order_event'] == $event_id) { ?>
+													<option value="<?php echo $status_id ?>" selected="selected"><?php echo $name ?></option>
+												<?php } else { ?>
+													<option value="<?php echo $status_id ?>"><?php echo $name ?></option>
+												<?php } ?>
+											<?php } ?>
+											</select></td>
+											<td class="text-left"><select class="form-control" name="exchange1c_order_import[<?php echo $row_id ?>][order_status]">
+											<?php foreach ($order_statuses as $status_id => $name) { ?>
+												<?php if ($data_row['order_status'] == $status_id) { ?>
+													<option value="<?php echo $status_id ?>" selected="selected"><?php echo $name ?></option>
+												<?php } else { ?>
+													<option value="<?php echo $status_id ?>"><?php echo $name ?></option>
+												<?php } ?>
+											<?php } ?>
+											</select></td>
+											<td class="text-left">
+												<div><?php echo $lang['text_order_notify']; ?><input class="form-control" type="checkbox" name="exchange1c_order_import[<?php echo $row_id ?>][notify]"<?php echo isset($data_row['notify']) ? 'checked' : '' ?>></div>
+												<div><?php echo $lang['text_mail_subject']; ?><input class="form-control" type="text" name="exchange1c_order_import[<?php echo $row_id ?>][subject]" value="<?php echo $data_row['subject'] ?>"></div>
+												<div><?php echo $lang['text_mail_text']; ?><textarea class="form-control" rows="5" name="exchange1c_order_import[<?php echo $row_id ?>][text]"><?php echo $data_row['text'] ?></textarea></div>
+											</td>
+											<td class="text-center">
+											<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_order_export_row<?php echo $order_export_row ?>').remove() : false;"><i class="fa fa-minus-circle"></i></button>
+											</td>
+										</tr>
+										<?php $order_import_row++ ?>
+									<?php } // foreach ?>
+								</tbody>
+								<tfoot>
+									<tr>
+										<td colspan="3"></td>
+										<td class="text-center">
+											<a onclick="addOrderImport();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></a>
+										</td>
+									</tr>
+								</tfoot>
+							</table>
+						</div> <!-- table -->
+
+						<legend><?php echo $lang['legend_setting_order_shipping']; ?></legend>
+						<div class="alert alert-info">
+							<i class="fa fa-info-circle"></i>
+							<?php echo $lang['i_setting_order_shipping']; ?>
+						</div>
+
+						<!-- ТАБЛИЦА Настройка видов доставки для экспорта в заказы в ТС -->
+						<div class="table-responsive">
+							<table id="orders_delivery" class="table table-bordered table-hover">
+								<thead>
+									<tr>
+										<td class="col-sm-5 text-left"><?php echo $lang['text_types_of_delivery']; ?></td>
+										<td class="col-sm-6 text-left"><?php echo $lang['text_mapped_services']; ?></td>
+										<td class="col-sm-1 text-center"><?php echo $lang['text_action']; ?></td>
+									</tr>
+								</thead>
+								<tbody>
+									<?php $order_delivery_row = 0 ?>
+									<?php foreach ($exchange1c_order_delivery as $row_id => $data_row) { ?>
+										<tr id="exchange1c_order_delivery_row<?php echo $order_delivery_row ?>">
+											<td class="text-left"><select class="form-control" name="exchange1c_order_delivery[<?php echo $row_id ?>][type_of_delivery]">
+											<?php foreach ($order_types_of_delivery as $delivery_id => $name) { ?>
+												<?php if ($data_row['type_of_delivery'] == $event_id) { ?>
+													<option value="<?php echo $delivery_id ?>" selected="selected"><?php echo $name ?></option>
+												<?php } else { ?>
+													<option value="<?php echo $delivery_id ?>"><?php echo $name ?></option>
+												<?php } ?>
+											<?php } ?>
+											</select></td>
+											<td class="text-left">
+											<div><input class="form-control" type="text" name="exchange1c_order_delivery[<?php echo $row_id ?>][delivery_service_name]" value="<?php echo $data_row['delivery_service_name'] ?>"></div>
+											</td>
+											<td class="text-center">
+											<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_order_delivery_row<?php echo $order_delivery_row ?>').remove() : false;"><i class="fa fa-minus-circle"></i></button>
+											</td>
+										</tr>
+										<?php $order_delivery_row++ ?>
+									<?php } // foreach ?>
+								</tbody>
+								<tfoot>
+									<tr>
+										<td colspan="2"></td>
+										<td class="text-center">
+											<a onclick="addOrderDelivery();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></a>
+										</td>
+									</tr>
+								</tfoot>
+							</table>
+						</div> <!-- table -->
+						<!-- ТАБЛИЦА Настройка видов доставки для экспорта в заказы в ТС -->
+
+						<div class="form-group">
+							<?php echo $html_services_in_table_product; ?>
+						</div>
+
 						<div class="form-group">
 							<?php echo $html_order_modify_exchange; ?>
 							<?php echo $html_order_status_to_exchange; ?>
 							<?php echo $html_order_status_change; ?>
 						</div>
-						<legend><?php echo $lang['legend_orders_notify']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_order_notify; ?>
-							<?php echo $html_order_notify_subject; ?>
-							<?php echo $html_order_notify_text; ?>
-							<?php echo $lang['text_under_development']; ?>
-						</div>
-						<div class="form-group">
-							<?php echo $html_order_currency; ?>
-							<?php echo $html_convert_orders_cp1251; ?>
 						</div>
 					</div><!-- tab-order -->
 
@@ -994,6 +1194,41 @@ $('#exchange1c-button-generate_seo').on('click', function() {
 	}
 });
 
+$('#exchange1c-button-remove_doubles_links').on('click', function() {
+	$('#form-clean').remove();
+	if (confirm('<?php echo $lang['text_confirm'] ?>')) {
+		$.ajax({
+			url: 'index.php?route=module/exchange1c/manualRemoveDoublesLinks&token=<?php echo $token; ?>',
+			type: 'post',
+			dataType: 'json',
+			data: new FormData($('#form-clean')[0]),
+			cache: false,
+			contentType: false,
+			processData: false,
+			beforeSend: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-circle-o-notch fa-spin"></i>');
+				$('#button-clean').prop('disabled', true);
+			},
+			complete: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-trash-o"></i>');
+				$('#button-clean').prop('disabled', false);
+			},
+			success: function(json) {
+				if (json['error']) {
+					alert(json['error']);
+				}
+
+				if (json['success']) {
+					alert(json['success']);
+				}
+			},
+			error: function(xhr, ajaxOptions, thrownError) {
+				alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+			}
+		});
+	}
+});
+
 //--></script>
 
 <script type="text/javascript"><!--
@@ -1072,6 +1307,75 @@ function changeProductField(row, value) {
 
 //--></script>
 
+<script type="text/javascript"><!--
+var order_export_row = <?php echo $order_export_row ?>;
+
+function addOrderExport() {
+	html = '<tr id="exchange1c_order_export_row' + order_export_row + '">';
+	html += '<td class="text-left"><select class="form-control" name="exchange1c_order_export[' + order_export_row + '][order_status]">';
+<?php foreach ($order_statuses as $status_id => $name) { ?>
+	html += '<option value="<?php echo $status_id ?>"><?php echo $name ?></option>';
+<?php } ?>
+	html += '</select></td>';
+	html += '<td class="text-left">';
+	html += '<div><?php echo $lang['text_order_notify']; ?><input class="form-control" type="checkbox" name="exchange1c_order_export[' + order_export_row + '][notify]"></div>';
+	html += '<div><?php echo $lang['text_mail_subject']; ?><input class="form-control" type="text" name="exchange1c_order_export[' + order_export_row + '][subject]"></div>';
+	html += '<div><?php echo $lang['text_mail_text']; ?><textarea class="form-control" rows="5" name="exchange1c_order_export[' + order_export_row + '][text]"></textarea></div>';
+	html += '</td>';
+	html += '<td class="text-center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_order_export_row' + order_export_row + '\').remove() : false; order_export_row--;"><i class="fa fa-minus-circle"></i></button></td>';
+	html += '</tr>';
+
+	$('#orders_export tbody').append(html);
+	order_export_row++;
+}
+
+var order_import_row = <?php echo $order_import_row ?>;
+
+function addOrderImport() {
+	html = '<tr id="exchange1c_order_import_row' + order_import_row + '">';
+	html += '<td class="text-left"><select class="form-control" name="exchange1c_order_import[' + order_import_row + '][order_event]">';
+<?php foreach ($order_event as $event_id => $name) { ?>
+	html += '<option value="<?php echo $event_id ?>"><?php echo $name ?></option>';
+<?php } ?>
+	html += '</select></td>';
+	html += '<td class="text-left"><select class="form-control" name="exchange1c_order_import[' + order_import_row + '][order_status]">';
+<?php foreach ($order_statuses as $status_id => $name) { ?>
+	html += '<option value="<?php echo $status_id ?>"><?php echo $name ?></option>';
+<?php } ?>
+	html += '</select></td>';
+	html += '<td class="text-left">';
+	html += '<div><?php echo $lang['text_order_notify']; ?><input class="form-control" type="checkbox" name="exchange1c_order_import[' + order_import_row + '][notify]"></div>';
+	html += '<div><?php echo $lang['text_mail_subject']; ?><input class="form-control" type="text" name="exchange1c_order_import[' + order_import_row + '][subject]"></div>';
+	html += '<div><?php echo $lang['text_mail_text']; ?><textarea class="form-control" rows="5" name="exchange1c_order_import[' + order_import_row + '][text]"></textarea></div>';
+	html += '</td>';
+	html += '<td class="text-center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_order_import_row' + order_import_row + '\').remove() : false; order_import_row--;"><i class="fa fa-minus-circle"></i></button></td>';
+	html += '</tr>';
+
+	$('#orders_import tbody').append(html);
+	order_import_row++;
+}
+
+
+var order_delivery_row = <?php echo $order_delivery_row ?>;
+
+function addOrderDelivery() {
+	html = '<tr id="exchange1c_order_delivery_row' + order_import_row + '">';
+	html += '<td class="text-left"><select class="form-control" name="exchange1c_order_delivery[' + order_delivery_row + '][type_of_delivery]">';
+<?php foreach ($order_types_of_delivery as $delivery_id => $name) { ?>
+	html += '<option value="<?php echo $delivery_id ?>"><?php echo $name ?></option>';
+<?php } ?>
+	html += '<td class="text-left">';
+	html += '<div><input class="form-control" type="text" name="exchange1c_order_delivery[' + order_delivery_row + '][delivery_service_name]"></div>';
+	html += '</td>';
+	html += '<td class="text-center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_order_delivery_row' + order_delivery_row + '\').remove() : false; order_delivery_row--;"><i class="fa fa-minus-circle"></i></button></td>';
+	html += '</tr>';
+
+	$('#orders_delivery tbody').append(html);
+	order_delivery_row++;
+}
+
+//--></script>
+
 
 <script type="text/javascript"><!--
 function image_upload(field, thumb) {
@@ -1104,28 +1408,44 @@ function image_upload(field, thumb) {
 
 <script type="text/javascript"><!--
 
-function checkOptions() {
+function checkOptionSynchronize_by_code() {
 
 	var val = $('input[name="exchange1c_synchronize_by_code"]:checked').val();
-
 	if (val == 1) {
 		$('select[name="exchange1c_synchronize_new_product_by"]').attr('disabled', 'disabled');
 	} else {
 		$('select[name="exchange1c_synchronize_new_product_by"]').attr('disabled', null);
 	}
 
-} // checkOptions
+} // checkOptionSynchronize_by_code()
+
+function checkOptionImport_product_name() {
+	var val = $('select[name="exchange1c_import_product_name"]').val();
+	if (val == "manually") {
+		//$('div#import_product_name_field').css("visibility", 'visible');
+		$('div#import_product_name_field_select').append('<div id="import_product_name_field"><?php echo $html_import_product_name_field ?></div');
+	} else {
+		//$('div#import_product_name_field').css("visibility", 'hidden');
+		$('div#import_product_name_field').remove();
+	}
+
+} // checkOptionImport_product_name()
+
 
 $('input[name="exchange1c_synchronize_by_code"]').change(function(){
-	checkOptions();
+	checkOptionSynchronize_by_code();
 })
 
 
+$('select[name="exchange1c_import_product_name"]').change(function(){
+	checkOptionImport_product_name();
+});
+
 $(document).ready(function() {
-	checkOptions();
+	checkOptionSynchronize_by_code();
+	checkOptionImport_product_name();
 });
 
 //--></script>
-
 
 <?php echo $footer; ?>
