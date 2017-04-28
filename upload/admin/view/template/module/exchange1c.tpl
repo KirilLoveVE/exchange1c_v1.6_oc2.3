@@ -117,6 +117,11 @@
 						<div class="form-group">
 							<?php echo $html_export_module_to_all; ?>
 						</div>
+						<legend><?php echo $lang['legend_optimization']; ?></legend>
+						<div class="form-group">
+							<?php echo $html_parse_categories_in_array; ?>
+							<?php echo $html_parse_units_in_array; ?>
+						</div>
 						<legend><?php echo $lang['legend_other']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_cleaning_db ?>
@@ -146,6 +151,7 @@
 						<legend><?php echo $lang['legend_new_product']; ?></legend>
 						<div class="form-group">
 							<?php echo $html_create_new_product ?>
+							<?php echo $html_status_new_product ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_synchronize_new_product_by ?>
@@ -864,7 +870,6 @@
 
 						<div class="form-group">
 							<?php echo $html_order_modify_exchange; ?>
-							<?php echo $html_order_status_to_exchange; ?>
 							<?php echo $html_order_status_change; ?>
 						</div>
 						<div class="form-group">

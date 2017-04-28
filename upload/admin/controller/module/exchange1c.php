@@ -119,7 +119,7 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
-	 * Выводит форму переключателя "Да+Нет"
+	 * Выводит форму переключателя "Да"+"Нет" или "Вкл"+"Откл"
 	 */
 	private function htmlRadio($name, $param) {
 		$value = $this->getParam($name);
@@ -506,6 +506,7 @@ class ControllerModuleExchange1c extends Controller {
 			,'flush_quantity'							=> array('type' => 'radio', 'default' => -1)
 			,'watermark'								=> array('type' => 'image')
 			,'allow_ip'									=> array('type' => 'textarea')
+			,'status_new_product'						=> array('type' => 'radio', 'default' => 1, 'text' => 'on_off')
 			,'import_product_description'				=> array('type' => 'radio', 'default' => 1)
 			,'import_images'							=> array('type' => 'radio', 'default' => 1)
 			,'import_categories'						=> array('type' => 'radio', 'default' => 1)
@@ -532,26 +533,26 @@ class ControllerModuleExchange1c extends Controller {
 			,'username'									=> array('type' => 'input',)
 			,'password'									=> array('type' => 'input',)
 			,'price_types_auto_load'					=> array('type' => 'radio', 'default' => 1)
-			,'seo_product_seo_url_import'				=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_seo_url_import'				=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_product_seo_url_template'				=> array('type' => 'input', 'width' => array(0,9,0))
-			,'seo_product_meta_title_import'			=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_meta_title_import'			=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_product_meta_title_template'			=> array('type' => 'input', 'width' => array(0,9,0))
-			,'seo_product_meta_description_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_meta_description_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_product_meta_description_template'	=> array('type' => 'input', 'width' => array(0,9,0))
-			,'seo_product_meta_keyword_import'			=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_meta_keyword_import'			=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_product_meta_keyword_template'		=> array('type' => 'input', 'width' => array(0,9,0))
-			,'seo_product_tag_import'					=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_product_tag_import'					=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_product_tag_template'					=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_category_seo_url_template'			=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_category_meta_title_template'			=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_category_meta_description_template'	=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_category_meta_keyword_template'		=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_manufacturer_seo_url_template'		=> array('type' => 'input', 'width' => array(0,9,0))
-			,'seo_manufacturer_meta_title_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_manufacturer_meta_title_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_manufacturer_meta_title_template'		=> array('type' => 'input', 'width' => array(0,9,0))
-			,'seo_manufacturer_meta_description_import'	=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_manufacturer_meta_description_import'	=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_manufacturer_meta_description_template'	=> array('type' => 'input', 'width' => array(0,9,0))
-			,'seo_manufacturer_meta_keyword_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1)
+			,'seo_manufacturer_meta_keyword_import'		=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_manufacturer_meta_keyword_template'	=> array('type' => 'input', 'width' => array(0,9,0))
 			,'order_currency'							=> array('type' => 'input')
 			,'ignore_price_zero'						=> array('type' => 'radio', 'default' => 1)
@@ -580,7 +581,6 @@ class ControllerModuleExchange1c extends Controller {
 			,'seo_manufacturer_meta_description'		=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
 			,'seo_manufacturer_meta_keyword'			=> array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0))
 			,'order_modify_exchange'					=> array('type' => 'radio', 'default' => 1)
-			,'order_status_to_exchange'					=> array('type' => 'select', 'options' => $order_statuses)
 			,'order_status_change'						=> array('type' => 'select', 'options' => $order_statuses)
 			,'order_notify_subject'						=> array('type' => 'input')
 			,'order_notify_text'						=> array('type' => 'textarea')
@@ -594,22 +594,24 @@ class ControllerModuleExchange1c extends Controller {
 			,'clean_options'							=> array('type' => 'radio', 'default' => -1)
 			,'remove_doubles_links'						=> array('type' => 'button')
 			//,'disable_product_full_import'				=> array('type' => 'radio', 'default' => -1)
+			,'parse_categories_in_array'				=> array('type' => 'radio', 'default' => 1)
+			,'parse_units_in_array'						=> array('type' => 'radio', 'default' => 1)
 		);
 
 		$tab_fields = $settings['exchange1c_table_fields'];
 
 		if (isset($tab_fields['product_description']['meta_h1'])) {
-			$params['seo_product_meta_h1_import']			= array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1);
+			$params['seo_product_meta_h1_import']			= array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1);
 			$params['seo_product_meta_h1_template']			= array('type' => 'input', 'width' => array(0,9,0));
 			$params['seo_product_meta_h1']					= array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0));
 		}
 		if (isset($tab_fields['category_description']['meta_h1'])) {
-			$params['seo_category_meta_h1_import']			= array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1);
+			$params['seo_category_meta_h1_import']			= array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1);
 			$params['seo_category_meta_h1_template']		= array('type' => 'input', 'width' => array(0,9,0));
 			$params['seo_category_meta_h1']					= array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0));
 		}
 		if (isset($tab_fields['manufacturer_description']['meta_h1'])) {
-			$params['seo_manufacturer_meta_h1_import']		= array('type' => 'input', 'width' => array(0,9,0), 'hidden'=>1);
+			$params['seo_manufacturer_meta_h1_import']		= array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1);
 			$params['seo_manufacturer_meta_h1_template']	= array('type' => 'input', 'width' => array(0,9,0));
 			$params['seo_manufacturer_meta_h1']				= array('type' => 'select', 'options' => $list_product, 'width' => array(1,2,0));
 		}
@@ -785,7 +787,7 @@ class ControllerModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "attribute_value`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "attribute_value` (
-				`attribute_value_id` 		INT(11) 		NOT NULL AUTO INCREMENT	COMMENT 'ID атрибута',
+				`attribute_value_id` 		INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'ID атрибута',
 				`attribute_id` 				INT(11) 		NOT NULL 				COMMENT 'Ссылка на атрибут',
 				`guid`						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид свойства в 1С',
 				`name`						VARCHAR(255) 	NOT NULL 				COMMENT 'Название свойства',
@@ -807,7 +809,6 @@ class ControllerModuleExchange1c extends Controller {
 				FOREIGN KEY (`manufacturer_id`) 		REFERENCES `". DB_PREFIX ."manufacturer`(`manufacturer_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
-
 
 		// Привязка магазина к каталогу в 1С
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "store_to_1c`");
@@ -1952,7 +1953,6 @@ class ControllerModuleExchange1c extends Controller {
 		$orders = $this->model_tool_exchange1c->queryOrders(
 			array(
 				 'from_date' 		=> $this->config->get('exchange1c_order_date')
-				,'exchange_status'	=> $this->config->get('exchange1c_order_status_to_exchange')
 				,'new_status'		=> $this->config->get('exchange1c_order_status')
 				,'notify'			=> $this->config->get('exchange1c_order_notify')
 				,'currency'			=> $this->config->get('exchange1c_order_currency') ? $this->config->get('exchange1c_order_currency') : 'руб.'
@@ -2319,7 +2319,6 @@ class ControllerModuleExchange1c extends Controller {
 		$orders = $this->model_tool_exchange1c->queryOrders(
 			array(
 				 'from_date' 		=> $this->config->get('exchange1c_order_date')
-				,'exchange_status'	=> $this->config->get('exchange1c_order_status_to_exchange')
 				,'new_status'		=> $this->config->get('exchange1c_order_status')
 				,'notify'			=> $this->config->get('exchange1c_order_notify')
 				,'currency'			=> $this->config->get('exchange1c_order_currency') ? $this->config->get('exchange1c_order_currency') : 'руб.'
@@ -2346,7 +2345,6 @@ class ControllerModuleExchange1c extends Controller {
 
 		$result = $this->model_tool_exchange1c->queryOrdersStatus(array(
 			'from_date' 		=> $this->config->get('exchange1c_order_date'),
-			'exchange_status'	=> $this->config->get('exchange1c_order_status_to_exchange'),
 			'new_status'		=> $this->config->get('exchange1c_order_status_change'),
 			'notify'			=> $this->config->get('exchange1c_order_notify')
 		));
@@ -2498,8 +2496,10 @@ class ControllerModuleExchange1c extends Controller {
 	*/
 	public function modeExportModule() {
 
-		if (!$this->checkAccess(true)) {
-			return false;
+		if ($this->config->get('exchange1c_export_module_to_all') != 1) {
+			if (!$this->checkAccess(true)) {
+				return false;
+			}
 		}
 
 		$this->log("Экспорт модуля " . $this->module_name . " для IP " . $_SERVER['REMOTE_ADDR']);
