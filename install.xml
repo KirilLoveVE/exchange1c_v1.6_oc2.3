@@ -1,25 +1,51 @@
 <modification>
-	<name>Exchange Module for OpenCart 2.x</name>
-	<version>1.6.3.3</version>
+	<name>Exchange Module for OpenCart 2.1</name>
+	<version>1.6.3</version>
 	<id>OpenCart Exchange</id> 
 	<author>KirilLoveVE</author>
 	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
 	<code>exchange1c</code>
 	<file path="admin/controller/common/menu.php">
 		<operation>
+			<search><![CDATA[$data['text_option'] = $this->language->get('text_option');]]></search>
+			<add position="after"><![CDATA[$data['text_warehouse'] = $this->language->get('text_warehouse');]]></add>
+		</operation>
+		<operation>
 			<search><![CDATA[$data['module'] = $this->url->link('extension/module', 'token=' . $this->session->data['token'], 'SSL');]]></search>
 			<add position="after"><![CDATA[$data['exchange1c'] = $this->url->link('module/exchange1c', 'token=' . $this->session->data['token'], 'SSL');]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$data['option'] = $this->url->link('catalog/option', 'token=' . $this->session->data['token'], 'SSL');]]></search>
+			<add position="after"><![CDATA[$data['warehouse'] = $this->url->link('catalog/warehouse', 'token=' . $this->session->data['token'], 'SSL');]]></add>
 		</operation>
 	</file>
 
 	<file path="admin/view/template/common/menu.tpl">
 		<operation>
 			<search><![CDATA[<li><a href="<?php echo $modification; ?>"><?php echo $text_modification; ?></a></li>]]></search>
-			<add position="after"><![CDATA[<li><a href="<?php echo $exchange1c; ?>">Exchange 1C 8.x</a></li>]]></add>
+			<add position="after"><![CDATA[      <li><a href="<?php echo $exchange1c; ?>">Exchange 1C 8.x</a></li>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<li><a href="<?php echo $option; ?>"><?php echo $text_option; ?></a></li>]]></search>
+			<add position="after"><![CDATA[      <li><a href="<?php echo $warehouse; ?>"><?php echo $text_warehouse; ?></a></li>]]></add>
 		</operation>
 	</file>
 
-  	<file path="system/library/image.php">
+	<file path="admin/language/russian/common/menu.php">
+		<operation>
+			<search><![CDATA[$_['text_option']          					= 'Опции';]]></search>
+			<add position="after"><![CDATA[$_['text_warehouse']        					= 'Склады';]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/language/english/common/menu.php">
+		<operation>
+			<search><![CDATA[$_['text_option']                      = 'Options';]]></search>
+			<add position="after"><![CDATA[$_['text_warehouse']        					= 'Warehouses';]]></add>
+		</operation>
+	</file>
+
+	<file path="system/library/image.php">
 		<operation>
 			<search><![CDATA[$mime = $this->info['mime'];]]></search>
 			<add position="replace"><![CDATA[$info = getimagesize($image);

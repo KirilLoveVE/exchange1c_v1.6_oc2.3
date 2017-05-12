@@ -4,7 +4,8 @@
 	<div class="page-header">
 		<div class="container-fluid">
 			<div class="pull-right">
-				<button type="submit" form="form-1c" data-toggle="tooltip" title="<?php echo $lang['button_save']; ?>" class="btn btn-primary"><i class="fa fa-save"></i></button>
+				<button type="submit" form="form-exchange1c" data-toggle="tooltip" title="<?php echo $lang['button_save']; ?>" class="btn btn-primary"><i class="fa fa-save"></i></button>
+				<button type="submit" id="form-save-refresh" onclick="$('#form-exchange1c').attr('action','<?php echo $refresh; ?>&refresh=1').submit()" data-toggle="tooltip" title="<?php echo $lang['button_apply']; ?>" class="btn btn-primary"><i class="fa fa-save"></i> + <i class="fa fa-refresh"></i></button>
 				<a href="<?php echo $cancel; ?>" data-toggle="tooltip" title="<?php echo $lang['button_cancel']; ?>" class="btn btn-default"><i class="fa fa-reply"></i></a>
 			</div>
 			<h1><?php echo $lang['heading_title']; ?></h1>
@@ -21,10 +22,10 @@
 				<button type="button" class="close" data-dismiss="alert">&times;</button>
 			</div>
 		<?php } ?>
-		<?php if ($update) { ?>
+		<?php if ($text_info) { ?>
 			<div class="alert alert-info">
 				<i class="fa fa-info-circle"></i>
-				<?php echo $update; ?>
+				<?php echo $text_info; ?>
 			</div>
 		<?php } ?>
 		<div class="panel panel-default">
@@ -119,8 +120,8 @@
 						</div>
 						<legend><?php echo $lang['legend_optimization']; ?></legend>
 						<div class="form-group">
-							<?php echo $html_parse_categories_in_array; ?>
-							<?php echo $html_parse_units_in_array; ?>
+							<?php echo $html_parse_categories_in_memory; ?>
+							<?php echo $html_parse_units_in_memory; ?>
 						</div>
 						<legend><?php echo $lang['legend_other']; ?></legend>
 						<div class="form-group">
@@ -152,6 +153,7 @@
 						<div class="form-group">
 							<?php echo $html_create_new_product ?>
 							<?php echo $html_status_new_product ?>
+							<?php echo $html_product_not_import_disable ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_synchronize_new_product_by ?>
@@ -744,6 +746,7 @@
 							<?php echo $lang['i_add_settings_order_export']; ?>
 						</div>
 						<div class="form-group">
+							<?php echo $html_order_reserve_product; ?>
 							<?php echo $html_fio_corrector; ?>
 							<?php echo $html_order_date_ship; ?>
 							<?php echo $html_convert_orders_cp1251; ?>

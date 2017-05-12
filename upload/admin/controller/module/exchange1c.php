@@ -225,9 +225,21 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
+	 * ver 2
+	 * update 2017-05-04
 	 * Основная функция
 	 */
-	public function index() {
+	public function refresh() {
+		$this->index(true);
+	}
+
+
+	/**
+	 * ver 3
+	 * update 2017-05-04
+	 * Основная функция
+	 */
+	public function index($refresh = false) {
 
 		$data['lang'] = $this->load->language('module/exchange1c');
 		$this->load->model('tool/image');
@@ -236,7 +248,7 @@ class ControllerModuleExchange1c extends Controller {
 
 		$this->load->model('setting/setting');
 
-		$data['update'] = "";
+		$data['text_info'] = "";
 		$this->load->model('tool/exchange1c');
 		if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
 			// При нажатии кнопки сохранить
@@ -248,7 +260,10 @@ class ControllerModuleExchange1c extends Controller {
 
 			$this->model_setting_setting->editSetting('exchange1c', $settings);
 			$this->session->data['success'] = $this->language->get('text_success');
-			$this->response->redirect($this->url->link('extension/module', 'token=' . $this->session->data['token'], 'SSL'));
+			if (!$refresh) {
+				$this->response->redirect($this->url->link('extension/module', 'token=' . $this->session->data['token'], 'SSL'));
+			}
+			$data['text_info'] = "Настройки сохранены";
 		} else {
 			$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
 
@@ -257,9 +272,11 @@ class ControllerModuleExchange1c extends Controller {
 				$this->install();
 				$this->load->model('extension/extension');
 				$this->model_extension_extension->install('module', 'exchange1c');
-				$data['update'] = "Модуль установлен";
+				$data['text_info'] = "Модуль установлен";
 			}
-			$data['update'] = $this->model_tool_exchange1c->checkUpdates($settings);
+			$result = $this->model_tool_exchange1c->checkUpdates($settings);
+			$data['text_info'] = $result['success'];
+			$data['error_update'] = $result['error'];
 		}
 
 		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
@@ -272,6 +289,11 @@ class ControllerModuleExchange1c extends Controller {
 
 		// Проверка базы данных
 		$data['error_warning'] .= $this->model_tool_exchange1c->checkDB();
+
+		// Выводим сообьщение при ошибке обновления
+		if (isset($data['error_update'])) {
+			$data['error_warning'] .= $data['error_update'];
+		}
 
 		$this->setParamError($data, 'image');
 		$this->setParamError($data, 'exchange1c_username');
@@ -294,6 +316,7 @@ class ControllerModuleExchange1c extends Controller {
 			'separator' => ' :: '
 		);
 		$data['token'] = $this->session->data['token'];
+		$data['refresh'] = $this->url->link('module/exchange1c/refresh', 'token=' . $this->session->data['token'], 'SSL');
 		$data['action'] = $this->url->link('module/exchange1c', 'token=' . $this->session->data['token'], 'SSL');
 		$data['cancel'] = $this->url->link('extension/module', 'token=' . $this->session->data['token'], 'SSL');
 
@@ -592,10 +615,13 @@ class ControllerModuleExchange1c extends Controller {
 			,'compatibility_unf16'						=> array('type' => 'radio', 'default' => -1, 'disabled' => 1)
 			,'services_in_table_product'				=> array('type' => 'radio', 'default' => 1)
 			,'clean_options'							=> array('type' => 'radio', 'default' => -1)
+			,'clean_prices_full_import'					=> array('type' => 'radio', 'default' => 1)
 			,'remove_doubles_links'						=> array('type' => 'button')
 			//,'disable_product_full_import'				=> array('type' => 'radio', 'default' => -1)
-			,'parse_categories_in_array'				=> array('type' => 'radio', 'default' => 1)
-			,'parse_units_in_array'						=> array('type' => 'radio', 'default' => 1)
+			,'parse_categories_in_memory'				=> array('type' => 'radio', 'default' => 1)
+			,'parse_units_in_memory'					=> array('type' => 'radio', 'default' => 1)
+			,'product_not_import_disable'				=> array('type' => 'radio', 'default' => -1)
+			,'order_reserve_product'					=> array('type' => 'radio', 'default' => -1)
 		);
 
 		$tab_fields = $settings['exchange1c_table_fields'];
@@ -710,8 +736,7 @@ class ControllerModuleExchange1c extends Controller {
 
 		$this->load->model('tool/exchange1c');
 		$this->model_tool_exchange1c->setEvents();
-		//$module_version = $this->model_tool_exchange1c->version();
-		$module_version = '1.6.3.b1';
+		$module_version = $this->model_tool_exchange1c->version();
 
 		$this->load->model('setting/setting');
 		$settings['exchange1c_version'] 					= $module_version;
@@ -1849,6 +1874,8 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
+	 * ver 2
+	 * update 2017-05-05
 	 * Распаковываем XML
 	 */
 	private function extractXML($zipArc, $zip_entry, $name, &$xmlFiles) {
@@ -1868,13 +1895,19 @@ class ControllerModuleExchange1c extends Controller {
 			}
 		} elseif (zip_entry_open($zipArc, $zip_entry, "r")) {
 			$dump = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
-
+			// Удалим существующий файл
+			if (file_exists($cache.$name)) {
+				unlink($cache.$name);
+			}
 			// для безопасности проверим, является ли этот файл XML
 			$str_xml = mb_substr($dump, 1, 5);
 			if ($str_xml != "<?xml") {
 				$this->log("[!] ВНИМАНИЕ Файл '" . $name . "' не является XML файлом и не будет записан!");
 
-			} elseif ($fd = @fopen($cache.$name,"w+")) {
+			} elseif ($fd = fopen($cache.$name,"w+")) {
+				if ($fd === false) {
+					return "Error open file: " . $cache.$name;
+				}
 				$xmlFiles[] = $name;
 				//$this->log('[zip] create file: '.$name, 2);
 				fwrite($fd, $dump);
@@ -1883,7 +1916,7 @@ class ControllerModuleExchange1c extends Controller {
 			zip_entry_close($zip_entry);
 		}
 		$this->log("Завершена распаковка XML", 2);
-		return "";
+		return $error;
 
 	} // extractXML()
 
@@ -1975,8 +2008,8 @@ class ControllerModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 2
-	 * update 2017-04-10
+	 * ver 3
+	 * update 2017-05-05
 	 * Импорт файла через админ-панель
 	 * ПРОБЛЕМА: не прерывается по ошибке чтения файлов, но в лог пишет ошибку
 	 */
@@ -2005,44 +2038,46 @@ class ControllerModuleExchange1c extends Controller {
 			$max_size_file = $this->modeCatalogInit(array(),FALSE);
 			$xmlFiles = $this->extractZip($uploaded_file, $error);
 
-			if (count($xmlFiles) && !$error) {
+			if (!$error) {
+				if (count($xmlFiles)) {
 
-				$goods = array();
-				$properties = array();
-				foreach ($xmlFiles as $key => $file) {
-					$pos = strripos($file, "/goods/");
-					if ($pos !== false) {
-						$goods[] = $file;
-						unset($xmlFiles[$key]);
+					$goods = array();
+					$properties = array();
+					foreach ($xmlFiles as $key => $file) {
+						$pos = strripos($file, "/goods/");
+						if ($pos !== false) {
+							$goods[] = $file;
+							unset($xmlFiles[$key]);
+						}
+						$pos = strripos($file, "/properties/");
+						if ($pos !== false) {
+							$properties[] = $file;
+							unset($xmlFiles[$key]);
+						}
 					}
-					$pos = strripos($file, "/properties/");
-					if ($pos !== false) {
-						$properties[] = $file;
-						unset($xmlFiles[$key]);
+
+					// Порядок обработки файлов
+					sort($xmlFiles);
+					foreach ($xmlFiles as $file) {
+						$this->log('Обрабатывается файл основной: ' . $file, 2);
+						$error = $this->modeImport($cache . $file);
 					}
-				}
+					foreach ($properties as $file) {
+						$this->log('Обрабатывается файл свойств: ' . $file, 2);
+						$error = $this->modeImport($cache . $file);
+					}
+					foreach ($goods as $file) {
+						$this->log('Обрабатывается файл товаров: ' . $file, 2);
+						$error = $this->modeImport($cache . $file);
+					}
 
-				// Порядок обработки файлов
-				sort($xmlFiles);
-				foreach ($xmlFiles as $file) {
-					$this->log('Обрабатывается файл основной: ' . $file, 2);
-					$error = $this->modeImport($cache . $file);
 				}
-				foreach ($properties as $file) {
-					$this->log('Обрабатывается файл свойств: ' . $file, 2);
-					$error = $this->modeImport($cache . $file);
+				else {
+					$this->log( "Загружен файл: " . $uploaded_file, 2);
+					$error = $this->modeImport($uploaded_file);
+					$this->log($error,2);
+					unlink($uploaded_file);
 				}
-				foreach ($goods as $file) {
-					$this->log('Обрабатывается файл товаров: ' . $file, 2);
-					$error = $this->modeImport($cache . $file);
-				}
-
-			}
-			else {
-				$this->log( "Загружен файл: " . $uploaded_file, 2);
-				$error = $this->modeImport($uploaded_file);
-				$this->log($error,2);
-				unlink($uploaded_file);
 			}
 		}
 
@@ -2518,15 +2553,15 @@ class ControllerModuleExchange1c extends Controller {
 		$zip = new ZipArchive;
 		$zip->open($filename, ZIPARCHIVE::CREATE);
 		$zip->addFile(DIR_APPLICATION . 'controller/module/exchange1c.php', 'upload/admin/controller/module/exchange1c.php');
-		if (version_compare($this->config->get('exchange1c_CMS_version'), '2.3', '=')) {
-			$zip->addFile(DIR_APPLICATION . 'language/en-gb/extension/module/exchange1c.php', 'upload/admin/language/english/module/exchange1c.php');
-			$zip->addFile(DIR_APPLICATION . 'language/ru-ru/extension/module/exchange1c.php', 'upload/admin/language/russian/module/exchange1c.php');
-		} else {
-			$zip->addFile(DIR_APPLICATION . 'language/english/module/exchange1c.php', 'upload/admin/language/english/module/exchange1c.php');
-			$zip->addFile(DIR_APPLICATION . 'language/russian/module/exchange1c.php', 'upload/admin/language/russian/module/exchange1c.php');
-		}
+		$zip->addFile(DIR_APPLICATION . 'controller/catalog/warehouse.php', 'upload/admin/controller/catalog/warehouse.php');
+		$zip->addFile(DIR_APPLICATION . 'language/english/module/exchange1c.php', 'upload/admin/language/english/module/exchange1c.php');
+		$zip->addFile(DIR_APPLICATION . 'language/english/catalog/warehouse.php', 'upload/admin/language/english/catalog/warehouse.php');
+		$zip->addFile(DIR_APPLICATION . 'language/russian/module/exchange1c.php', 'upload/admin/language/russian/module/exchange1c.php');
+		$zip->addFile(DIR_APPLICATION . 'language/russian/catalog/warehouse.php', 'upload/admin/language/russian/catalog/warehouse.php');
 		$zip->addFile(DIR_APPLICATION . 'model/tool/exchange1c.php', 'upload/admin/model/tool/exchange1c.php');
+		$zip->addFile(DIR_APPLICATION . 'model/catalog/warehouse.php', 'upload/admin/model/catalog/warehouse.php');
 		$zip->addFile(DIR_APPLICATION . 'view/template/module/exchange1c.tpl', 'upload/admin/view/template/module/exchange1c.tpl');
+		$zip->addFile(DIR_APPLICATION . 'view/template/catalog/warehouse_list.tpl', 'upload/admin/view/template/catalog/warehouse_list.tpl');
 		$zip->addFile($cms_folder . 'export/exchange1c.php', 'upload/export/exchange1c.php');
 
 		if (is_file($cms_folder . 'export/history.txt'))
@@ -2583,10 +2618,15 @@ class ControllerModuleExchange1c extends Controller {
 
 		$files = array();
 		$files[] = DIR_APPLICATION . 'controller/module/exchange1c.php';
+		$files[] = DIR_APPLICATION . 'controller/catalog/warehouse.php';
 		$files[] = DIR_APPLICATION . 'language/english/module/exchange1c.php';
+		$files[] = DIR_APPLICATION . 'language/english/catalog/warehouse.php';
 		$files[] = DIR_APPLICATION . 'language/russian/module/exchange1c.php';
+		$files[] = DIR_APPLICATION . 'language/russian/catalog/warehouse.php';
 		$files[] = DIR_APPLICATION . 'model/tool/exchange1c.php';
+		$files[] = DIR_APPLICATION . 'model/catalog/warehouse.php';
 		$files[] = DIR_APPLICATION . 'view/template/module/exchange1c.tpl';
+		$files[] = DIR_APPLICATION . 'view/template/catalog/warehouse_list.tpl';
 		$files[] = substr(DIR_APPLICATION, 0, strlen(DIR_APPLICATION) - 6) . 'export/exchange1c.php';
 		foreach ($files as $file) {
 			if (is_file($file)) {
