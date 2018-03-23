@@ -14,7 +14,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 // RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization},L]
 
 // Configuration
-require_once('../admin/config.php');
+require_once('../../admin/config.php');
 
 require_once(DIR_SYSTEM . 'startup.php');
 require_once(DIR_SYSTEM . 'library/cart/currency.php');
@@ -67,29 +67,29 @@ if (!$store_query->num_rows) {
 }
 
 // Log
-if ($config->get('exchange1c_log_filename')) {
-	$log = new Log($config->get('exchange1c_log_filename'));
-} else {
-	$log = new Log($config->get('config_error_filename'));
-}
+$log = new Log($config->get('config_error_filename'));
 $registry->set('log', $log);
 
-// Используются только для отладки (начало)
+/**
+ * Используются только для отладки (начало)
+ */
+/**
 $log->write("Client IP address: " . $_SERVER['REMOTE_ADDR']);
-//if (isset($remote_user))
-//	$log->write("remote_user: " . $remote_user);
-//
-//if (isset($_SERVER['PHP_AUTH_USER']))
-//	$log->write("PHP_AUTH_USER: " . $_SERVER['PHP_AUTH_USER']);
-//
-//if (isset($_SERVER['REMOTE_USER']))
-//	$log->write("REMOTE_USER: " . $_SERVER['REMOTE_USER']);
-//
-//if (isset($_SERVER['REDIRECT_REMOTE_USER']))
-//	$log->write("REDIRECT_REMOTE_USER: " . $_SERVER['REDIRECT_REMOTE_USER']);
-//
-//if (isset($_SERVER['PHP_AUTH_PW']))
-//	$log->write("PHP_AUTH_PW: " . $_SERVER['PHP_AUTH_PW']);
+if (isset($remote_user))
+	$log->write("remote_user: " . $remote_user);
+
+if (isset($_SERVER['PHP_AUTH_USER']))
+	$log->write("PHP_AUTH_USER: " . $_SERVER['PHP_AUTH_USER']);
+
+if (isset($_SERVER['REMOTE_USER']))
+	$log->write("REMOTE_USER: " . $_SERVER['REMOTE_USER']);
+
+if (isset($_SERVER['REDIRECT_REMOTE_USER']))
+	$log->write("REDIRECT_REMOTE_USER: " . $_SERVER['REDIRECT_REMOTE_USER']);
+
+if (isset($_SERVER['PHP_AUTH_PW']))
+	$log->write("PHP_AUTH_PW: " . $_SERVER['PHP_AUTH_PW']);
+*/
 // Используются только для отладки (конец)
 
 // Error Handler
@@ -203,6 +203,16 @@ $controller = new Front($registry);
 //	$log->write('Запуск веб сервера в режиме модуля сервера '.$sapi);
 
 // Router
+
+if (isset($request->get['mode']) && isset($request->get['type'])) {
+	$log->write('mode = ' . $request->get['mode'] . ', type = ' . $request->get['type']);
+}
+if (isset($request->get['version'])) {
+	$log->write('version = ' . $request->get['version']);
+}
+if (isset($request->get['sessid'])) {
+	$log->write('session id = ' . $request->get['version']);
+}
 
 if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 

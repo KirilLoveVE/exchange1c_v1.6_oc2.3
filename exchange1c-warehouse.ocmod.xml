@@ -1,0 +1,39 @@
+<modification>
+	<name>Exchange1C Module for OpenCart 2.3 (warehouse)</name>
+	<version>1.6.4.1_oc2.3_warehouse</version>
+	<id>OpenCart Exchange1C (warehouse)</id> 
+	<author>KirilLoveVE</author>
+	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
+	<code>exchange1c-warehouse</code>
+
+    <file path="admin/controller/common/column_left.php">
+		<operation>
+			<search><![CDATA[if ($this->user->hasPermission('access', 'catalog/download')) {]]></search>
+			<add position="before"><![CDATA[			if ($this->user->hasPermission('access', 'catalog/warehouse')) {
+				$catalog[] = array(
+					'name'	   => $this->language->get('text_warehouse'),
+					'href'     => $this->url->link('catalog/warehouse', 'token=' . $this->session->data['token'], true),
+					'children' => array()		
+				);
+			}
+			
+
+]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/language/ru-ru/common/column_left.php">
+		<operation>
+			<search><![CDATA[$_['text_manufacturer']              = 'Производители';]]></search>
+			<add position="after"><![CDATA[$_['text_warehouse']        					= 'Склады';]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/language/en-gb/common/column_left.php">
+		<operation>
+			<search><![CDATA[$_['text_manufacturer']              = 'Manufacturers';]]></search>
+			<add position="after"><![CDATA[$_['text_warehouse']        					= 'Warehouses';]]></add>
+		</operation>
+	</file>
+
+</modification>

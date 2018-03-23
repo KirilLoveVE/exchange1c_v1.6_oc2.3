@@ -1,0 +1,246 @@
+<modification>
+	<name>Exchange1C Module for OpenCart 2.3 (unit)</name>
+	<version>1.6.4.1_oc2.3_unit</version>
+	<id>OpenCart Exchange1C (unit)</id> 
+	<author>KirilLoveVE</author>
+	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
+	<code>exchange1c-unit</code>
+
+    <file path="admin/controller/common/column_left.php">
+		<operation>
+			<search><![CDATA[if ($this->user->hasPermission('access', 'catalog/product')) {]]></search>
+			<add position="after"><![CDATA[				$catalog[] = array(
+					'name'	   => $this->language->get('text_units'),
+					'href'     => $this->url->link('catalog/units', 'token=' . $this->session->data['token'], true),
+					'children' => array()		
+				);
+]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/language/ru-ru/common/column_left.php">
+		<operation>
+			<search><![CDATA[// Text]]></search>
+			<add position="after"><![CDATA[$_['text_units']        					= 'Единицы измерений';]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/language/en-gb/common/column_left.php">
+		<operation>
+			<search><![CDATA[// Text]]></search>
+			<add position="after"><![CDATA[$_['text_units']        					= 'Units';]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/language/ru-ru/ru-ru.php">
+		<operation>
+			<search><![CDATA[// Tab]]></search>
+			<add position="after"><![CDATA[$_['tab_unit']                      = 'Единицы';]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/controller/catalog/product.php">
+		<operation>
+			<search><![CDATA[$data['tab_design'] = $this->language->get('tab_design');]]></search>
+			<add position="after"><![CDATA[		$data['tab_unit'] = $this->language->get('tab_unit');]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/view/template/catalog/product_form.tpl">
+		<operation>
+			<search><![CDATA[<li><a href="#tab-design" data-toggle="tab"><?php echo $tab_design; ?></a></li>]]></search>
+			<add position="after"><![CDATA[            <li><a href="#tab-unit" data-toggle="tab"><?php echo $tab_unit; ?></a></li>]]></add>
+		</operation>
+	</file>
+
+    <file path="admin/controller/sale/order.php">
+		<operation>
+			<search index="0"><![CDATA[$this->load->model('tool/upload');]]></search>
+			<add position="before"><![CDATA[			$this->load->model('catalog/unit');]]></add>
+		</operation>
+		<operation>
+			<search index="1"><![CDATA[$data['column_price'] = $this->language->get('column_price');]]></search>
+			<add position="before"><![CDATA[			$data['column_unit'] = $this->language->get('column_unit');]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA['price'    		   => $this->currency->format($product['price'] + ($this->config->get('config_tax') ? $product['tax'] : 0), $order_info['currency_code'], $order_info['currency_value']),]]></search>
+			<add position="before"><![CDATA[					'unit_name' 	   => $this->model_catalog_unit->getUnitName($product['unit_id']),]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/language/ru-ru/sale/order.php">
+		<operation>
+			<search><![CDATA[// Column]]></search>
+			<add position="after"><![CDATA[$_['column_unit']                = 'Единица';]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/view/template/sale/order_info.tpl">
+		<operation>
+			<search><![CDATA[<td class="text-right"><?php echo $column_price; ?></td>]]></search>
+			<add position="before"><![CDATA[              <td class="text-right"><?php echo $column_unit; ?></td>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<td class="text-right"><?php echo $product['price']; ?></td>]]></search>
+			<add position="before"><![CDATA[              <td class="text-right"><?php echo $product['unit_name']; ?></td>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<td colspan="4" class="text-right"><?php echo $total['title']; ?></td>]]></search>
+			<add position="replace"><![CDATA[<td colspan="5" class="text-right"><?php echo $total['title']; ?></td>]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/language/ru-ru/checkout/cart.php">
+		<operation>
+			<search><![CDATA[// Column]]></search>
+			<add position="after"><![CDATA[$_['column_unit']           = 'Единица';]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA['Цена за шт.']]></search>
+			<add position="replace"><![CDATA['Цена за единицу']]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/account/order.php">
+		<operation>
+			<search><![CDATA[$data['column_price'] = $this->language->get('column_price');]]></search>
+			<add position="before"><![CDATA[			$data['column_unit'] = $this->language->get('column_unit');]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$this->load->model('tool/upload');]]></search>
+			<add position="after"><![CDATA[			$this->load->model('checkout/order');
+			$this->load->model('catalog/unit');]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$data['products'][] = array(]]></search>
+			<add position="after" offset="4"><![CDATA[					'unit_name'=> $this->model_catalog_unit->getUnitName($product['unit_id']),]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/product/product.php">
+		<operation>
+			<search><![CDATA[$data['product_id'] = (int)$this->request->get['product_id'];]]></search>
+			<add position="after" offset="6"><![CDATA[			$this->load->model('catalog/unit');
+			// Tesla-Chita
+			$data['unit_name'] = $this->model_catalog_unit->getUnitName($product_info['unit_id']);
+			$data['unit_id'] = $product_info['unit_id'];
+]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/model/catalog/product.php">
+		<operation>
+			<search><![CDATA['quantity'         => $query->row['quantity'],]]></search>
+			<add position="after"><![CDATA[
+				// Tesla-Chita
+				'unit_id'          => $query->row['unit_id'],
+]]></add>
+		</operation>
+	</file>
+  
+  	<file path="catalog/controller/checkout/cart.php">
+		<operation>
+			<search><![CDATA[$data['column_price'] = $this->language->get('column_price');]]></search>
+			<add position="before"><![CDATA[			$data['column_unit'] = $this->language->get('column_unit');]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$this->load->model('tool/upload');]]></search>
+			<add position="after"><![CDATA[			$this->load->model('checkout/order');
+			$this->load->model('catalog/unit');]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA['price'     => $price,]]></search>
+			<add position="before"><![CDATA[					'unit_id'   => $this->model_catalog_unit->getUnitName($product['unit_id']),
+]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id);]]></search>
+			<add position="replace"><![CDATA[$unit_id = isset($this->request->post['unit_id']) ? $this->request->post['unit_id'] : 0;
+				$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id, $unit_id);]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/view/theme/*/template/checkout/cart.tpl">
+		<operation>
+			<search><![CDATA[<td class="text-right"><?php echo $column_price; ?></td>]]></search>
+			<add position="before"><![CDATA[                <td class="text-right"><?php echo $column_unit; ?></td>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[                <td class="text-right"><?php echo $product['price']; ?></td>]]></search>
+			<add position="before"><![CDATA[        <td class="text-right"><?php echo $product['unit_id']; ?></td>]]></add>
+		</operation>
+	</file>
+
+	<file path="system/library/cart/cart.php">
+		<operation>
+			<search><![CDATA['price'           => ($price + $option_price),]]></search>
+			<add position="before"><![CDATA[					'unit_id' => ($cart['unit_id']),]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[public function add($product_id, $quantity = 1, $option = array(), $recurring_id = 0) {]]></search>
+			<add position="replace"><![CDATA[public function add($product_id, $quantity = 1, $option = array(), $recurring_id = 0, $unit_id = 0) {]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$this->db->query("INSERT " . DB_PREFIX . "cart SET api_id = '" . (isset($this->session->data['api_id']) ? (int)$this->session->data['api_id'] : 0) . "', customer_id = '" . (int)$this->customer->getId() . "', session_id = '" . $this->db->escape($this->session->getId()) . "', product_id = '" . (int)$product_id . "', recurring_id = '" . (int)$recurring_id . "', `option` = '" . $this->db->escape(json_encode($option)) . "', quantity = '" . (int)$quantity . "', date_added = NOW()");]]></search>
+			<add position="replace"><![CDATA[$this->db->query("INSERT " . DB_PREFIX . "cart SET api_id = '" . (isset($this->session->data['api_id']) ? (int)$this->session->data['api_id'] : 0) . "', customer_id = '" . (int)$this->customer->getId() . "', session_id = '" . $this->db->escape($this->session->getId()) . "', product_id = '" . (int)$product_id . "', recurring_id = '" . (int)$recurring_id . "', `option` = '" . $this->db->escape(json_encode($option)) . "', quantity = '" . (int)$quantity . "', date_added = NOW(), unit_id = " . $unit_id);]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/language/ru-ru/checkout/checkout.php">
+		<operation>
+			<search><![CDATA[// Column]]></search>
+			<add position="after"><![CDATA[$_['column_unit']                    = 'Единица';]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA['Цена за шт.']]></search>
+			<add position="replace"><![CDATA['Цена за единицу']]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/checkout/confirm.php">
+		<operation>
+			<search><![CDATA[$data['column_price'] = $this->language->get('column_price');]]></search>
+			<add position="before"><![CDATA[			$data['column_unit'] = $this->language->get('column_unit');]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$order_data['products'] = array();]]></search>
+			<add position="before"><![CDATA[			$this->load->model('checkout/order');
+			$this->load->model('catalog/unit');]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$data['products'][] = array(]]></search>
+			<add position="after"><![CDATA[					'unit_name'  => $this->model_catalog_unit->getUnitName($product['unit_id']),]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA['price'      => $product['price'],]]></search>
+			<add position="before"><![CDATA[					'unit_id'    => $product['unit_id'],]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/view/theme/*/template/checkout/confirm.tpl">
+		<operation>
+			<search><![CDATA[<td class="text-right"><?php echo $column_price; ?></td>]]></search>
+			<add position="before"><![CDATA[        <td class="text-right"><?php echo $column_unit; ?></td>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<td class="text-right"><?php echo $product['price']; ?></td>]]></search>
+			<add position="before"><![CDATA[        <td class="text-right"><?php echo $product['unit_name']; ?></td>]]></add>
+		</operation>
+		<operation>
+			<search index="1"><![CDATA[<td class="text-right"><?php echo $voucher['amount']; ?></td>]]></search>
+			<add position="before"><![CDATA[        <td class="text-right"><?php echo $voucher['amount']; ?></td>]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<td colspan="4" class="text-right"><strong><?php echo $total['title']; ?>:</strong></td>]]></search>
+			<add position="replace"><![CDATA[<td colspan="5" class="text-right"><strong><?php echo $total['title']; ?>:</strong></td>]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/model/checkout/order.php">
+		<operation>
+			<search><![CDATA[$this->db->query("INSERT INTO " . DB_PREFIX . "order_product SET order_id = '" . (int)$order_id . "', product_id = '" . (int)$product['product_id'] . "', name = '" . $this->db->escape($product['name']) . "', model = '" . $this->db->escape($product['model']) . "', quantity = '" . (int)$product['quantity'] . "', price = '" . (float)$product['price'] . "', total = '" . (float)$product['total'] . "', tax = '" . (float)$product['tax'] . "', reward = '" . (int)$product['reward'] . "'");]]></search>
+			<add position="replace"><![CDATA[$this->db->query("INSERT INTO " . DB_PREFIX . "order_product SET order_id = '" . (int)$order_id . "', product_id = '" . (int)$product['product_id'] . "', name = '" . $this->db->escape($product['name']) . "', model = '" . $this->db->escape($product['model']) . "', quantity = '" . (int)$product['quantity'] . "', unit_id = '" . (int)$product['unit_id'] . "', price = '" . (float)$product['price'] . "', total = '" . (float)$product['total'] . "', tax = '" . (float)$product['tax'] . "', reward = '" . (int)$product['reward'] . "'");]]></add>
+		</operation>
+	</file>
+
+</modification>
