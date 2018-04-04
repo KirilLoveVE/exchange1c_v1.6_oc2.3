@@ -128,6 +128,7 @@
 						<div class="panel-body">
 							<ul class="nav nav-tabs">
 								<li class="active"><a href="#tab-product-general" data-toggle="tab"><?php echo $lang['text_tab_product_general']; ?></a></li>
+								<li><a href="#tab-product-images" data-toggle="tab"><?php echo $lang['text_tab_product_images']; ?></a></li>
 								<li><a href="#tab-product-properties" data-toggle="tab"><?php echo $lang['text_tab_product_properties']; ?></a></li>
 								<li><a href="#tab-product-requisites" data-toggle="tab"><?php echo $lang['text_tab_product_requisites']; ?></a></li>
 								<li><a href="#tab-product-features" data-toggle="tab"><?php echo $lang['text_tab_product_features']; ?></a></li>
@@ -173,30 +174,6 @@
 										</div>
 										<div class="form-group">
 											<?php echo $html_product_sku_in_model ?>
-										</div>
-									</fieldset>
-									<fieldset>
-										<legend><?php echo $lang['legend_product_images']; ?></legend>
-										<div class="form-group">
-											<?php echo $html_product_images_no_import ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_product_images_cache_clean ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_product_images_check ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_watermark ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_watermark_prefix ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_watermark_suffix ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_watermark_old_no_delete ?>
 										</div>
 									</fieldset>
 									<fieldset>
@@ -269,6 +246,34 @@
 									</fieldset>
 								</div><!-- tab-product-general -->
 
+								<!-- ИЗОБРАЖЕНИЯ -->
+								<div class="tab-pane" id="tab-product-images">
+									<fieldset id="product_images">
+										<legend><?php echo $lang['legend_product_images']; ?></legend>
+										<div class="form-group">
+											<?php echo $html_product_images_no_import ?>
+										</div>
+										<div class="form-group">
+											<?php echo $html_product_images_cache_clean ?>
+										</div>
+										<div class="form-group">
+											<?php echo $html_product_images_check ?>
+										</div>
+										<div class="form-group">
+											<?php echo $html_watermark ?>
+										</div>
+										<div class="form-group">
+											<?php echo $html_watermark_prefix ?>
+										</div>
+										<div class="form-group">
+											<?php echo $html_watermark_suffix ?>
+										</div>
+										<div class="form-group">
+											<?php echo $html_watermark_old_no_delete ?>
+										</div>
+									</fieldset>
+								</div><!-- tab-product-images -->
+
 								<!-- СВОЙСТВА (АТРИБУТЫ) -->
 								<div class="tab-pane" id="tab-product-properties">
 									<fieldset id="product_properties">
@@ -288,7 +293,7 @@
 										<div class="form-group">
 											<?php echo $html_attribute_group_name_mode ?>
 										</div>
-										<div class="form-group">
+										<div class="form-group" id="attribute_group_name">
 											<?php echo $html_attribute_group_name ?>
 										</div>
 									</fieldset>
@@ -349,7 +354,6 @@
 											</table>
 										</div> <!-- table -->
 									</fieldset>
-
 								</div><!-- tab-product-properties -->
 
 								<!-- РЕКВИЗИТЫ -->
@@ -436,6 +440,9 @@
 										</div>
 										<div class="form-group">
 											<?php echo $html_product_link_option ?>
+										</div>
+										<div class="form-group">
+											<?php echo $html_delete_text_in_brackets_option ?>
 										</div>
 									</fieldset>
 
@@ -1085,7 +1092,7 @@
 		</div><!-- panel panel-default -->
 	</div><!-- container-fluid  -->
 	<div style="text-align:center; opacity: .5">
-		<p><?php echo $version; ?> | <a href=https://github.com/KirilLoveVE/opencart2-exchange1c><?php echo $lang['text_source_code']; ?></a><br />
+		<p>Version <?php echo $version; ?> | <a href=https://github.com/KirilLoveVE/opencart2-exchange1c><?php echo $lang['text_source_code']; ?></a><br />
 		<?php echo $lang['text_change']; ?></p>
 	</div>
 </div><!-- content -->
@@ -1719,6 +1726,15 @@ function logMode(value) {
 	}
 }
 
+function groupName($object) {
+	if ($object.val() == "brackets") {
+		$('#attribute_group_name').slideUp();
+	} else {
+		$('#attribute_group_name').slideDown();
+	}
+}
+
+
 function modificationForm($object) {
 
 	if ($object) {
@@ -1728,11 +1744,15 @@ function modificationForm($object) {
 			productNameManually($object.value);
 		} else if ($object.name == 'exchange1c_log_level') {
 			logMode($object.value);
+		} else if ($object.name == 'exchange1c_attribute_group_name_mode') {
+			//groupName($('select[name="exchange1c_groupname_in_brackets_attribute"]'));
 		}
 	} else {
 		productImportMode($('select[name="exchange1c_product_import_mode"]').val());
 		productNameManually($('select[name="exchange1c_product_name"]').val());
 		logMode($('select[name="exchange1c_log_level"]').val());
+		//groupName($('select[name="exchange1c_groupname_in_brackets_attribute"]'))
+
 	}
 
 }

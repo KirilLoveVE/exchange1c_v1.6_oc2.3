@@ -33,22 +33,24 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
+	 * ver 2
+	 * update 2018-03-24
 	 * Выводит сообщение
 	 */
 	private function echo_message($ok, $message="") {
 		if ($ok) {
 			echo "success\n";
-			$this->log("[ECHO] success",2);
+			$this->log("success",2);
 			if ($message) {
 				echo $message;
-				$this->log("[ECHO] " . $message,2);
+				$this->log($message,2);
 			}
 		} else {
 			echo "failure\n";
-			$this->log("[ECHO] failure",2);
+			$this->log("failure",2);
 			if ($message) {
 				echo $message;
-				$this->log("[ECHO] " . $message,2);
+				$this->log($message,2);
 			}
 		};
 	} // echo_message()
@@ -317,8 +319,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 8
-	 * update 2017-12-24
+	 * ver 10
+	 * update 2018-03-26
 	 * Основная функция
 	 */
 	public function index($refresh = false) {
@@ -356,15 +358,17 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 		} else {
 			$settings = $this->model_setting_setting->getSetting('exchange1c');
+			$data['text_info'] = $this->model_extension_exchange1c->checkUpdates($settings);
+			// После обновления прочитаем настройки снова
+			//$settings = $this->model_setting_setting->getSetting('exchange1c');
 		}
+
 
 		if (isset($settings['exchange1c_version'])) {
 			$data['version'] = $settings['exchange1c_version'];
 		} else {
 			$data['version'] = "0.0.0.0";
-			$this->error['warning'] = "Модуль не установлен!";
-			$settings['exchange1c_version'] = $this->model_extension_exchange1c->version();
-			//$this->model_setting_setting->editSetting('exchange1c', $settings);
+			$this->error['warning'] = "Модуль не установлен! Включите модуль!";
 			$this->log("Обнаружен первый вход в админку");
 		}
 		$data['url_connect'] = HTTP_CATALOG . "export/exchange1c.php";
@@ -418,14 +422,16 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$data['error_description'] = array();
 		$list_errors = array(
 			1000,1001,1002,1003,1004,1005,1006,1007,
-			2001,2002,2003,2004,2005,2006,2207,2010,2011,2012,
+			2001,2002,2003,2004,2005,2006,2207,2208,2010,2011,2012,
 			2020,
 			2030,2031,2032,2033,2034,
 			2040,2041,2042,
+			2050,
 			2100,
 			2200,2201,2202,2203,2204,2205,2206,
 			2300,2310,
-			3000,3001
+			3000,3001,
+			4000
 		);
 		foreach ($list_errors as $error_num) {
 			$data['error_description'][$error_num] = $this->language->get('error_' . $error_num);
@@ -656,6 +662,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$select_product_sync_mode = array(
 			'guid'  	=> $this->language->get('text_guid'),
 			'sku'    	=> $this->language->get('text_sku'),
+			'model'    	=> $this->language->get('text_model'),
 			'name'		=> $this->language->get('text_name'),
 			'ean'		=> $this->language->get('text_ean'),
 			'code'		=> $this->language->get('text_code')
@@ -686,8 +693,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 		// Режимы установки названия группы атрибута
 		$select_attribute_group_name_mode = array(
-			'manual'			=> $this->language->get('text_manual'),
-			'from_name'			=> $this->language->get('text_from_name')
+			'preset'			=> $this->language->get('text_preset'),
+			'brackets'			=> $this->language->get('text_text_in_brackets')
 		);
 
 		// Генерация опций
@@ -819,6 +826,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			,'file_max_size'							=> array('type' => 'input', 'format' => 'int')
 			,'log_filename'								=> array('type' => 'input')
 			,'import_product_rules'						=> array('type' => 'textarea')
+			,'delete_text_in_brackets_option'			=> array('type' => 'radio')
 		);
 
 		if (isset($settings['exchange1c_table_fields'])) {
@@ -942,12 +950,13 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 3
-	 * update 2018-03-20
+	 * ver 4
+	 * update 2018-03-25
 	 * Установка модуля
 	 */
 	public function install() {
 
+		$message = "";
 		$this->load->model('setting/setting');
 		$settings = $this->model_setting_setting->getSetting('exchange1c', 0);
 
@@ -958,7 +967,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 		$this->load->model('extension/exchange1c');
 		$this->model_extension_exchange1c->setEvents();
-		$module_version = $this->model_extension_exchange1c->version();
+		$module_version = "1.6.4.1";
 
 		$this->load->model('extension/unit');
 		$this->model_extension_unit->installUnit();
@@ -1049,66 +1058,66 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		// Добавим базовую единицу товара в товар
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product` WHERE `field` = 'unit_id'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product` ADD `unit_id` INT ( 11 ) NOT NULL AFTER `quantity` COMMENT 'Единица измерения'");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product` ADD `unit_id` INT ( 11 ) NOT NULL AFTER `quantity`");
 		}
 
  		// Добавим отчество плательщика в заказ
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "order` WHERE `field` = 'middlename'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order` ADD `middlename` VARCHAR ( 32 ) NOT NULL AFTER `lastname` COMMENT 'Отчество'");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order` ADD `middlename` VARCHAR ( 32 ) NOT NULL AFTER `lastname`");
 		}
 
  		// Добавим отчество плательщика в заказ
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "order` WHERE `field` = 'payment_middlename'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order` ADD `payment_middlename` VARCHAR ( 32 ) NOT NULL AFTER `payment_lastname` COMMENT 'Отчество'");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order` ADD `payment_middlename` VARCHAR ( 32 ) NOT NULL AFTER `payment_lastname`");
 		}
 
  		// Добавим отчество получателя в заказ
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "order` WHERE `field` = 'shipping_middlename'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order` ADD `shipping_middlename` VARCHAR ( 32 ) NOT NULL AFTER `shipping_lastname` COMMENT 'Отчество'");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order` ADD `shipping_middlename` VARCHAR ( 32 ) NOT NULL AFTER `shipping_lastname`");
 		}
 
  		// Добавим отчество в покупателя
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'middlename'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `middlename` VARCHAR ( 32 ) NOT NULL AFTER `lastname` COMMENT 'Отчество'");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `middlename` VARCHAR ( 32 ) NOT NULL AFTER `lastname`");
 		}
 
  		// Добавим Организацию в покупателя
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'company'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company` VARCHAR ( 128 ) NOT NULL AFTER `middlename` COMMENT 'Организация'");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company` VARCHAR ( 128 ) NOT NULL AFTER `middlename`");
 		}
 
  		// Добавим ИНН для организации в покупателя
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'company_inn'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company_inn` VARCHAR ( 12 ) NOT NULL AFTER `company` COMMENT 'ИНН организации'");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company_inn` VARCHAR ( 12 ) NOT NULL AFTER `company`");
 		}
 
  		// Добавим КПП для организации в покупателя
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'company_kpp'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company_kpp` VARCHAR ( 9 ) NOT NULL AFTER `company_inn` COMMENT 'КПП организации'");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company_kpp` VARCHAR ( 9 ) NOT NULL AFTER `company_inn`");
 		}
 
 		// Общее количество теперь можно хранить не только целое число (для совместимости)
 		// Увеличиваем точность поля веса до тысячных
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0.000 COMMENT 'Количество'");
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `weight` `weight` decimal(15,3) NOT NULL DEFAULT 0.000 COMMENT 'Вес'");
+		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0.000");
+		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `weight` `weight` decimal(15,3) NOT NULL DEFAULT 0.000");
 
 		// Общее количество теперь можно хранить не только целое число (для совместимости)
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0 COMMENT 'Количество'");
+		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0");
 
 		// Связь товаров с 1С
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_to_1c`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "product_to_1c` (
-				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'ID товара',
-				`guid` 						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид товара в УС',
-				`version` 					VARCHAR(32) 	NOT NULL 				COMMENT 'Версия объекта в УС',
+				`product_id` 				INT(11) 		NOT NULL,
+				`guid` 						VARCHAR(64) 	NOT NULL,
+				`version` 					VARCHAR(32) 	NOT NULL,
 				UNIQUE KEY `product_link` (`product_id`, `guid`),
 				FOREIGN KEY (`product_id`) 				REFERENCES `". DB_PREFIX ."product`(`product_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
@@ -1118,9 +1127,9 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "category_to_1c`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "category_to_1c` (
-				`category_id` 				INT(11) 		NOT NULL 				COMMENT 'ID категории',
-				`guid` 						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид категории в УС',
-				`version` 					VARCHAR(32) 	NOT NULL 				COMMENT 'Версия объекта в УС',
+				`category_id` 				INT(11) 		NOT NULL,
+				`guid` 						VARCHAR(64) 	NOT NULL,
+				`version` 					VARCHAR(32) 	NOT NULL,
 				UNIQUE KEY `category_link` (`category_id`,`guid`),
 				FOREIGN KEY (`category_id`) 			REFERENCES `". DB_PREFIX ."category`(`category_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
@@ -1130,10 +1139,10 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "attribute_to_1c`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "attribute_to_1c` (
-				`attribute_id` 				INT(11) 		NOT NULL 				COMMENT 'ID атрибута',
-				`guid`						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид свойства в УС',
-				`type`						VARCHAR(1) 		NOT NULL 				COMMENT 'Тип свойства в УС',
-				`version`					VARCHAR(32) 	NOT NULL 				COMMENT 'Версия объекта в УС',
+				`attribute_id` 				INT(11) 		NOT NULL,
+				`guid`						VARCHAR(64) 	NOT NULL,
+				`type`						VARCHAR(1) 		NOT NULL,
+				`version`					VARCHAR(32) 	NOT NULL,
 				UNIQUE KEY `attribute_link` (`attribute_id`, `guid`),
 				FOREIGN KEY (`attribute_id`) 			REFERENCES `". DB_PREFIX ."attribute`(`attribute_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
@@ -1143,10 +1152,10 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "attribute_value`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "attribute_value` (
-				`attribute_value_id` 		INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'ID значения атрибута',
-				`attribute_id` 				INT(11) 		NOT NULL 				COMMENT 'ID атрибута',
-				`guid`						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид значения свойства в УС',
-				`name`						VARCHAR(255) 	NOT NULL 				COMMENT 'Название значения свойства',
+				`attribute_value_id` 		INT(11) 		NOT NULL AUTO_INCREMENT,
+				`attribute_id` 				INT(11) 		NOT NULL,
+				`guid`						VARCHAR(64) 	NOT NULL,
+				`name`						VARCHAR(255) 	NOT NULL,
 				PRIMARY KEY (`attribute_value_id`),
 				UNIQUE KEY `attribute_value_key` (`attribute_id`, `guid`),
 				FOREIGN KEY (`attribute_id`) 			REFERENCES `". DB_PREFIX ."attribute`(`attribute_id`)
@@ -1157,8 +1166,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "option_to_product`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "option_to_product` (
-				`option_id` 				INT(11) 		NOT NULL 				COMMENT 'ID опции',
-				`product_id` 				VARCHAR(64) 	NOT NULL 				COMMENT 'Ид товара',
+				`option_id` 				INT(11) 		NOT NULL,
+				`product_id` 				VARCHAR(64) 	NOT NULL,
 				UNIQUE KEY `option_link` (`option_id`, `product_id`),
 				FOREIGN KEY (`option_id`) 				REFERENCES `". DB_PREFIX ."option`(`option_id`),
 				FOREIGN KEY (`product_id`) 				REFERENCES `". DB_PREFIX ."product`(`product_id`)
@@ -1170,8 +1179,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "manufacturer_to_1c`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "manufacturer_to_1c` (
-				`manufacturer_id` 			INT(11) 		NOT NULL 				COMMENT 'ID производителя',
-				`guid` 						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид производителя в УС',
+				`manufacturer_id` 			INT(11) 		NOT NULL,
+				`guid` 						VARCHAR(64) 	NOT NULL,
 				UNIQUE KEY `manufacturer_link` (`manufacturer_id`, `guid`),
 				FOREIGN KEY (`manufacturer_id`) 		REFERENCES `". DB_PREFIX ."manufacturer`(`manufacturer_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
@@ -1181,8 +1190,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "store_to_1c`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "store_to_1c` (
-				`store_id` 					INT(11) 		NOT NULL 				COMMENT 'Код магазина',
-				`guid` 						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид каталога в УС',
+				`store_id` 					INT(11) 		NOT NULL,
+				`guid` 						VARCHAR(64) 	NOT NULL,
 				UNIQUE KEY `store_link` (`store_id`, `guid`),
 				FOREIGN KEY (`store_id`) 				REFERENCES `". DB_PREFIX ."store`(`store_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
@@ -1194,11 +1203,11 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_quantity`");
 		$this->db->query(
 			"CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_quantity` (
-				`product_quantity_id` 		INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'Счетчик',
-				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'Ссылка на товар',
-				`product_feature_id` 		INT(11) 		DEFAULT 0 NOT NULL		COMMENT 'Ссылка на характеристику товара',
-				`warehouse_id` 				INT(11) 		DEFAULT 0 NOT NULL 		COMMENT 'Ссылка на склад',
-				`quantity` 					DECIMAL(10,3) 	DEFAULT 0 				COMMENT 'Остаток',
+				`product_quantity_id` 		INT(11) 		NOT NULL AUTO_INCREMENT,
+				`product_id` 				INT(11) 		NOT NULL,
+				`product_feature_id` 		INT(11) 		DEFAULT 0 NOT NULL,
+				`warehouse_id` 				INT(11) 		DEFAULT 0 NOT NULL,
+				`quantity` 					DECIMAL(10,3) 	DEFAULT 0,
 				PRIMARY KEY (`product_quantity_id`),
 				UNIQUE KEY `product_quantity_key` (`product_id`, `product_feature_id`, `warehouse_id`),
 				FOREIGN KEY (`product_id`) 			REFERENCES `" . DB_PREFIX . "product`(`product_id`),
@@ -1213,11 +1222,11 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "warehouse` (
 				`warehouse_id` 				SMALLINT(3) 	NOT NULL AUTO_INCREMENT,
-				`address_id`				INT(11)			NOT NULL				COMMENT 'Адрес склада',
-				`name` 						VARCHAR(100) 	NOT NULL 			 	COMMENT 'Название склада в УС',
-				`guid` 						VARCHAR(64) 	NOT NULL				COMMENT 'Ид склада в УС',
-				`phone`						VARCHAR(64)		NOT NULL				COMMENT 'Телефон',
-				`responsible`				VARCHAR(255)	NOT NULL				COMMENT 'Ответственный',
+				`address_id`				INT(11)			NOT NULL,
+				`name` 						VARCHAR(100) 	NOT NULL,
+				`guid` 						VARCHAR(64) 	NOT NULL,
+				`phone`						VARCHAR(64)		NOT NULL,
+				`responsible`				VARCHAR(255)	NOT NULL,
 				PRIMARY KEY (`warehouse_id`),
 				UNIQUE KEY `warehouse_link` (`warehouse_id`, `guid`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
@@ -1228,12 +1237,12 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "address_1c` (
 				`address_id` 				INT(11) 		NOT NULL AUTO_INCREMENT,
-				`country` 					VARCHAR(100) 	NOT NULL 			 	COMMENT 'Страна',
-				`zip` 						VARCHAR(6) 		NOT NULL				COMMENT 'Почтовый индекс',
-				`region`					VARCHAR(100)	NOT NULL				COMMENT 'Регион',
-				`city`						VARCHAR(100)	NOT NULL				COMMENT 'Город',
-				`street`					VARCHAR(100)	NOT NULL				COMMENT 'Улица',
-				`home`						VARCHAR(8)		NOT NULL				COMMENT 'Дом',
+				`country` 					VARCHAR(100) 	NOT NULL,
+				`zip` 						VARCHAR(6) 		NOT NULL,
+				`region`					VARCHAR(100)	NOT NULL,
+				`city`						VARCHAR(100)	NOT NULL,
+				`street`					VARCHAR(100)	NOT NULL,
+				`home`						VARCHAR(8)		NOT NULL,
 				PRIMARY KEY (`address_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
@@ -1243,12 +1252,12 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "product_feature` (
-				`product_feature_id` 		INT(11) 		NOT NULL AUTO_INCREMENT COMMENT 'Счетчик',
-				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'Ссылка на товар',
-				`name` 						VARCHAR(256) 	NOT NULL DEFAULT '' 	COMMENT 'Наименование',
-				`ean` 						VARCHAR(14) 	NOT NULL DEFAULT '' 	COMMENT 'Штрихкод',
-				`sku` 						VARCHAR(128) 	NOT NULL DEFAULT '' 	COMMENT 'Артикул',
-				`guid` 						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид характеристики в УС',
+				`product_feature_id` 		INT(11) 		NOT NULL AUTO_INCREMENT,
+				`product_id` 				INT(11) 		NOT NULL,
+				`name` 						VARCHAR(256) 	NOT NULL,
+				`ean` 						VARCHAR(14) 	NOT NULL,
+				`sku` 						VARCHAR(128) 	NOT NULL,
+				`guid` 						VARCHAR(64) 	NOT NULL,
 				PRIMARY KEY (`product_feature_id`),
 				UNIQUE KEY `product_feature_key` (`product_id`, `guid`),
 				INDEX (`product_id`)
@@ -1260,10 +1269,10 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_category`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "product_category` (
-				`product_category_id` 		INT(11) 		NOT NULL AUTO_INCREMENT COMMENT 'Счетчик',
-				`parent_id` 				INT(11) 		NOT NULL 				COMMENT 'Ссылка на родителя',
-				`name` 						VARCHAR(256) 	NOT NULL 			 	COMMENT 'Наименование',
-				`guid` 						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид в УС',
+				`product_category_id` 		INT(11) 		NOT NULL AUTO_INCREMENT,
+				`parent_id` 				INT(11) 		NOT NULL,
+				`name` 						VARCHAR(256) 	NOT NULL,
+				`guid` 						VARCHAR(64) 	NOT NULL,
 				PRIMARY KEY (`product_category_id`),
 				UNIQUE KEY `product_category_key` (`product_category_id`, `guid`),
 				INDEX (`parent_id`)
@@ -1275,8 +1284,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "option_to_1c`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "option_to_1c` (
-				`option_id` 				INT(11) 		NOT NULL 				COMMENT 'ID опции',
-				`guid` 						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид свойства в УС',
+				`option_id` 				INT(11) 		NOT NULL,
+				`guid` 						VARCHAR(64) 	NOT NULL,
 				UNIQUE KEY `option_key` (`option_id`, `guid`),
 				FOREIGN KEY (`option_id`) 				REFERENCES `". DB_PREFIX ."option`(`option_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
@@ -1286,14 +1295,14 @@ class ControllerExtensionModuleExchange1c extends Controller {
 //		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "prices_to_1c`");
 //		$this->db->query(
 //			"CREATE TABLE `" . DB_PREFIX . "prices_to_1c` (
-//				`guid` 						VARCHAR(64) 	NOT NULL 				COMMENT 'Ид в УС',
-//				`version`					VARCHAR(32) 	NOT NULL 				COMMENT 'Версия объекта в УС',
-//				`name` 						VARCHAR(32) 	NOT NULL				COMMENT 'Название валюты в УС',
-//				`table` 					VARCHAR(32) 	NOT NULL				COMMENT 'Название таблицы',
-//				`quantity` 					INT(4) 			NOT NULL DEFAULT '1'	COMMENT 'Количество для скидок',
-//				`priority`					INT(5) 			NOT NULL DEFAULT '0'	COMMENT 'Приоритет для скидок',
-//				`currency_id` 				INT(11) 		NOT NULL 				COMMENT 'Валюта сайта',
-//				`tax_rate_id` 				VARCHAR(32) 	NOT NULL 				COMMENT 'Налог сайта',
+//				`guid` 						VARCHAR(64) 	NOT NULL,
+//				`version`					VARCHAR(32) 	NOT NULL,
+//				`name` 						VARCHAR(32) 	NOT NULL,
+//				`table` 					VARCHAR(32) 	NOT NULL,
+//				`quantity` 					INT(4) 			NOT NULL DEFAULT '1',
+//				`priority`					INT(5) 			NOT NULL DEFAULT '0',
+//				`currency_id` 				INT(11) 		NOT NULL,
+//				`tax_rate_id` 				VARCHAR(32) 	NOT NULL,
 //				UNIQUE KEY `price_key` (`name`, `guid`)
 //			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 //		);
@@ -1303,10 +1312,10 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature_value`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "product_feature_value` (
-				`product_feature_id` 		INT(11) 		NOT NULL 				COMMENT 'ID характеристики товара',
-				`product_option_id` 		INT(11) 		NOT NULL 				COMMENT 'ID опции товара',
-				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'ID товара',
-				`product_option_value_id` 	INT(11) 		NOT NULL 				COMMENT 'ID значения опции товара',
+				`product_feature_id` 		INT(11) 		NOT NULL,
+				`product_option_id` 		INT(11) 		NOT NULL,
+				`product_id` 				INT(11) 		NOT NULL,
+				`product_option_value_id` 	INT(11) 		NOT NULL,
 				UNIQUE KEY `product_feature_value_key` (`product_feature_id`, `product_id`, `product_option_value_id`),
 				FOREIGN KEY (`product_feature_id`) 		REFERENCES `" . DB_PREFIX . "product_feature`(`product_feature_id`),
 				FOREIGN KEY (`product_option_id`) 		REFERENCES `" . DB_PREFIX . "product_option`(`product_option_id`),
@@ -1319,11 +1328,11 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_price`");
 		$this->db->query(
 			"CREATE TABLE `" . DB_PREFIX . "product_price` (
-				`product_price_id` 			INT(11) 		NOT NULL AUTO_INCREMENT	COMMENT 'Счетчик',
-				`product_id` 				INT(11) 		NOT NULL 				COMMENT 'ID товара',
-				`product_feature_id` 		INT(11) 		NOT NULL DEFAULT '0' 	COMMENT 'ID характеристики товара',
-				`customer_group_id`			INT(11) 		NOT NULL DEFAULT '0'	COMMENT 'ID группы покупателя',
-				`price` 					DECIMAL(15,4) 	NOT NULL DEFAULT '0'	COMMENT 'Цена',
+				`product_price_id` 			INT(11) 		NOT NULL AUTO_INCREMENT,
+				`product_id` 				INT(11) 		NOT NULL,
+				`product_feature_id` 		INT(11) 		NOT NULL DEFAULT '0',
+				`customer_group_id`			INT(11) 		NOT NULL DEFAULT '0',
+				`price` 					DECIMAL(15,4) 	NOT NULL DEFAULT '0',
 				PRIMARY KEY (`product_price_id`),
 				UNIQUE KEY `product_price_key` (`product_id`, `product_feature_id`, `customer_group_id`),
 				FOREIGN KEY (`product_id`) 				REFERENCES `" . DB_PREFIX . "product`(`product_id`),
@@ -1332,7 +1341,11 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
-		$this->log->write("Включен модуль " . $this->module_name . " версии " . $this->model_extension_exchange1c->version());
+
+		$message .= $this->model_extension_exchange1c->checkUpdates($settings);
+
+		$this->log->write("Включен модуль " . $this->module_name . " версии " . $settings['exchange1c_version']);
+		$this->log->write($message);
 
 	} // install()
 
@@ -1470,25 +1483,25 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
  		// Удалим добавочное поле организации
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'middlename'");
-		if (!$result->num_rows) {
+		if ($result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` DROP `middlename`");
 		}
 
  		// Удалим добавочное поле организации
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'company'");
-		if (!$result->num_rows) {
+		if ($result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` DROP `company`");
 		}
 
  		// Удалим добавочное поле ИНН организации
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'company_inn'");
-		if (!$result->num_rows) {
+		if ($result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` DROP `company_inn`");
 		}
 
  		// Удалим добавочное поле КПП организации
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'company_kpp'");
-		if (!$result->num_rows) {
+		if ($result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` DROP `company_kpp`");
 		}
 
@@ -1496,19 +1509,19 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
  		// Удалим отчество плательщика в заказ
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "order` WHERE `field` = 'middlename'");
-		if (!$result->num_rows) {
+		if ($result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order` DROP `middlename`");
 		}
 
  		// Удалим отчество плательщика в заказ
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "order` WHERE `field` = 'payment_middlename'");
-		if (!$result->num_rows) {
+		if ($result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order` DROP `payment_middlename`");
 		}
 
  		// Удалим отчество получателя в заказ
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "order` WHERE `field` = 'shipping_middlename'");
-		if (!$result->num_rows) {
+		if ($result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order` DROP `shipping_middlename`");
 		}
 
@@ -2012,7 +2025,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 				$this->log("Создан файл: " . $path . $filename, 2);
 				fwrite($fd, $dump);
 				fclose($fd);
-				$this->log($xmlFiles, 2);
+				//$this->log($xmlFiles, 2);
 
 			} else {
 
@@ -2054,7 +2067,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 				} else {
 					$error = $this->extractXML($zipArc, $zip_entry, $name, $xmlFiles);
-					$this->log($xmlFiles, 2);
 					if ($error) return $xmlFiles;
 				}
 			}
@@ -2065,6 +2077,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 		zip_close($zipArc);
 		$this->log("extractZip(): Завершена распаковка архива", 2);
+		$this->log("Распакованы XML файлы:", 2);
+		$this->log($xmlFiles, 2);
 		return $xmlFiles;
 
 	} // extractZip()
@@ -2241,7 +2255,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		if (is_file($import_file)) {
 
 			$path_info = pathinfo($filename_decode);
-			$this->log($path_info, 2);
+			//$this->log($path_info, 2);
 			$filename = $path_info['filename'];
 			$extension = $path_info['extension'];
 
@@ -2703,7 +2717,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			//echo header('Content-Type: text/html; charset=windows-1251', true);
 			// посоветовал yuriygr с GitHub
 			//echo iconv('utf-8', 'cp1251', $orders);
-			echo iconv('utf-8', 'cp1251//TRANSLIT', $orders);
+			//echo iconv('utf-8', 'cp1251//TRANSLIT', $orders);
+			echo mb_convert_encoding($orders, 'UTF-8', mb_detect_encoding($orders, "UTF-8, Windows-1251, Windows-1252", true));
 			//echo mb_convert_encoding($orders, 'cp1251//TRANSLIT', 'utf-8');
 		} else {
 			echo $orders;
