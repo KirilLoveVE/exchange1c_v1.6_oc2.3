@@ -423,15 +423,15 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$list_errors = array(
 			1000,1001,1002,1003,1004,1005,1006,1007,
 			2001,2002,2003,2004,2005,2006,2207,2208,2010,2011,2012,
-			2020,
-			2030,2031,2032,2033,2034,
-			2040,2041,2042,
-			2050,
+			2020,2030,2031,2032,2033,2034,2040,2050,
 			2100,
 			2200,2201,2202,2203,2204,2205,2206,
 			2300,2310,
+			2400,
+			// SEO
+			2500,
 			3000,3001,
-			4000
+			4000,4001
 		);
 		foreach ($list_errors as $error_num) {
 			$data['error_description'][$error_num] = $this->language->get('error_' . $error_num);
@@ -718,7 +718,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			,'module_status'							=> array('type' => 'radio', 'default' => 1, 'text' => 'on_off')
 			,'flush_log'								=> array('type' => 'radio', 'default' => 1)
 			,'currency_convert'							=> array('type' => 'radio', 'default' => 1)
-			,'upload_files_unlink'						=> array('type' => 'radio', 'default' => 1)
+			,'clear_cache_mode_init'					=> array('type' => 'radio', 'default' => 1)
 			,'seo_product_seo_url_import'				=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_product_seo_url_template'				=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_product_meta_title_import'			=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
@@ -827,6 +827,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			,'log_filename'								=> array('type' => 'input')
 			,'import_product_rules'						=> array('type' => 'textarea')
 			,'delete_text_in_brackets_option'			=> array('type' => 'radio')
+			,'product_rules_pre_parse'					=> array('type' => 'textarea')
 		);
 
 		if (isset($settings['exchange1c_table_fields'])) {
@@ -2131,8 +2132,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 2
-	 * update 2018-03-08
+	 * ver 3
+	 * update 2018-04-19
 	 */
 	public function modeCatalogInit() {
 
@@ -2140,7 +2141,11 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			echo "failure";
 			exit;
 		}
-		//$this->cleanCache(1);
+
+		if ($this->config->get('exchange1c_clear_cache_mode_init')) {
+			$this->cleanCache(1);
+		}
+
 		$result = $this->modeInit();
 		echo $result[0] . "\n";
 		echo $result[1] . "\n";
@@ -2153,8 +2158,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 1
-	 * update 2018-03-08
+	 * ver 2
+	 * update 2018-04-19
 	 * Обрабатывает команду инициализации
 	 * При успешной инициализации возвращает временный файл с данными:
 	 * в 1-ой строке содержится признак, разрешен ли Zip (zip=yes);
@@ -2168,7 +2173,10 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			echo "failure";
 			exit;
 		}
-		//$this->cleanCache(1);
+
+		if ($this->config->get('exchange1c_clear_cache_mode_init')) {
+			$this->cleanCache(1);
+		}
 		$result = $this->modeInit();
 		echo $result[0] . "\n";
 		echo $result[1] . "\n";
@@ -2521,10 +2529,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 					$this->echo_message(0, "modeFile(): Error extract file: " . $uplod_file);
 					return false;
 				};
-				if (count($xmlfiles) && $this->config->get('exchange1c_upload_files_unlink')) {
-					// Это архив, удаляем архив
-					unlink($uplod_file);
-				}
 			} else {
 				$this->echo_message(0, "modeFile(): Error create file");
 			}
@@ -2606,10 +2610,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 				return false;
 			}
 
-			// Удалим файл
-			//$this->log("[i] Удаление файла: " . $importFile,2);
-			//unlink($importFile);
-
 		}
 
 		$this->echo_message(1, "modeFileSale(): Successfully processed orders");
@@ -2619,8 +2619,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 5
-	 * update 2017-10-30
+	 * ver 6
+	 * update 2018-04-19
 	 * Обрабатывает *.XML файлы
 	 *
 	 * @param	boolean		true - ручной импорт
@@ -2668,24 +2668,12 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 			$this->log("modeImport(): Ошибка при загрузке файла: " . $importFile);
 
-			// Удалим файл
-			if ($this->config->get('exchange1c_upload_files_unlink')) {
-				$this->log("[i] Удаление файла: " . $importFile,2);
-				unlink($importFile);
-			}
-
 			return $error;
 
 		} else {
 			if (!$manual) {
 				$this->echo_message(1, "Successfully processed file: " . $importFile);
 			}
-		}
-
-		// Удалим файл
-		if ($this->config->get('exchange1c_upload_files_unlink')) {
-			$this->log("[i] Удаление файла: " . $importFile,2);
-			unlink($importFile);
 		}
 
 		//$this->cache->delete('product');
@@ -2695,8 +2683,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 3
-	 * update 2017-06-21
+	 * ver 4
+	 * update 2018-04-19
 	 * Режим запроса заказов
 	 */
 	public function modeQueryOrders() {

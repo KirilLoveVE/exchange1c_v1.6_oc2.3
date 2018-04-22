@@ -770,9 +770,9 @@ class ModelExtensionExchange1c extends Model {
 			$num ++;
 			$keyword = $element_name . "-" . (string)$num;
 			$key = array_search($keyword, $keywords);
-			if ($num > 100) {
-				$this->log("[!] больше 100 дублей!", 2);
-				break;
+			if ($num > 200) {
+				$this->log("[!] больше 200 дублей!", 2);
+				$this->errorLog(2500);
 			}
 		}
 
@@ -1850,11 +1850,11 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 3
-	 * update 2017-09-18
+	 * ver 4
+	 * update 2018-04-21
 	 * Добавляет опциию
 	 */
-	private function addOption($name, $type, $product_id) {
+	private function addOption($name, $type) {
 
 		$this->query("INSERT INTO `" . DB_PREFIX . "option` SET `type` = '" . $type . "', `sort_order` = 0");
 		$option_id = $this->db->getLastId();
@@ -3268,8 +3268,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 9
-	 * update 2018-04-04
+	 * ver 10
+	 * update 2018-04-05
 	 * Обновление или добавление товара
 	 * вызывается при обработке каталога
 	 */
@@ -3277,6 +3277,7 @@ class ModelExtensionExchange1c extends Model {
 
 		// СВЯЗЬ
 		$product_id = $this->searchProduct($data);
+		$check_link = false;
 
 		if (!$product_id) {
 			// Синхронизация по артикулу
@@ -3287,40 +3288,48 @@ class ModelExtensionExchange1c extends Model {
  					return false;
  				}
 				$product_id = $this->getProductBySKU($data['sku']);
+				if ($product_id)
+					$check_link = true;
 
 			// Синхронизация по модели
-	 		} elseif ($this->config->get('exchange1c_product_sync_mode') == 'model') {
+	 		} elseif ($this->config->get('exchange1c_product_sync_mode') == 'model' && isset($data['model'])) {
 	 			$this->log("Поиск товара по модели: " . $data['model'], 2);
 				if (empty($data['model'])) {
  					$this->log("ВНИМАНИЕ! Артикул пустой! Товар пропущен. Проверьте товар " . $data['name'], 2);
  					return false;
  				}
 				$product_id = $this->getProductBySKU($data['sku']);
+				if ($product_id)
+					$check_link = true;
 
 			// Синхронизация по наименованию
 			} elseif ($this->config->get('exchange1c_product_sync_mode') == 'name') {
 				$this->log("Поиск товара по наименованию: " . $data['name'], 2);
 				if (empty($data['name'])) {
- 					$this->log("setProduct() - Наименование пустое! Товар пропущен. Проверьте товар Ид: " . $data['product_guid'], 2);
+ 					$this->log("ВНИМАНИЕ! Наименование пустое! Товар пропущен. Проверьте товар Ид: " . $data['product_guid'], 2);
 					// Пропускаем товар
 					return false;
 				}
 				$product_id = $this->getProductByName($data['name']);
+				if ($product_id)
+					$check_link = true;
 
 			// Синхронизация по штрихкоду
 			} elseif ($this->config->get('exchange1c_product_sync_mode') == 'ean') {
 				$this->log("Поиск товара по штрихкоду: " . $data['ean'], 2);
  				if (empty($data['ean'])) {
- 					$this->log("setProduct() - Штрихкод пустой! Товар пропущен. Проверьте товар " . $data['name'], 2);
+ 					$this->log("ВНИМАНИЕ! Штрихкод пустой! Товар пропущен. Проверьте товар " . $data['name'], 2);
  					return false;
  				}
 				$product_id = $this->getProductByEan($data['ean']);
+				if ($product_id)
+					$check_link = true;
 
 			// Синхронизация по коду
 			} elseif ($this->config->get('exchange1c_product_sync_mode') == 'code') {
 				$this->log("Поиск товара по коду: " . $data['code'], 2);
  				if (empty($data['code'])) {
- 					$this->log("setProduct() - Код товара пустой! Товар пропущен. Проверьте товар " . $data['name'], 2);
+ 					$this->log("ВНИМАНИЕ! Код товара пустой! Товар пропущен. Проверьте товар " . $data['name'], 2);
  					return false;
  				}
 				//$product_id = $this->getProductById($data['code']);
@@ -3355,6 +3364,34 @@ class ModelExtensionExchange1c extends Model {
 
  			$this->updateProduct($product_id, $data);
 			if ($this->ERROR) return false;
+
+			if ($check_link) {
+
+				$this->log("Проверка связи id->Ид");
+				// Проверим связь
+				$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_to_1c` WHERE `product_id` = '" . (int)$product_id . "'");
+				if (!$query->num_rows > 1) {
+					$this->log("ВНИМАНИЕ! у товара большей одной связи с ИД учетной системы (1С):");
+					foreach ($query->rows as $row) {
+						$this->log("GUID: " . $row['guid']);
+					}
+				}
+				if (!$query->num_rows) {
+					// Связь с 1С только по Ид объекта из торговой системы
+					$sql = "INSERT INTO `" . DB_PREFIX . "product_to_1c` SET `product_id` = " . (int)$product_id . ", `guid` = '" . $this->db->escape($data['product_guid']) . "'";
+					if (isset($data['version'])) {
+						$sql .= ", `version` = '" . $this->db->escape($data['version']) ."'";
+						$this->log("Добавлена версия товара, version = " . $data['version'], 2);
+					}
+					$this->query($sql);
+				} else {
+					// связь есть, проверим
+					if ($query->row['guid'] != $data['product_guid']) {
+						$this->query("UPDATE `" . DB_PREFIX . "product_to_1c` SET `guid` = '" . $this->db->escape($data['product_guid']) . "' WHERE `product_id` = " . (int)$product_id);
+					}
+				}
+
+			}
  		}
 
 		// SEO формируем когда известен product_id и товар записан
@@ -5242,6 +5279,62 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
+	 * ver 1
+	 * update 2018-04-05
+	 *
+	 */
+	private function parseProductRules($xml, &$data) {
+
+		$rules = $this->config->get('exchange1c_product_rules_pre_parse');
+		if (!$rules)
+			return;
+
+		$this->log($rules, 2);
+		$rules = explode("\r\n", $rules);
+		$num = 0;
+		foreach ($rules as $rule_str) {
+			$num++;
+			$rule_data = explode(':', $rule_str);
+			if (count($rule_data) != 3) {
+				$this->log("Неверный формат правил в строке " . $num . " правило '" . $rule_str . "'");
+				continue;
+			}
+			$result = '';
+			$this->log($rule_data, 2);
+			if (isset($rule_data[0])) {
+				$tag = trim($rule_data[0]);
+				if ($xml->$tag) {
+					$result = trim((string)$xml->$tag);
+					$this->log($result,2);
+				};
+			}
+			if (isset($rule_data[1]) && $result) {
+				$script = trim($rule_data[1]);
+				$this->log($result, 2);
+				//$script = str_replace('$', '\$', $script);
+				//$script = str_replace("$result", "'" . $result . "'", $script);
+				$this->log($script, 2);
+
+				//ob_start();
+				$return = eval("\$result= $script;");
+				if ( $return === false && ( $error = error_get_last() ) ) {
+					$this->log($error, 2);
+				}
+				//$result = ob_get_contents();
+				//ob_end_clean();
+				$this->log($result, 2);
+			}
+			if (isset($rule_data[2])) {
+				$field = trim($rule_data[2]);
+				$data[$field] = $result;
+				$this->log($data[$field], 2);
+			}
+		}
+
+	} // parseProductRules()
+
+
+	/**
 	 * ver 19
 	 * update 2018-03-24
 	 * Обрабатывает товары из раздела <Товары> в XML
@@ -5267,7 +5360,7 @@ class ModelExtensionExchange1c extends Model {
 		foreach ($xml->Товар as $num => $product) {
 
 			$data = array();
-			$data['name']			= htmlspecialchars((string)$product->Наименование);
+			$data['name']			= htmlspecialchars(trim((string)$product->Наименование));
 			$guid = explode("#", (string)$product->Ид);
 			$data['product_guid']	= $guid[0];
 			$data['feature_guid']	= isset($guid[1]) ? $guid[1] : '';
@@ -5381,6 +5474,8 @@ class ModelExtensionExchange1c extends Model {
 				if ($this->ERROR) return false;
 				$this->log("Налоговая ставка tax_class_id = " . $data['tax_class_id'], 2);
 			}
+
+			$this->parseProductRules($product, $data);
 
 			$this->log("Перед функцией setProduct()", 2);
 			$this->log($data, 2);
@@ -6191,9 +6286,9 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 3
-	 * update 2017-06-20
-	 * Загружает все цены только в одной валюте
+	 * ver 4
+	 * update 2018-04-23
+	 * Загружает все цены
 	 */
 	private function parsePrice($xml, $data) {
 
@@ -6228,16 +6323,40 @@ class ModelExtensionExchange1c extends Model {
 					continue;
 				}
 
-				// Курс валюты
-				//$rate = $price_data->Валюта ? $this->getCurrencyValue((string)$price_data->Валюта) : 1;
-				// Валюта
+				// КУРС ВАЛЮТЫ
+//				$rate = 1;
+//				if ($price_data->Валюта) {
+//					if ($price_data->Курс) {
+//						$rate = (float)$price_data->Курс;
+//					} else {
+//						$config_currency = $this->config->get('exchange1c_currency');
+//						if (!empty($config_currency)) {
+//							// Поищем в настройках модуля
+//							$currency_data		= $this->getCurrencyConfig($config_currency, (string)$price_data->Валюта);
+//							$rate =  $currency_data['value'];
+//						} else {
+//							// Поищем в opencart таблице currency
+//							$rate = $this->getCurrencyValue((string)$price_data->Валюта);
+//						}
+//					}
+//				}
+
+				// КОНВЕРТАЦИЯ ВАЛЮТ
 				// автоматическая конвертация в основную валюту CMS
-				//if ($this->config->get('exchange1c_currency_convert') == 1) {
-				//	if ($rate != 1 && $rate > 0) {
-				//		$price = round((float)$price_data->ЦенаЗаЕдиницу / (float)$rate, $decimal_place);
-				//	}
-				//}
-				//$data_prices[$guid]['rate'] = $rate;
+				if ($this->config->get('exchange1c_currency_convert') == 1) {
+
+					// КУРС
+					if (isset($config_price_type['currency']['value'])) {
+						$rate = $config_price_type['currency']['value'];
+					} else {
+						$rate = 1;
+					}
+
+					// ПЕРЕСЧЕТ ЦЕНЫ ПО КУРСУ
+					if ($rate != 1 && $rate != 0) {
+						$price = round((float)$price_data->ЦенаЗаЕдиницу / (float)$rate, $decimal_place);
+					}
+				}
 
 				if ($this->config->get('exchange1c_ignore_price_zero') == 1 && $price == 0) {
 					$this->log("Включена опция при нулевой цене не менять старую");
@@ -6250,10 +6369,11 @@ class ModelExtensionExchange1c extends Model {
 					'ratio'		=> $price_data->Коэффициент ? (float)$price_data->Коэффициент : 1
 				);
 
-				$unit_split = $this->splitNameStr($unit_data['name']);
 
 				// Получим единицу из классификатора
+				//$unit_split = $this->splitNameStr($unit_data['name']);
 				//$unit = $this->getUnitByName($unit_split['name']);
+
 				$unit_id = $this->getUnitByName($unit_data['name']);
 
 				if (!$unit_id) {
@@ -6264,6 +6384,7 @@ class ModelExtensionExchange1c extends Model {
 				$data_prices[$guid] 			= $config_price_type;
 				$data_prices[$guid]['unit_id']	= $unit_id;
 				$data_prices[$guid]['price']	= $price;
+				$data_prices[$guid]['rate']		= $rate;
 				$this->log("Цена: " . $price . " за единицу: " . $unit_data['name'] . ", GUID: " . $guid, 2);
 
 
@@ -7135,8 +7256,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 1
-	 * update 2017-06-02
+	 * ver 2
+	 * update 2018-04-09
 	 * Формирует адрес с полями и представлением в виде массива
 	 */
 	private function setCustomerAddress($order, $mode = 'shipping') {
@@ -7144,16 +7265,20 @@ class ModelExtensionExchange1c extends Model {
 		// Соответствие полей в XML и в базе данных
 		$fields = array(
 			'Почтовый индекс' 	=> 'postcode',
-			'Страна' 			=> 'country',
+			//'Страна' 			=> 'country',
 			'Регион'			=> 'zone',
 			'Район'				=> 'none',
 			'Населенный пункт'	=> 'none',
 			'Город'				=> 'city',
-			'Улица'				=> 'none',
-			'Дом'				=> 'none',
-			'Корпус'			=> 'none',
-			'Квартира'			=> 'none'
+			'Адрес'				=> 'address_1',
+			'Улица'				=> 'street',
+			'Дом'				=> 'house',
+			'Корпус'			=> 'building',
+			'Квартира'			=> 'flat'
 		);
+		// Представление: Индекс, Город, Улица, Дом, Корпус, Квартира
+		// Представление: Индекс, Город, Улица, Дом, Квартира
+		// Представление: Индекс, Город, Улица, Дом
 		//'Представление'	=> $order['shipping_postcode'] . ', ' . $order['shipping_zone'] . ', ' . $order['shipping_city'] . ', ' . $order['shipping_address_1'] . ', '.$order['shipping_address_2'],
 
 		$address = array();
@@ -7280,13 +7405,42 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 4
-	 * update 2018-04-02
+	 * ver 3
+	 * update 2018-04-09
+	 * Получает информацию о покупателе (организации и физ.лице)
+	 */
+	public function getCustomerInfo(&$order) {
+
+		$query = $this->query("SELECT `firstname`,`lastname`,`middlename`,`company`,`company_inn`,`company_kpp` FROM `" . DB_PREFIX . "customer` WHERE `customer_id` = '" . (int)$order['customer_id'] . "'");
+		if ($query->num_rows) {
+			$order['firstname'] = $query->row['firstname'];
+			$order['lastname'] = $query->row['lastname'];
+			$order['middlename'] = $query->row['middlename'];
+			$order['company'] = $query->row['company'];
+			$order['company_inn'] = $query->row['company_inn'];
+			$order['company_kpp'] = $query->row['company_kpp'];
+		} else {
+			$order['firstname'] = "";
+			$order['lastname'] = "";
+			$order['middlename'] = "";
+			$order['company'] = "";
+			$order['company_inn'] = "";
+			$order['company_kpp'] = "";
+		}
+		$this->log($order);
+
+	} // getCustomerInfo()
+
+
+	/**
+	 * ver 5
+	 * update 2018-04-09
 	 * Формирует Контрагента
 	 */
-	private function setCustomer(&$order) {
+	private function setCustomer($order) {
 
 		$customer = array();
+		$this->log($order, 2);
 
 		if ($this->config->get('exchange1c_order_customer_export') != 1) {
 			return $customer;
@@ -7301,64 +7455,44 @@ class ModelExtensionExchange1c extends Model {
 			'Роль'					=> 'Покупатель',
 			'Наименование'			=> $order['username'],
 			'ПолноеНаименование'	=> $order['username'],
-			'Фамилия'				=> $order['payment_lastname'],
-			'Имя'					=> $order['payment_firstname'],
+			'Фамилия'				=> $order['lastname'],
+			'Имя'					=> $order['firstname'],
 			'Отчество'				=> $order['middlename'],
 			'Телефон'				=> array(
 				'Представление' => $order['telephone']
 				),
-			//'Email'					=> $order['email'],
-			'Адрес'					=> $this->setCustomerAddress($order),
-			//'АдресРегистрации'		=> $this->setCustomerAddress($order),
-			'Контакты'				=> $this->setCustomerContacts($order),
+			'Email'					=> array(
+				'Представление' => $order['email']
+				),
+			'АдресРегистрации'		=> $this->setCustomerAddress($order)
 		);
 
 		// Поля для юр. лица или физ. лица
-		if ($order['payment_company']) {
+		if ($order['company']) {
+ 			// Если плательщиком является организация
+			// Контактное лицо организации (физ. лицо)
+			$customer['Адрес']						= $this->setCustomerAddress($order);
+			$customer['ЮридическийАдрес']			= $this->setCustomerAddress($order);
+			$customer['Контакты']					= $this->setCustomerContacts($order);
 
-			// Если плательщиком является организация
-			$customer['ОфициальноеНаименование'] 	= isset($order['payment_company']) 	? $order['payment_company'] : "";
-			$customer['ПолноеНаименование'] 		= isset($order['payment_company']) 	? $order['payment_company'] : "";
-			$customer['ОКПО'] 						= isset($order['payment_okpo']) 	? $order['payment_okpo'] 	: "";
-			$customer['КПП'] 						= isset($order['payment_kpp']) 		? $order['payment_kpp'] 	: "";
-			if (isset($order['company_inn'])) {
-				$customer['ИНН'] = $order['company_inn'];
-			}
-			if (isset($order['company_kpp'])) {
-				$customer['КПП'] = $order['company_kpp'];
-			}
+//			$customer['Представители']				= array(
+//				'Представитель' => array(
+//					'Отношение'			=> 'Контактное лицо',
+//					'Наименование'		=> $order['username']
+//				)
+//			);
 
-		} else {
-
-			// Покупатель - физическое лицо
-			$customer['Наименование'] 				= $order['username'];
+			$customer['ОфициальноеНаименование'] 	= $order['company'];
+			// Если "НаименованиеПолное" будет оличаться от "Наименование"
+			// в 1С сформируется полное наименование "Организация [ФИО]",
+			$customer['ПолноеНаименование']			= $order['username'];
+			$customer['ИНН'] 						= $order['company_inn'];
+			$customer['КПП'] 						= $order['company_kpp'];
 		}
 
 		return $customer;
 
 	} // setCustomer()
-
-
-	/**
-	 * ver 2
-	 * update 2018-03-11
-	 * Дополняет поля в заказе
-	 */
-	public function getCustomerInfo(&$order) {
-
-		$query = $this->query("SELECT `middlename`,`company_inn`,`company_kpp` FROM `" . DB_PREFIX . "customer` WHERE `customer_id` = '" . (int)$order['customer_id'] . "'");
-		if ($query->num_rows) {
-			$order['middlename'] = $query->row['middlename'];
-			$order['company_inn'] = $query->row['company_inn'];
-			$order['company_kpp'] = $query->row['company_kpp'];
-		} else {
-			$order['middlename'] = "";
-			$order['company_inn'] = "";
-			$order['company_kpp'] = "";
-		}
-		$this->log($order);
-
-	} // getCustomerInfo()
 
 
 	/**
@@ -7421,8 +7555,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 11
-	 * update 2018-03-11
+	 * ver 12
+	 * update 2018-04-08
 	 * Выгружает заказы в торговую систему
 	 */
 	public function queryOrders() {
@@ -7470,6 +7604,14 @@ class ModelExtensionExchange1c extends Model {
 					,'Комментарий' => $order['comment']
 					//,'Соглашение'  => $customer_group['name'] // the agreement
 				);
+
+				$this->getCustomerInfo($order);
+
+				// Первая буква должна быть заглавной и убираем лишние пробелы сдева и справа
+				// ТОЛЬКО ДЛЯ САЙТА РАБОТАЮЩЕГО НА КОДИРОВКЕ UTF-8
+				$order['lastname'] = mb_convert_case(trim($order['lastname']), MB_CASE_TITLE, "UTF-8");
+				$order['firstname'] = mb_convert_case(trim($order['firstname']), MB_CASE_TITLE, "UTF-8");
+				$order['middlename'] = mb_convert_case(trim($order['middlename']), MB_CASE_TITLE, "UTF-8");
 
 				// Собираем полное наименование покупателя, ФИО
 				$order['username'] =  $order['lastname'] . ' ' . $order['firstname'] . ($order['middlename'] ? ' ' . $order['middlename'] : '');
@@ -7680,6 +7822,8 @@ class ModelExtensionExchange1c extends Model {
 	 */
 	private function updateOrderProduct($order_id, $order_product_data, $order_product_id) {
 
+		$this->log($order_product_data, 2);
+
 		$this->query("UPDATE `" . DB_PREFIX . "order_product`
 			SET `product_id` = " . (int)$order_product_data['product_id'] . ",
 			`order_id` = " . (int)$order_id . ",
@@ -7695,20 +7839,67 @@ class ModelExtensionExchange1c extends Model {
 		);
 		$this->log("Товар '" . $order_product_data['name'] . "' обновлен в заказе #" . $order_id . ", order_product_id = " . $order_product_id, 2);
 
-		// НЕ РЕАЛИЗОВАНО!!!
-		// Обновим опции
+		// ОПЦИИ ТОВАРА
 		if ($order_product_data['product_feature_id']) {
+
 			// Получим все опции товара
 			$this->load->model('catalog/product');
 			$product_options_data = $this->model_catalog_product->getProductOptions($order_product_data['product_id']);
+
 			//$product_options_data = $this->getProductOptions($order_product_data['product_id']);
 			$this->log($product_options_data, 2);
+			if (count($product_options_data) == 0) {
+				// Опции в товаре нет
+				$this->errorLog(2400);
+				return false;
+			}
 
 			// Получим опции в заказе
-			$order_product_options_data = $this->model_sale_order->getOrderOptions($order_id, $order_product_data['product_id']);
+			$order_product_options_data = $this->model_sale_order->getOrderOptions($order_id, $order_product_id);
 			$this->log($order_product_options_data, 2);
 
-		}
+			// Получим опции по характеристике, то есть по product_feature_id
+			$query_feature_value = $this->query("SELECT pfv.product_option_id, pfv.product_option_value_id, od.name, ovd.name as value, o.type FROM `" . DB_PREFIX . "product_feature_value` pfv
+				LEFT JOIN `" . DB_PREFIX . "product_option_value` pov ON (pfv.product_option_value_id = pov.product_option_value_id)
+				LEFT JOIN `" . DB_PREFIX . "option` o ON (pov.option_id = o.option_id)
+				LEFT JOIN `" . DB_PREFIX . "option_description` od ON (pov.option_id = od.option_id)
+				LEFT JOIN `" . DB_PREFIX . "option_value_description` ovd ON (pov.option_value_id = ovd.option_value_id)
+				WHERE pfv.product_feature_id = " . (int)$order_product_data['product_feature_id']);
+			$this->log($query_feature_value, 2);
+
+			// Сохраним order_option_id во временный массив
+			$old_order_option_values = array();
+			foreach ($order_product_options_data as $order_product_option) {
+				$old_order_option_values[$order_product_option['order_option_id']] = $order_product_option['order_option_id'];
+				$this->log($order_product_option, 2);
+			}
+
+			// ПОИЩЕМ ОПЦИИ В ЗАКАЗЕ
+			foreach ($query_feature_value->rows as $option) {
+				$order_option_id = 0;
+				foreach ($order_product_options_data as $order_option) {
+					if ($option['product_option_id'] == $order_option['product_option_id'] && $option['product_option_value_id'] == $order_option['product_option_value_id']) {
+						$order_option_id = $order_option['order_option_id'];
+						$found = true;
+						unset($old_order_option_values[$order_option_id]);
+					}
+				}
+				if (!$order_option_id) {
+					// Добавим
+					$this->query("INSERT INTO `" . DB_PREFIX . "order_option` SET order_id = " . (int)$order_id . ", order_product_id = " . (int)$order_product_id . ", product_option_id = " . (int)$option['product_option_id'] . ", product_option_value_id " . (int)$option['product_option_value_id'] . ", name = '" . $this->db->escape($option['name']) . "', value = '" . $option['value'] . "', type = '" . $option['type'] . "'");
+					$order_option_id = $this->db->getLastId();
+					$this->log("Добавлена опция в заказ, order_option_id = " . $order_option_id);
+				}
+			}
+
+			// УДАЛЕНИЕ СТАРЫХ НЕИСПОЛЬЗУЕМЫХ ОПЦИЙ ИЗ ЗАКАЗА
+			if (count($old_order_option_values)) {
+				foreach($old_order_option_values as $order_option_id) {
+					$this->query("DELETE FROM `" . DB_PREFIX . "order_option` WHERE order_option_id = " . (int)$order_option_id);
+				}
+			}
+		} // if ($order_product_data['product_feature_id'])
+		//ОПЦИИ ТОВАРА
 
 	} // updateOrderProduct()
 
@@ -7746,8 +7937,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 5
-	 * update 2018-04-02
+	 * ver 6
+	 * update 2018-04-23
 	 * Если изменился статус заказа, добавляем в историю
 	 */
 	private function changeOrderStatus($order_id, $status_name, $canceled = false) {
@@ -7774,12 +7965,16 @@ class ModelExtensionExchange1c extends Model {
 		$order_status_id = $this->getOrderStatusLast($order_id);
 		if (!$order_status_id) {
 			$this->log("ВНИМАНИЕ! У заказа еще нет ни одной записи в истории статуса заказа!");
-//			$this->errorLog(2201);
-//			return 0;
 		}
 
 		if ($order_status_id == $new_order_status_id) {
-			$this->log("Статус документа не изменился", 2);
+			$this->log("Статус документа не изменился");
+			return 0;
+		}
+
+		// Меняем статус если он равен начальному
+		if ((int)$this->config->get('exchange1c_order_status_export') != (int)$order_status_id) {
+			$this->log("Статус документа не меняем так как он уже не имеет статуса указанного для выгрузки");
 			return 0;
 		}
 
@@ -7894,10 +8089,12 @@ class ModelExtensionExchange1c extends Model {
 						$this->log($doc_product, 2);
 						if ($update) {
 							$this->updateOrderProduct($doc['order_id'], $doc_product, $product['order_product_id']);
+							if ($this->ERROR) return false;
 						}
 					}
 					// Тестовая строка для принудительного обновления товаров в документе
 					//$this->updateOrderProduct($doc['order_id'], $doc_product, $product['order_product_id']);
+					//$this->errorLog(5000);
 
 				} else {
 					// Добавить строчку
@@ -8002,67 +8199,157 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 3
-	 * update 2018-03-09
+	 * ver 1
+	 * update 2018-04-08
+	 * Контрагент из строки: Организация [Контакт]
+	 * Пример1: Фамилия Имя Отчество [Фамилия Имя Оотчество]
+	 * Пример2: Наименование организации [Фамилия Имя Оотчество]
+	 * Получает ID покупателя и адреса
+	 */
+	private function parseCustomerStr($customer_name) {
+
+		$this->log($customer_name, 2);
+		$customer_name_split = explode(" ", $customer_name);
+		$this->log($customer_name_split, 2);
+
+		$customer_info = array();
+		$customer_info['company'] = '';
+		$customer_info['customer'] = array();
+
+		// Определим есть ли в названии квадратные скобки, то есть есть ли организация.
+		$pos = mb_stripos($customer_name, '[');
+		if ($pos === false) {
+			// Это физическое лицо
+			foreach ($customer_name_split as $str) {
+				$str = trim($str);
+
+				// Пропускаем пустые, если между словами было больше одного пробела
+				if (empty($str))
+					continue;
+
+				// Если сайт работает на кодировке UTF-8
+				$str = mb_convert_case($str, MB_CASE_TITLE, "UTF-8");
+
+				$customer_info['customer'][] = $str;
+			}
+
+		} else {
+	 		// Это организация
+			$type = 'company';
+			foreach ($customer_name_split as $str) {
+				$str = trim($str);
+
+				if (mb_substr($str,0,1) == '[') {
+					$type = 'customer';
+					$str = str_replace('[','',$str);
+				}
+
+				if (mb_substr($str,-1,1) == ']') {
+					$str = str_replace(']','',$str);
+				}
+
+				// Пропускаем пустые, если между словами было больше одного пробела
+				if (empty($str))
+					continue;
+
+				if ($type == 'customer') {
+					// Если сайт работает на кодировке UTF-8
+					// Только для ФИО
+					$str = mb_convert_case($str, MB_CASE_TITLE, "UTF-8");
+					$customer_info[$type][] = $str;
+				} else {
+					$customer_info[$type] .= ' ' . $str;
+				}
+
+			}
+		}
+
+		$this->log($customer_info, 2);
+		return $customer_info;
+
+	} // parseCustomerStr()
+
+
+	/**
+	 * ver 6
+	 * update 2018-04-08
 	 * Контрагент
 	 * Получает ID покупателя и адреса
 	 */
 	private function parseDocumentCustomer($xml, &$doc) {
 
+		// Читаем контрагента, определим где организация а где контактное лицо
 		$this->log($xml, 2);
 
 		$doc['customer_id']	= 0;
 		$doc['address_id']	= 0;
 
 		$customer_guid = (string)$xml->Контрагент->Ид;
-		$customer_name	= trim((string)$xml->Контрагент->Наименование);
 
-		// Разделим ФИО слева и справа, если есть скобки, например: Афимов Валерий [Анфимов Валерий]
-		$matches = array();
-		$count = preg_match("/^(.*?)\s+\[(.*?)\]$/", $customer_name, $matches);
-		$this->log($count, 2);
-		$this->log($matches, 2);
-		$customer_name = $count ? $matches[1] : $customer_name;
-		$payment_name = $count ? $matches[2] : '';
+		// Определение типа покупателя: Организация или физ.лицо
+		if ($xml->Контрагент->ОфициальноеНаименование) {
+			$company_name = trim((string)$xml->Контрагент->ОфициальноеНаименование);
+			$company_inn = trim((string)$xml->Контрагент->ИНН);
 
-		$this->log($customer_name, 2);
-		$this->log($payment_name, 2);
+			$customer_type = (strlen($company_inn) == 12) ? 3 : 2;
 
-		// Разделим ФИО на Фаимилию Имя Отчетство
-		$customer_name_split	= explode(" ", $customer_name);
-		$this->log($customer_name_split,2);
-		$lastname				= isset($customer_name_split[0]) ? trim($customer_name_split[0]) : '';
-		$firstname				= isset($customer_name_split[1]) ? trim($customer_name_split[1]) : '';
-		$middlename				= isset($customer_name_split[2]) ? trim($customer_name_split[2]) : '';
-
-		if ($xml->ПолноеНаименование) {
-			// Тогда ФИО покупателя будет сначала а в квадратных скобках ФИО получателя в таблице address
-			// В квадратных скобках указывается если пользователь регистрировался на сайте.
-
-		}
-
-		// поиск покупателя по имени получателя
-		if (!$doc['customer_id']) {
-			$query = $this->query("SELECT `address_id`,`customer_id` FROM `" . DB_PREFIX . "address` WHERE `firstname` = '" . $this->db->escape($firstname) . "' AND `lastname` = '" . $this->db->escape($lastname) . "'");
+			// Поиск по организации по ИНН
+			$this->log("Поиск покупателя по организации: " . $company_name);
+			$query = $this->query("SELECT `customer_id` FROM `" . DB_PREFIX . "customer` WHERE `company_inn` = '" . $this->db->escape($company_inn) . "'");
 			if ($query->num_rows) {
+				$doc['company'] = $company_name;
+				$doc['payment_company'] = $company_name;
+				$doc['shipping_company'] = $company_name;
 				$doc['customer_id'] = $query->row['customer_id'];
-				$doc['address_id'] = $query->row['address_id'];
+
+				$query_address = $this->query("SELECT `address_id` FROM `" . DB_PREFIX . "address` WHERE `customer_id` = '" . (int)$doc['customer_id'] . "'");
+				if ($query_address->num_rows) {
+					$doc['address_id'] = $query_address->row['address_id'];
+				}
+			}
+
+			$this->log("В ПРОЦЕССЕ РЕАЛИЗАЦИИ");
+
+		} else {
+			if ($xml->Контрагент->ПолноеНаименование) {
+				// Тогда ФИО покупателя будет сначала а в квадратных скобках ФИО получателя в таблице address
+				// В квадратных скобках указывается если пользователь регистрировался на сайте.
+				$customer_info = $this->parseCustomerStr(trim((string)$xml->Контрагент->ПолноеНаименование));
+			} else {
+				$customer_info = $this->parseCustomerStr(trim((string)$xml->Контрагент->Наименование));
+			}
+
+			// Поиск по ФИО
+			$customer = $customer_info['customer'];
+
+			$customer_fullname	= implode(" ", $customer);
+			$this->log($customer_fullname, 2);
+			$lastname				= isset($customer[0]) ? trim($customer[0]) : '';
+			$firstname				= isset($customer[1]) ? trim($customer[1]) : '';
+			$middlename				= isset($customer[2]) ? trim($customer[2]) : '';
+
+			// поиск покупателя по ФИО получателя
+			if (!$doc['customer_id']) {
+				$query = $this->query("SELECT `address_id`,`customer_id` FROM `" . DB_PREFIX . "address` WHERE `firstname` = '" . $this->db->escape($firstname) . "' AND `lastname` = '" . $this->db->escape($lastname) . "'");
+				if ($query->num_rows) {
+					$doc['customer_id'] = $query->row['customer_id'];
+					$doc['address_id'] = $query->row['address_id'];
+				}
+			}
+
+			// поиск покупателя ФИО
+			if (!$doc['customer_id']) {
+				$query = $this->query("SELECT `customer_id` FROM `" . DB_PREFIX . "customer` WHERE `firstname` = '" . $this->db->escape($firstname) . "' AND `lastname` = '" . $this->db->escape($lastname) . "' AND `middlename` = '" . $this->db->escape($middlename) . "'");
+				if ($query->num_rows) {
+					$doc['customer_id'] = $query->row['customer_id'];
+				}
 			}
 		}
 
-		// поиск покупателя по имени
 		if (!$doc['customer_id']) {
-			$query = $this->query("SELECT `customer_id` FROM `" . DB_PREFIX . "customer` WHERE `firstname` = '" . $this->db->escape($firstname) . "' AND `lastname` = '" . $this->db->escape($lastname) . "' AND `middlename` = '" . $this->db->escape($middlename) . "'");
-			if ($query->num_rows) {
-				$doc['customer_id'] = $query->row['customer_id'];
-			}
-		}
-
-		if (!$doc['customer_id']) {
-			$this->errorLog(2202, $customer_name);
+			$this->errorLog(2202);
 			return false;
 		}
-
 		$this->log("Покупатель в документе прочитан",2);
 		return true;
 
@@ -8778,6 +9065,8 @@ class ModelExtensionExchange1c extends Model {
 		$this->updateDocument($doc, $order, $products);
 		if ($this->ERROR) return;
 
+   		//$this->errorLog(5000);
+
 		$this->log("[i] Прочитан документ: Заказ #" . $order_id . ", Ид '" . $order_guid . "'");
 
 		return true;
@@ -8991,6 +9280,14 @@ class ModelExtensionExchange1c extends Model {
 	   			$message .= "Успешно обновлено до версии " . $version;
 			}
 		}
+		if ($version == "1.6.4.2") {
+			$success = $this->update_1_6_4_3();
+	        if ($this->ERROR) return false;
+	   		if ($success) {
+	   			$version = "1.6.4.3";
+	   			$message .= "Успешно обновлено до версии " . $version;
+			}
+		}
 
 		if ($version != $settings['exchange1c_version']) {
 			//$this->setEvents();
@@ -9022,7 +9319,25 @@ class ModelExtensionExchange1c extends Model {
 
 		return true;
 
-	} // checkUpdates()
+	} // update_1_6_4_2()
+
+
+	/**
+	 * Обновление до версии 1.6.4.3
+	 */
+	private function update_1_6_4_3() {
+
+		 // Увеличим строку так как некоторые организации имеют длинное наименование
+		$result = $this->db->query("ALTER TABLE  `" . DB_PREFIX . "address` CHANGE `company` `company` VARCHAR(128)");
+		if (!$result) {
+			$this->ERROR = 4001;
+			$this->log("Error change field 'company' to table 'address'");
+			return false;
+		}
+
+		return true;
+
+	} // update_1_6_4_2()
 
 
 }
