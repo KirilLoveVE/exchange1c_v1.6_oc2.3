@@ -1,6 +1,6 @@
 <modification>
 	<name>Exchange1C Module for OpenCart 2.3</name>
-	<version>1.6.4.1_oc2.3</version>
+	<version>1.6.4.4_oc2.3</version>
 	<id>OpenCart Exchange1C</id> 
 	<author>KirilLoveVE</author>
 	<link>https://github.com/KirilLoveVE/opencart2-exchange1c</link>
@@ -18,84 +18,23 @@
 ]]></add>
 		</operation>
 	</file>
-
-	<file path="catalog/language/ru-ru/account/order.php">
+	<file path="admin/model/sale/order.php">
 		<operation>
-			<search><![CDATA[$_['column_price']          = 'Цена';]]></search>
-			<add position="before"><![CDATA[$_['column_unit']           = 'Единица';]]></add>
+			<search><![CDATA['lastname'                => $order_query->row['lastname'],]]></search>
+			<add position="after"><![CDATA[				'middlename'              => $order_query->row['middlename'],]]></add>
 		</operation>
 	</file>
-
-  	<file path="system/library/cart/cart.php">
+	<file path="admin/controller/sale/order.php">
 		<operation>
-			<search><![CDATA[$price = $product_query->row['price'];]]></search>
-			<add position="replace"><![CDATA[// +++ TESLA-CHITA
-				//-$price = $product_query->row['price'];
-				$cart_option = json_decode($cart['option']);
-				$product_feature_id = $this->getProductFeatureId($cart_option);
-				if ($product_feature_id) {
-					$customer_group_id = $this->customer->isLogged()? $this->customer->getGroupId() : $this->config->get('config_customer_group_id');
-					$price = $this->getProductFeaturesPrice($cart['product_id'], $product_feature_id, $customer_group_id);
-				} else {
-					$price = $product_query->row['price'];
-				}
-				// --- TESLA-CHITA]]></add>
-		</operation>
-
-	  	<operation>
-			<search><![CDATA[	public function getProducts() {]]></search>
-			<add position="before"><![CDATA[	// +++ TESLA-CHITA
-	private function getProductFeaturesPrice($product_id, $product_feature_id, $customer_group_id=0, $unit_id=0) {
-		$str_customer_group_id  = $customer_group_id ? " AND customer_group_id = " . $customer_group_id : "";
-		$sql = "SELECT price FROM " . DB_PREFIX . "product_price WHERE product_id = " . $product_id . " AND product_feature_id = " . $product_feature_id . $str_customer_group_id;
-  		$query = $this->db->query($sql);
-
-		if ($query->num_rows == 1) {
-			return $query->row['price'];
-		} else {
-			return 0;
-		}
-	}
-
-	private function getProductFeatureId($options) {
-		$where = "";
-		foreach ($options as $product_option_value_id) {
-			$where .= $where ? ",".$product_option_value_id : $product_option_value_id;
-		}
-		if (!$where)
-			return 0;
-
-		$sql = "SELECT product_feature_id FROM " . DB_PREFIX . "product_feature_value WHERE product_option_value_id IN (" . $where . ") GROUP BY product_feature_id";
-		$query = $this->db->query($sql);
-
-		if ($query->num_rows == 1) {
-			return $query->row['product_feature_id'];
-		}
-		return 0;
-	}
-	// --- TESLA-CHITA
-
-]]></add>
-		</operation>
-
-	  	<operation>
-			<search><![CDATA[if ($option_value_query->row['price_prefix'] == '+') {]]></search>
-			<add position="replace"><![CDATA[if ($option_value_query->row['price_prefix'] == 'off+') {]]></add>
-		</operation>
-  
-	  	<operation>
-			<search><![CDATA[} elseif ($option_value_query->row['price_prefix'] == '-') {]]></search>
-			<add position="replace"><![CDATA[} elseif ($option_value_query->row['price_prefix'] == 'off-') {]]></add>
-		</operation>
-
-	</file>
-
-	<file path="system/library/cart/tax.php">
-		<operation>
-			<search><![CDATA[if ($tax_class_id && $calculate) {]]></search>
-			<add position="replace"><![CDATA[if ($tax_class_id && $calculate && $value > 0) {]]></add>
+			<search><![CDATA[$data['lastname'] = $order_info['lastname'];]]></search>
+			<add position="after"><![CDATA[			$data['middlename'] = $order_info['middlename'];]]></add>
 		</operation>
 	</file>
-
+	<file path="admin/view/template/sale/order_info.tpl">
+		<operation>
+			<search><![CDATA[<?php echo $firstname; ?> <?php echo $lastname; ?>]]></search>
+			<add position="replace"><![CDATA[<?php echo $firstname; ?> <?php echo $lastname; ?>  <?php echo $middlename; ?>]]></add>
+		</operation>
+	</file>
 
 </modification>
