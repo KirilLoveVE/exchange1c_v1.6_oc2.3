@@ -1,18 +1,5 @@
 <?php
 
-// Принудительное использование HTTP авторизации, если она отключена на сервере
-if (!isset($_SERVER['PHP_AUTH_USER'])) {
-	$remote_user = isset($_SERVER["REMOTE_USER"]) ? $_SERVER["REMOTE_USER"] : (isset($_SERVER["REDIRECT_REMOTE_USER"]) ? $_SERVER["REDIRECT_REMOTE_USER"] : "");
-	$strTmp = base64_decode(substr($remote_user,6));
-	if ($strTmp) {
-		list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', $strTmp);
-	}
-}
-
-// В .htaccess надо добавить строчки после RewriteEngine On:
-// RewriteCond %{HTTP:Authorization} ^Basic.*
-// RewriteRule .* - [E=REMOTE_USER:%{HTTP:Authorization},L]
-
 // Configuration
 require_once('../admin/config.php');
 
@@ -74,8 +61,12 @@ if ($config->get('exchange1c_log_filename')) {
 }
 $registry->set('log', $log);
 
+// ДЛЯ ОТЛАДКИ АВТОРИЗАЦИИ
+//$server_info = print_r($_SERVER, true);
+//$log->write($server_info);
+
 // Используются только для отладки (начало)
-$log->write("Client IP address: " . $_SERVER['REMOTE_ADDR']);
+//$log->write("Client IP address: " . $_SERVER['REMOTE_ADDR']);
 //if (isset($remote_user))
 //	$log->write("remote_user: " . $remote_user);
 //
@@ -250,6 +241,10 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 			$action = new Action('extension/module/exchange1c/modeImport');
 		break;
 
+		case 'info':
+			$action = new Action('extension/module/exchange1c/modeInfo');
+		break;
+
 		case 'success':
 			$action = new Action('extension/module/exchange1c/modeOrdersChangeStatus');
 		break;
@@ -277,12 +272,7 @@ if (isset($request->get['mode']) && $request->get['type'] == 'catalog') {
 	}
 
 
-} else {
-	echo "success\n<br>";
-//	exit;
-}
-
-if (isset($request->get['module'])) {
+} elseif (isset($request->get['module'])) {
 	switch ($request->get['module']) {
 		case 'export':
 			$action = new Action('extension/module/exchange1c/modeExportModule');
@@ -292,11 +282,19 @@ if (isset($request->get['module'])) {
 			$action = new Action('extension/module/exchange1c/modeRemoveModule');
 		break;
 
+		case 'cronImport':
+			$action = new Action('extension/module/exchange1c/cronImport');
+		break;
+
 		default:
-			echo "available: module=export, module=remove";
+			echo "available: module=export, module=remove, module=cronImport";
 	}
 
+} else {
+	echo "success\n<br>";
+//	exit;
 }
+
 
 // Dispatch
 if (isset($action)) {

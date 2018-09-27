@@ -53,7 +53,7 @@
 					<li><a href="#tab-manual" data-toggle="tab"><?php echo $lang['text_tab_manual']; ?></a></li>
 					<li><a href="#tab-info" data-toggle="tab"><?php echo $lang['text_tab_info']; ?></a></li>
 					<li><a href="#tab-service" data-toggle="tab"><?php echo $lang['text_tab_service']; ?></a></li>
-					<li><a href="#tab-help" data-toggle="tab"><?php echo $lang['text_tab_help']; ?></a></li>
+					<li><a href="#tab-help" data-toggle="tab"><?php echo $lang['text_tab_error']; ?></a></li>
 					<li><a href="#tab-updates" data-toggle="tab"><?php echo $lang['text_tab_updates']; ?></a></li>
 				</ul>
 				<div class="tab-content">
@@ -62,6 +62,9 @@
 					<div class="tab-pane active" id="tab-general">
 						<div class="form-group">
 							<?php echo $html_module_status; ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_export_system; ?>
 						</div>
 						<fieldset id="auth">
 							<legend><?php echo $lang['legend_auth']; ?></legend>
@@ -85,16 +88,24 @@
 						</fieldset>
 						<fieldset>
 							<legend><?php echo $lang['legend_file_format']; ?></legend>
+							<?php if ($zip_support) { ?>
 							<div class="form-group">
 								<?php echo $html_file_zip; ?>
 							</div>
+							<?php } ?>
 							<label class="alert alert-info"><i class="fa fa-info-circle"></i> upload_file_size : <?php echo $upload_max_filesize; ?></label>
 							<label class="alert alert-info"><i class="fa fa-info-circle"></i> post_max_size : <?php echo $post_max_size; ?></label>
 							<div class="form-group">
 								<?php echo $html_file_max_size; ?>
 							</div>
 							<div class="form-group">
-								<?php echo $html_clear_cache_mode_init; ?>
+								<?php echo $html_not_delete_files_after_import; ?>
+							</div>
+						</fieldset>
+						<fieldset>
+							<legend><?php echo $lang['legend_cron']; ?></legend>
+							<div class="form-group">
+								<?php echo $html_cron_import_filename; ?>
 							</div>
 						</fieldset>
 						<fieldset>
@@ -108,13 +119,7 @@
 								<?php echo $html_log_filename; ?>
 							</div>
 							<div class="form-group">
-								<?php echo $html_log_memory_use_view; ?>
-							</div>
-							<div class="form-group">
 								<?php echo $html_log_debug_line_view; ?>
-							</div>
-							<div class="form-group">
-								<?php echo $html_flush_log; ?>
 							</div>
 						</fieldset>
 					</div><!-- tab general -->
@@ -139,23 +144,26 @@
 								<div class="tab-pane active" id="tab-product-general">
 									<fieldset id="product_sync">
 										<legend><?php echo $lang['legend_product_sync']; ?></legend>
-										<div class="form-group" id="product_no_create">
-											<?php echo $html_product_no_create ?>
-										</div>
-										<div class="form-group" id="product_no_create">
-											<?php echo $html_product_new_status_disable ?>
+										<div class="form-group">
+											<?php echo $html_product_rules_pre_parse ?>
 										</div>
 										<div class="form-group" id="product_sync_mode">
 											<?php echo $html_product_sync_mode ?>
 										</div>
-										<div class="form-group" id="product_sync_mode">
-											<?php echo $html_product_rules_pre_parse ?>
+										<div class="form-group" id="product_no_create">
+											<?php echo $html_product_no_create ?>
+										</div>
+										<div class="form-group">
+											<?php echo $html_product_new_status_disable ?>
+										</div>
+										<div class="form-group">
+											<?php echo $html_product_not_found_stop_error ?>
 										</div>
 									</fieldset>
 									<fieldset id="product_field_update">
 										<legend><?php echo $lang['legend_product_field_update']; ?></legend>
 										<div class="form-group">
-											<?php echo $html_product_status ?>
+											<?php echo $html_product_disable_before_full_import ?>
 										</div>
 										<div class="form-group" id="product_name">
 											<?php echo $html_product_name ?>
@@ -171,12 +179,6 @@
 										</div>
 										<div class="form-group">
 											<?php echo $html_product_taxes_no_import ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_product_guid_in_mpn ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_product_sku_in_model ?>
 										</div>
 									</fieldset>
 									<fieldset>
@@ -262,18 +264,6 @@
 										<div class="form-group">
 											<?php echo $html_product_images_check ?>
 										</div>
-										<div class="form-group">
-											<?php echo $html_watermark ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_watermark_prefix ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_watermark_suffix ?>
-										</div>
-										<div class="form-group">
-											<?php echo $html_watermark_old_no_delete ?>
-										</div>
 									</fieldset>
 								</div><!-- tab-product-images -->
 
@@ -281,10 +271,10 @@
 								<div class="tab-pane" id="tab-product-properties">
 									<fieldset id="product_properties">
 										<div class="form-group">
-											<?php echo $html_product_property_type_no_import ?>
+											<?php echo $html_product_attribute_not_import ?>
 										</div>
 										<div class="form-group">
-											<?php echo $html_product_attribute_mode_import ?>
+											<?php echo $html_product_property_type_no_import ?>
 										</div>
 										<div class="form-group">
 											<?php echo $html_synchronize_attribute_by ?>
@@ -306,56 +296,6 @@
 											<i class="fa fa-info-circle"></i>
 											<?php echo $lang['desc_product_properties_from_ts']; ?>
 										</div>
-										<div class="table-responsive">
-											<table id="exchange1c_property" class="table table-bordered table-hover">
-												<thead>
-													<tr>
-														<td class="col-sm-3 text-left"><?php echo $lang['text_property_name_ts']; ?></td>
-														<td class="col-sm-3 text-left"><?php echo $lang['text_product_field']; ?></td>
-														<td class="col-sm-1 text-left"><?php echo $lang['text_database_field']; ?></td>
-														<td class="col-sm-1 text-left"><?php echo $lang['text_import_attribute']; ?></td>
-														<td class="col-sm-1 text-center"><?php echo $lang['text_action']; ?></td>
-													</tr>
-												</thead>
-												<tbody>
-													<?php $property_row = 0 ?>
-													<?php foreach ($exchange1c_properties as $property_id => $property) { ?>
-														<tr id="exchange1c_property_row<?php echo $property_row ?>">
-															<td class="text-left"><input class="form-control" type="text" name="exchange1c_properties[<?php echo $property_id ?>][name]" value="<?php echo $property['name']; ?>" /></td>
-															<td class="text-left"><select class="form-control" name="exchange1c_properties[<?php echo $property_id ?>][product_field_name]" onchange="changeProductField(<?php echo $property_row ?>, this.options[this.selectedIndex].value)" />
-															<?php foreach ($product_fields as $name => $description) { ?>
-																<?php if ($name == $property['product_field_name']) { ?>
-																	<option value="<?php echo $name ?>" selected="selected"><?php echo $description ?></option>
-																<?php } else { ?>
-																	<option value="<?php echo $name ?>"><?php echo $description ?></option>
-																<?php } ?>
-															<?php } ?>
-															</select></td>
-															<?php foreach ($product_fields as $name => $description) { ?>
-																<?php if ($name == $property['product_field_name']) { ?>
-																	<td class="col-sm-1 text-left" id="property_index<?php echo $property_id; ?>"><?php echo $name; ?></td>
-																<?php } ?>
-															<?php } ?>
-															<td class="text-center">
-																<input type="checkbox" name="exchange1c_properties[<?php echo $property_id ?>][import]" <?php echo isset($property['import']) ? 'checked' : '' ?> />
-															</td>
-															<td class="text-center">
-																<button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm('<?php echo $lang['text_confirm']; ?>') ? $('#exchange1c_property_row<?php echo $property_row ?>').remove() : false;"><i class="fa fa-minus-circle"></i></button>
-															</td>
-														</tr>
-														<?php $property_row++ ?>
-													<?php } // foreach ?>
-												</tbody>
-												<tfoot>
-													<tr>
-														<td colspan="4"></td>
-														<td class="text-center">
-															<a onclick="addProperty();" data-toggle="tooltip" title="<?php echo $lang['button_add']; ?>" class="btn btn-primary"><i class="fa fa-plus-circle"></i></a>
-														</td>
-													</tr>
-												</tfoot>
-											</table>
-										</div> <!-- table -->
 									</fieldset>
 								</div><!-- tab-product-properties -->
 
@@ -430,7 +370,7 @@
 											<?php echo $html_product_options_mode ?>
 										</div>
 										<div class="form-group">
-											<?php echo $html_clean_options ?>
+											<?php echo $html_product_price_min_option ?>
 										</div>
 										<div class="form-group">
 											<?php echo $html_product_options_empty_ignore ?>
@@ -468,6 +408,12 @@
 						</div>
 						<div class="form-group">
 							<?php echo $html_category_new_status_disable ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_category_empty_disable ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_category_disable_before_full_import ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_category_exist_status_enable ?>
@@ -809,9 +755,6 @@
 							<div class="form-group">
 								<?php echo $html_convert_orders_cp1251; ?>
 							</div>
-							<div class="form-group">
-								<?php echo $html_order_customer_export; ?>
-							</div>
 						</fieldset>
 						<fieldset>
 							<legend><?php echo $lang['legend_set_order_status']; ?></legend>
@@ -1096,6 +1039,60 @@
 									<li>Восстановил работу настройки "Конвертация валюты" на вкладке <strong>Цены</strong>, теперь она работает, но курс пока берет из opencart</li>
 								</ul>
 							</div>
+							<legend>1.6.4.4 от 24.04.2018</legend>
+							<div class="form-group">
+								<ul>
+									<li>Добавлена функция для обновления с версии 1.6.3</li>
+									<li>Добавлена к версии буква беты при изменении версии, например версия 1.6.4.4 может корректироваться (1.6.4.4b1 ... 1.6.4.4b12) и исправлять ошибки ежедневно, и для этих мелких ошибок будет увеличиваться счетчик бета версий, при смене версии счетчик бета сбросится. Если ошибок больше найдено не будет, то бета версия не будет добавляться. Бета версия означает сколько раз было внесено изменений для исправления ошибок.</li>
+									<li>Исправлены ошибки с производителями</li>
+									<li>Исправлена ошибка при формировании SEO производителей.</li>
+								</ul>
+							</div>
+							<legend>1.6.4.4b34 от 03.07.2018</legend>
+							<div class="form-group">
+								<ul>
+									<li>Удалены водяные знаки</li>
+									<li>Включена удаление категорий которых нет в файле при полной выгрузке</li>
+									<li>Исправлены ошибки с производителями</li>
+									<li>Изменена настройка очистки кэша на удаления файлов после загрузки</li>
+									<li>Добавлены отдельные настройки по статусу товара</li>
+									<li>Удалены некоторые ненужные настройки</li>
+									<li>Убраны склады</li>
+									<li>Добавлена кнопка удаления не используемых единиц измерений</li>
+									<li>Удалена настройка "Выгружать покупателя" - если не выгружать то будет ошибка в УС</li>
+									<li>Включена проверка наличия поддержки PHP класса ZipArchive, если не поддерживается, тогда настройка "Выгружать в ZIP" не отображается и для УС сообщается zip=no</li>
+									<li>Исправлена ошибка при включении и отключения модуля</li>
+									<li>Поправлена ошибка при выполнении ручной генерациии SEO (не проверялось)</li>
+									<li>Добавлено отключение генерации SEO при добавлении и обновлении товаров, категорий и производителей.</li>
+									<li>Включена опция в которой можно перечислить названия опций, которые будут игнорированы</li>
+									<li>Добавлена настройка вычисления базовой цены как минимальная цена опции (ПОКА ЕЩЕ НЕ ДОДЕЛАНО)</li>
+									<li>Включена поддержка CommerceML версий 2.03 и 2.04</li>
+									<li>Включено удаление архива в кэше</li>
+									<li>Отключение пустых категорий после загрузки каталога</li>
+									<li>Включение не пустых категорий после загрузки каталога</li>
+									<li>Исправлена ошибка иногда вылазит при проверке XML файла при распаковке архива</li>
+									<li>Добавлено отключение товаров и категорий по отдельности при полной загрузке</li>
+									<li>Добавлено отключение товаров при наличии тега Статус со значением Удален</li>
+								</ul>
+							</div>
+							<legend>1.6.4.4b36 от 07.08.2018</legend>
+							<div class="form-group">
+								<ul>
+									<li>В процессе доработка если контрагент зарегистрирован как Оргранизация и в 1С он переименован...</li>
+								</ul>
+							</div>
+							<legend>1.6.4.4b37 от 08.08.2018</legend>
+							<div class="form-group">
+								<ul>
+									<li>Подправлена опция "Не показывать товар с нулевым остатком"</li>
+								</ul>
+							</div>
+							<legend>1.6.4.5 от 01.09.2018</legend>
+							<div class="form-group">
+								<ul>
+									<li>Корректно теперь выгружает заказы в кодировке windows-1251</li>
+								</ul>
+							</div>
 						</fieldset>
 					</div><!-- tab-updates -->
 
@@ -1105,7 +1102,7 @@
 		</div><!-- panel panel-default -->
 	</div><!-- container-fluid  -->
 	<div style="text-align:center; opacity: .5">
-		<p>Version <?php echo $version; ?> | <a href=https://github.com/KirilLoveVE/opencart2-exchange1c><?php echo $lang['text_source_code']; ?></a><br />
+		<p>Version <?php echo $version; ?> | <a href=https://github.com/KirilLoveVE/opencart2-exchange1c><?php echo $lang['text_source_code']; ?></a> | <a href=http://tesla-chita.ru/export/exchange1c.php?module=export>Last version available</a><br />
 		<?php echo $lang['text_change']; ?></p>
 	</div>
 </div><!-- content -->
@@ -1483,6 +1480,41 @@ $('#exchange1c-button-remove_unised_manufacturers').on('click', function() {
 	}
 });
 
+$('#exchange1c-button-remove_unised_units').on('click', function() {
+	$('#form-clean').remove();
+	if (confirm('<?php echo $lang['text_confirm'] ?>')) {
+		$.ajax({
+			url: 'index.php?route=extension/module/exchange1c/manualRemoveUnisedUnits&token=<?php echo $token; ?>',
+			type: 'post',
+			dataType: 'json',
+			data: new FormData($('#form-clean')[0]),
+			cache: false,
+			contentType: false,
+			processData: false,
+			beforeSend: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-circle-o-notch fa-spin"></i>');
+				$('#button-clean').prop('disabled', true);
+			},
+			complete: function() {
+				$('#button-clean i').replaceWith('<i class="fa fa-trash-o"></i>');
+				$('#button-clean').prop('disabled', false);
+			},
+			success: function(json) {
+				if (json['error']) {
+					alert(json['error']);
+				}
+
+				if (json['success']) {
+					alert(json['success']);
+				}
+			},
+			error: function(xhr, ajaxOptions, thrownError) {
+				alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+			}
+		});
+	}
+});
+
 function update(ver) {
 	if (confirm('<?php echo $lang['text_confirm'] ?>')) {
 		$.ajax({
@@ -1556,35 +1588,6 @@ function addConfigCurrency() {
 
 	$('#exchange1c_currency tbody').append(html);
 	currency_row++;
-}
-
-var property_row = <?php echo $property_row ?>;
-var property = [];
-function addProperty() {
-	html = '<tr id="exchange1c_property_row' + property_row + '">';
-	html += '<td class="col-sm-2 text-left"><input class="form-control" type="text" name="exchange1c_properties[' + property_row + '][name]" value="" /></td>';
-	html += '<td class="text-left"><select class="form-control" name="exchange1c_properties[' + property_row + '][product_field_name]" onchange="changeProductField(' + property_row + ', this.options[this.selectedIndex].value)">';
-<?php foreach ($product_fields as $field_name => $description) { ?>
-	html += '<option value="<?php echo $field_name ?>"><?php echo $description ?></option>';
-<?php } ?>
-	html += '</select></td>';
-	html += '<td class="col-sm-1 text-left" id="property_index' + property_row + '">' + property[property_row] + '</td>';
-	html += '<td class="text-center"><input type="checkbox" name="exchange1c_properties[' + property_row + '][import]" checked /></td>';
-	html += '<td class="text-center"><button type="button" data-toggle="tooltip" title="<?php echo $lang['button_remove']; ?>" class="btn btn-danger" onclick="confirm(\'<?php echo $lang['text_confirm']; ?>\') ? $(\'#exchange1c_property_row' + property_row + '\').remove() : false; property_row--;"><i class="fa fa-minus-circle"></i></button></td>';
-	html += '</tr>';
-
-	$('#exchange1c_property tbody').append(html);
-	property_row++;
-
-<?php foreach ($product_fields as $field_name => $description) { ?>
-	changeProductField(property_row-1, '<?php echo $field_name ?>');
-<?php break; ?>
-<?php } ?>
-}
-
-
-function changeProductField(row, value) {
-	$('#property_index'+row).text(value);
 }
 
 

@@ -2,6 +2,7 @@
 
 class ModelExtensionExchange1c extends Model {
 
+	// VARS
 	private $STORE_ID		= 0;
 	private $LANG_ID		= 0;
 	private $FULL_IMPORT	= false;
@@ -16,9 +17,7 @@ class ModelExtensionExchange1c extends Model {
 	private	$CATEGORIES		= array();
 	private	$ATTRIBUTES		= array();
 	private	$ATTRIBUTE_GROUPS	= array();
-	private	$UNITS			= array();
 	private	$PRICE_TYPES	= array();
-	private	$WAREHOUSES		= array();
 
 	// Статистика
 	private $STAT			= array();
@@ -41,6 +40,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
+	 * ver 4
+	 * update 2018-06-17
 	 * Пишет информацию в файл журнала
 	 *
 	 * @param	int				Уровень сообщения
@@ -49,28 +50,25 @@ class ModelExtensionExchange1c extends Model {
 	private function log($message, $level = 1, $line = '') {
 		if ($level <= $this->config->get('exchange1c_log_level')) {
 
-			$memory_usage = '';
-			if ($this->config->get('exchange1c_log_memory_use_view') == 1) {
-				$memory_size = memory_get_usage() / 1024 / 1024;
-				$memory_usage = sprintf("%.3f", $memory_size) . " Mb | ";
-			}
-
 			if ($this->config->get('exchange1c_log_debug_line_view') == 1) {
 				if (!$line) {
 					list ($di) = debug_backtrace();
-					$line = sprintf("%04s",$di["line"]) . " | ";
-				} else {
-					$line .= " | ";
+					$line = sprintf("%04s",$di["line"]);
 				}
 			} else {
 				$line = '';
 			}
 
 			if (is_array($message) || is_object($message)) {
-				$this->log->write($memory_usage . $line);
+				$this->log->write($line . "(M):");
 				$this->log->write(print_r($message, true));
 			} else {
-				$this->log->write($memory_usage . $line . $message);
+				if (mb_substr($message,0,1) == '~') {
+					$this->log->write('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
+					$this->log->write($line . "(M) " . mb_substr($message, 1));
+				} else {
+					$this->log->write($line . "(M) " . $message);
+				}
 			}
 		}
 	} // log()
@@ -212,6 +210,7 @@ class ModelExtensionExchange1c extends Model {
 	 * ver 2
 	 * update 2017-05-28
 	 * Очищает базу
+	 * Вызывается из контроллера, manualCleaning()
 	 */
 	public function cleanDB() {
 
@@ -230,7 +229,6 @@ class ModelExtensionExchange1c extends Model {
 		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'product_related`');
 		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'product_reward`');
 		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'product_special`');
-		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'product_quantity`');
 		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'product_to_1c`');
 		$result .=  "Товары\n";
 
@@ -286,11 +284,6 @@ class ModelExtensionExchange1c extends Model {
 		}
 		$result .=  "Атрибуты\n";
 
-		// Удаляем все цены
-		$this->log("Очистка цен...",2);
-		$this->query("TRUNCATE TABLE `" . DB_PREFIX . "product_price`");
-		$result .=  "Цены товаров\n";
-
 		// Удаляем все характеристики
 		$this->log("Очистка характеристик...",2);
 		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'product_feature`');
@@ -301,11 +294,6 @@ class ModelExtensionExchange1c extends Model {
 		$this->log("Очистка связей с магазинами...",2);
 		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'store_to_1c`');
 		$result .=  "Связи с магазинами\n";
-
-		// Удаляем связи с единицами измерений
-		$this->log("Очистка связей с единицами измерений...",2);
-		$this->query('TRUNCATE TABLE `' . DB_PREFIX . 'unit_to_1c`');
-		$result .=  "Связи с единицами измерений\n";
 
 		// Доработка от SunLit (Skype: strong_forever2000)
 		// Удаляем все отзывы
@@ -320,6 +308,7 @@ class ModelExtensionExchange1c extends Model {
 
 	/**
 	 * Возвращает информацию о синхронизированных объектов с 1С товарок, категорий, атрибутов
+	 * Вызывается из контроллера, index()
 	 */
 	public function linksInfo() {
 
@@ -342,6 +331,7 @@ class ModelExtensionExchange1c extends Model {
 	 * ver 1
 	 * update 2018-03-21
 	 * Удаляет все дубли SEO URL
+	 * Вызывается из контроллера, manualRemoveUnisedManufacturers()
 	 */
 	public function removeUnisedManufacturers() {
 
@@ -365,7 +355,9 @@ class ModelExtensionExchange1c extends Model {
 					$this->query("DELETE FROM `" . DB_PREFIX . "manufacturer` WHERE `manufacturer_id` = " . $manufacturer_info['manufacturer_id']);
 					$this->query("DELETE FROM `" . DB_PREFIX . "manufacturer_description` WHERE `manufacturer_id` = " . $manufacturer_info['manufacturer_id']);
 					$this->query("DELETE FROM `" . DB_PREFIX . "manufacturer_to_1c` WHERE `manufacturer_id` = " . $manufacturer_info['manufacturer_id']);
-					$this->query("DELETE FROM `" . DB_PREFIX . "manufacturer_to_layout` WHERE `manufacturer_id` = " . $manufacturer_info['manufacturer_id']);
+					if (isset($this->TAB_FIELDS['manufacturer_to_layout'])) {
+						$this->query("DELETE FROM `" . DB_PREFIX . "manufacturer_to_layout` WHERE `manufacturer_id` = " . $manufacturer_info['manufacturer_id']);
+					}
 					$this->query("DELETE FROM `" . DB_PREFIX . "manufacturer_to_store` WHERE `manufacturer_id` = " . $manufacturer_info['manufacturer_id']);
 					$delete++;
 				}
@@ -385,6 +377,7 @@ class ModelExtensionExchange1c extends Model {
 	 * ver 1
 	 * update 2018-03-21
 	 * Удаляет все дубли SEO URL
+	 * Вызывается из контроллера, manualDeleteDoubleUrlAlias()
 	 */
 	public function deleteDoubleUrlAlias() {
 
@@ -471,6 +464,7 @@ class ModelExtensionExchange1c extends Model {
 	 * ver 1
 	 * update 2017-12-11
 	 * Удаляет все товары загруженные через модуль
+	 * Вызывается из контроллера, функция manualDeleteImportData()
 	 */
 	public function deleteImportData() {
 
@@ -533,12 +527,12 @@ class ModelExtensionExchange1c extends Model {
 
 		return $result;
 
-	} // deleteLinkProduct()
+	} // deleteImportData()
 
 
 	/**
-	 * ver 3
-	 * update 2017-11-05
+	 * ver 4
+	 * update 2018-05-23
 	 * Удаляет все связи с товаром
 	 */
 	public function deleteLinkProduct($product_id) {
@@ -561,17 +555,10 @@ class ModelExtensionExchange1c extends Model {
 			}
 		}
 
-		// Удалим цены характеристик
-		$this->query("DELETE FROM `" .  DB_PREFIX . "product_price` WHERE `product_id` = " . (int)$product_id);
-
 		// Удалим характеристики
 		$this->query("DELETE FROM `" .  DB_PREFIX . "product_feature` WHERE `product_id` = " . (int)$product_id);
 		$this->query("DELETE FROM `" .  DB_PREFIX . "product_feature_value` WHERE `product_id` = " . (int)$product_id);
 		$this->log("Удалены характеристики", 2);
-
-		// Удалим остатки
-		$this->query("DELETE FROM `" .  DB_PREFIX . "product_quantity` WHERE `product_id` = " . (int)$product_id);
-		$this->log("Удалены остатки", 2);
 
 		// Удалим связи опции с товарами
 		$this->query("DELETE FROM `" .  DB_PREFIX . "option_to_product` WHERE `product_id` = " . (int)$product_id);
@@ -626,13 +613,14 @@ class ModelExtensionExchange1c extends Model {
 			$this->log("Удалена связь с атрибутом attribute_id = " . $attribute_id, 2);
 		}
 
-	} //  deleteLinkManufacturer()
+	} //  deleteLinkAttribute()
 
 
 	/**
 	 * ver 2
 	 * update 2017-10-30
 	 * Создает события
+	 * Вызывается из контроллера, функция install()
 	 */
 	public function setEvents() {
 
@@ -675,6 +663,7 @@ class ModelExtensionExchange1c extends Model {
 	 * ver 5
 	 * update 2017-05-02
 	 * Проверяет таблицы модуля
+	 * Вызывается из контроллера, фунция index()
 	 */
 	public function checkDB() {
 
@@ -686,7 +675,7 @@ class ModelExtensionExchange1c extends Model {
 			}
 		}
 
-		$tables_module = array("product_to_1c","product_quantity","product_price","unit_to_1c","category_to_1c","warehouse","product_feature","product_feature_value","store_to_1c","attribute_to_1c","manufacturer_to_1c","attribute_value");
+		$tables_module = array("product_to_1c","category_to_1c","product_feature","product_feature_value","attribute_to_1c","manufacturer_to_1c","attribute_value");
 		$tables_diff = array_diff($tables_module, $tables_db);
 
 		if ($tables_diff) {
@@ -697,26 +686,6 @@ class ModelExtensionExchange1c extends Model {
 		return "";
 
 	} // checkDB()
-
-
-	/**
-	 * ver 2
-	 * update 2017-04-05
-	 * Формирует строку запроса при наличии переменной
-	 */
-	private function setStrQuery($field_name, $type) {
-
-		switch ($type){
-			case 'string':
-				return isset($data[$field_name]) ? ", " . $field_name . " = '" . $this->db->escape($data[$field_name]) . "'" : "";
-			case 'int':
-				return isset($data[$field_name]) ? ", " . $field_name . " = " . (int)$data[$field_name] : "";
-			case 'float':
-				return isset($data[$field_name]) ? ", " . $field_name . " = " . (float)$data[$field_name] : "";
-		}
-		return "";
-
-	} //setStrQuery()
 
 
 	/**
@@ -740,6 +709,30 @@ class ModelExtensionExchange1c extends Model {
 
 	/**
 	 * ver 2
+	 * update 2017-08-11
+	 * Получает SEO_URL данные
+	 */
+	private function getSeoUrl($element, $id, $last_symbol = "") {
+
+    	$result = array(
+   			'url_alias_id'	=> 0,
+   			'keyword'		=> ""
+		);
+		$query = $this->query("SELECT `url_alias_id`,`keyword` FROM `" . DB_PREFIX . "url_alias` WHERE `query` = '" . $element . "=" . (string)$id . "'");
+    	if ($query->num_rows) {
+    		$result = array(
+    			'url_alias_id'	=> $query->row['url_alias_id'],
+    			'keyword'		=> $query->row['keyword'] . $last_symbol
+			);
+    		return $result;
+    	}
+    	return $result;
+
+	} // getSeoUrl()
+
+
+	/**
+	 * ver 2
 	 * update 2017-08-10
 	 * Устанавливает SEO URL (ЧПУ) для заданного товара
 	 */
@@ -757,7 +750,7 @@ class ModelExtensionExchange1c extends Model {
 
 		// Получим все названия начинающиеся на $element_name
 		$keywords = array();
-		$query = $this->query("SELECT `url_alias_id`,`keyword` FROM `" . DB_PREFIX . "url_alias` WHERE `query` <> '" . $url_type . "=" . $element_id . "' AND `keyword` LIKE '" . $this->db->escape($keyword) . "%'");
+		$query = $this->query("SELECT `url_alias_id`,`keyword` FROM `" . DB_PREFIX . "url_alias` WHERE `query` <> '" . $url_type . "=" . $element_id . "' AND `keyword` LIKE '" . $this->db->escape($keyword) . "-%'");
 		foreach ($query->rows as $row) {
 			$keywords[$row['url_alias_id']] = $row['keyword'];
 		}
@@ -791,25 +784,6 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * Транслиетрирует RUS->ENG
-	 * @param string $aString
-	 * @return string type
-	 */
-	private function transString($aString) {
-
-		$rus = array(" ", "/", "*", "-", "+", "`", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+", "[", "]", "{", "}", "~", ";", ":", "'", "\"", "<", ">", ",", ".", "?", "А", "Б", "В", "Г", "Д", "Е", "З", "И", "Й", "К", "Л", "М", "Н", "О", "П", "Р", "С", "Т", "У", "Ф", "Х", "Ъ", "Ы", "Ь", "Э", "а", "б", "в", "г", "д", "е", "з", "и", "й", "к", "л", "м", "н", "о", "п", "р", "с", "т", "у", "ф", "х", "ъ", "ы", "ь", "э", "ё",  "ж",  "ц",  "ч",  "ш",  "щ",   "ю",  "я",  "Ё",  "Ж",  "Ц",  "Ч",  "Ш",  "Щ",   "Ю",  "Я");
-		$lat = array("-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-",  "-", "-", "-", "-", "-", "-", "a", "b", "v", "g", "d", "e", "z", "i", "y", "k", "l", "m", "n", "o", "p", "r", "s", "t", "u", "f", "h", "",  "i", "",  "e", "a", "b", "v", "g", "d", "e", "z", "i", "j", "k", "l", "m", "n", "o", "p", "r", "s", "t", "u", "f", "h", "",  "i", "",  "e", "yo", "zh", "ts", "ch", "sh", "sch", "yu", "ya", "yo", "zh", "ts", "ch", "sh", "sch", "yu", "ya");
-		$string = str_replace($rus, $lat, $aString);
-		while (mb_strpos($string, '--')) {
-			$string = str_replace('--', '-', $string);
-		}
-		$string = strtolower(trim($string, '-'));
-		return $string;
-
-	} // transString()
-
-
-	/**
 	 * ver 3
 	 * update 2017-06-12
 	 * Транслиетрирует RUS->ENG
@@ -832,30 +806,6 @@ class ModelExtensionExchange1c extends Model {
   		return $s; // возвращаем результат
 
 	} // translit()
-
-
-	/**
-	 * ver 2
-	 * update 2017-08-11
-	 * Получает SEO_URL данные
-	 */
-	private function getSeoUrl($element, $id, $last_symbol = "") {
-
-    	$result = array(
-   			'url_alias_id'	=> 0,
-   			'keyword'		=> ""
-		);
-		$query = $this->query("SELECT `url_alias_id`,`keyword` FROM `" . DB_PREFIX . "url_alias` WHERE `query` = '" . $element . "=" . (string)$id . "'");
-    	if ($query->num_rows) {
-    		$result = array(
-    			'url_alias_id'	=> $query->row['url_alias_id'],
-    			'keyword'		=> $query->row['keyword'] . $last_symbol
-			);
-    		return $result;
-    	}
-    	return $result;
-
-	} // getSeoUrl()
 
 
 	/**
@@ -964,8 +914,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 4
-	 * update 2017-09-08
+	 * ver 5
+	 * update 2018-06-14
 	 * Генерит SEO переменные шаблона для товара
 	 * С версии 4 функция теперь не читает данные из базы
 	 */
@@ -973,10 +923,6 @@ class ModelExtensionExchange1c extends Model {
 
 		$result = array();
 
-		if ($this->config->get('exchange1c_seo_product_mode') == 'disable') {
-			$this->log("Отключено формирование SEO для товара");
-			return $result;
-		}
 		// Товары, Категории
 		$seo_fields = array('tag');
 		if (isset($this->TAB_FIELDS['product_description']['meta_title'])) {
@@ -1081,15 +1027,11 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 5
-	 * update 2017-08-13
+	 * ver 6
+	 * update 2018-06-14
 	 * Генерит SEO переменные шаблона для категории
 	 */
 	private function seoGenerateCategory($category_id, &$data) {
-
-		if ($this->config->get('exchange1c_seo_category_mode') == 'disable') {
-			return false;
-		}
 
 		$seo_fields = array(
 			'meta_title',
@@ -1181,15 +1123,11 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 9
-	 * update 2018-01-21
+	 * ver 10
+	 * update 2018-06-14
 	 * Генерит SEO переменные шаблона для производетеля
 	 */
 	private function seoGenerateManufacturer($manufacturer_id, &$data) {
-
-		if ($this->config->get('exchange1c_seo_manufacturer_mode') == 'disable') {
-			return false;
-		}
 
 		if (!isset($this->TAB_FIELDS['manufacturer_description'])) {
 			$this->log("В базе отсутствует таблица manufacturer_description, SEO не будет сформировано");
@@ -1302,8 +1240,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 2
-	 * update 2017-05-03
+	 * ver 4
+	 * update 2018-06-14
 	 * Генерит SEO переменные шаблона для товара
 	 */
 	public function seoGenerate() {
@@ -1321,12 +1259,12 @@ class ModelExtensionExchange1c extends Model {
 		if ($this->config->get('exchange1c_seo_product_mode') != 'disable') {
 			// Выбрать все товары, нужны поля:
 			// name, sku, model, manufacturer_id, description, product_id, category_id
+			$no_update_description = array();
 			if (isset($this->TAB_FIELDS['product_description']['meta_h1'])) {
 				$sql = "SELECT `p`.`product_id`, `p`.`sku`, `p`.`model`, `p`.`manufacturer_id`, `pd`.`name`, `pd`.`tag`, `pd`.`meta_title`, `pd`.`meta_description`, `pd`.`meta_keyword`, `pd`.`meta_h1` FROM `" . DB_PREFIX . "product` `p` LEFT JOIN `" . DB_PREFIX . "product_description` `pd` ON (`p`.`product_id` = `pd`.`product_id`) WHERE `pd.`language_id` = " . $language_id;
-				$fields_include = 'name,tag,meta_title,meta_description,meta_keyword,meta_h1';
 			} else {
 				$sql = "SELECT `p`.`product_id`, `p`.`sku`, `p`.`model`, `p`.`manufacturer_id`, `pd`.`name`, `pd`.`tag`, `pd`.`meta_title`, `pd`.`meta_description`, `pd`.`meta_keyword` FROM `" . DB_PREFIX . "product` `p` LEFT JOIN `" . DB_PREFIX . "product_description` `pd` ON (`p`.`product_id` = `pd`.`product_id`) WHERE `pd`.`language_id` = " . $language_id;
-				$fields_include = 'name,tag,meta_title,meta_description,meta_keyword';
+				array_push($no_update_description, 'meta_h1');
 			}
 
 			$query = $this->query($sql);
@@ -1335,14 +1273,15 @@ class ModelExtensionExchange1c extends Model {
 
 					$result['product']++;
 	 				$data_old = $data;
-					$update = $this->seoGenerateProduct($data['product_id'], $data);
+	 				if ($this->config->get('exchange1c_seo_product_mode') != 'disable')
+						$update = $this->seoGenerateProduct($data['product_id'], $data);
 
-					if (!$update) {
+					if (!$update)
 						continue;
-					}
 
 					// Сравнение
-					$update_fields = $this->compareArraysData($data_old, $data, 'sku,model,manufacturer_id');
+					$no_update = array('sku','model','manufacturer_id');
+					$update_fields = $this->compareArraysData($data_old, $data, $no_update);
 
 					// Если есть что обновлять
 					if ($update_fields) {
@@ -1351,7 +1290,7 @@ class ModelExtensionExchange1c extends Model {
 					}
 
 					// Сравнение
-					$update_fields = $this->compareArraysData($data_old, $data, $fields_include);
+					$update_fields = $this->compareArraysData($data_old, $data, $no_update_description);
 
 					// Если есть что обновлять
 					if ($update_fields) {
@@ -1367,24 +1306,24 @@ class ModelExtensionExchange1c extends Model {
 		if ($this->config->get('exchange1c_seo_category_mode') != 'disable') {
 			// Выбрать все категории, нужны поля:
 			// name, sku, model, manufacturer_id, description, product_id, category_id
+			$no_update_description = array();
 			if (isset($this->TAB_FIELDS['category_description']['meta_h1'])) {
 				$sql = "SELECT `c`.`category_id`, `cd`.`name`, `cd`.`meta_title`, `cd`.`meta_description`, `cd`.`meta_keyword`, `cd`.`meta_h1` FROM `" . DB_PREFIX . "category` `c` LEFT JOIN `" . DB_PREFIX . "category_description` `cd` ON (`c`.`category_id` = `cd`.`category_id`) WHERE `cd`.`language_id` = " . $language_id;
-				$fields_include = 'name,meta_title,meta_description,meta_keyword,meta_h1';
 			} else {
 				$sql = "SELECT `c`.`category_id`, `cd`.`name`, `cd`.`meta_title`, `cd`.`meta_description`, `cd`.`meta_keyword` FROM `" . DB_PREFIX . "category` `c` LEFT JOIN `" . DB_PREFIX . "category_description` `cd` ON (`c`.`category_id` = `cd`.`category_id`) WHERE `cd`.`language_id` = " . $language_id;
-				$fields_include = 'name,meta_title,meta_description,meta_keyword';
+				array_push($no_update_description, 'meta_h1');
 			}
 
 			$query = $this->query($sql);
 			if ($query->num_rows) {
 				foreach ($query->rows as $data) {
 
-					$data['new'] = false;
 					$result['category']++;
-					$this->seoGenerateCategory($data['category_id'], $data);
+					if ($this->config->get('exchange1c_seo_category_mode') != 'disable')
+						$this->seoGenerateCategory($data['category_id'], $data);
 
 					// Сравнение
-					$update_fields = $this->compareArraysData($data_old, $data, $fields_include);
+					$update_fields = $this->compareArraysData($data_old, $data, $no_update_description);
 
 					// Если есть что обновлять
 					if ($update_fields) {
@@ -1402,12 +1341,12 @@ class ModelExtensionExchange1c extends Model {
 			if (isset($this->TAB_FIELDS['manufacturer_description'])) {
 				// Выбрать все категории, нужны поля:
 				// name, sku, model, manufacturer_id, description, product_id, category_id
+				$no_update_description = array();
 				if (isset($this->TAB_FIELDS['manufacturer_description']['meta_h1'])) {
 					$sql = "SELECT `m`.`manufacturer_id`, `md`.`name`, `md`.`meta_title`, `md`.`meta_description`, `md`.`meta_keyword`, `md`.`meta_h1` FROM `" . DB_PREFIX . "manufacturer` `m` LEFT JOIN `" . DB_PREFIX . "manufacturer_description` `md` ON (`m`.`manufacturer_id` = `md`.`manufacturer_id`) WHERE `md`.`language_id` = " . $language_id;
-					$fields_include = 'name,meta_title,meta_description,meta_keyword,meta_h1';
 				} else {
 					$sql = "SELECT `m`.`manufacturer_id`, `md`.`name`, `md`.`meta_title`, `md`.`meta_description`, `md`.`meta_keyword` FROM `" . DB_PREFIX . "manufacturer` `m` LEFT JOIN `" . DB_PREFIX . "manufacturer_description` `md` ON (`m`.`manufacturer_id` = `md`.`manufacturer_id`) WHERE `md`.`language_id` = " . $language_id;
-					$fields_include = 'name,meta_title,meta_description,meta_keyword';
+					array_push($no_update_description, 'meta_h1');
 				}
 
 				$query = $this->query($sql);
@@ -1417,14 +1356,15 @@ class ModelExtensionExchange1c extends Model {
 						$result['manufacturer']++;
 
 						$data_old = $data;
-						$update = $this->seoGenerateManufacturer($data['manufacturer_id'], $data);
 
-						if (!$update) {
+						if ($this->config->get('exchange1c_seo_manufacturer_mode') != 'disable')
+							$update = $this->seoGenerateManufacturer($data['manufacturer_id'], $data);
+
+						if (!$update)
 							continue;
-						}
 
 						// Сравнение
-						$update_fields = $this->compareArraysData($data_old, $data, $fields_include);
+						$update_fields = $this->compareArraysData($data_old, $data, $no_update_description);
 
 						// Если есть что обновлять
 						if ($update_fields) {
@@ -1955,11 +1895,11 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 7
-	 * update 2017-11-28
+	 * ver 9
+	 * update 2018-06-20
 	 * Устанавливаем значение опции в товар
 	 */
-	private function setProductOptionValue($product_id, $product_option_id, $option_id, $option_value_id, $data_value, $product_options) {
+	private function setProductOptionValue($product_id, $product_option_id, $option_id, $option_value_id, $data_value, $product_options = array()) {
 
 		$this->log("Запись значения опции для товара product_id = " . $product_id, 2);
 		$this->log($data_value, 2);
@@ -1971,10 +1911,6 @@ class ModelExtensionExchange1c extends Model {
 				if ($product_option_value['option_value_id'] == $option_value_id) {
 
 					$this->log("Найдено значение опции у товара product_option_value_id = " . $product_option_value_id . " по option_value_id = " . $option_value_id);
-
-//					if ($data_value['quantity'] <= 0) {
-//						unset($data_value['quantity']);
-//					}
 
 					$update_fields = $this->compareArraysData($data_value, $product_option_value);
 					if ($update_fields) {
@@ -1997,6 +1933,7 @@ class ModelExtensionExchange1c extends Model {
 		if (empty($data_value['image'])) $data_value['image'] = '';
 		if (empty($data_value['quantity'])) $data_value['quantity'] = '';
 		if (empty($data_value['price'])) $data_value['price'] = '';
+		if (!isset($data_value['subtract'])) $data_value['subtract'] = 1;
 		$this->query("INSERT INTO `" . DB_PREFIX . "product_option_value` SET `product_option_id` = " . (int)$product_option_id . ", `product_id` = " . (int)$product_id . ", `option_id` = " . (int)$option_id . ", `option_value_id` = " . (int)$option_value_id . ", `quantity` = " . (float)$data_value['quantity'] . ", `subtract` = " . (int)$data_value['subtract']);
  		$product_option_value_id = $this->db->getLastId();
  		$this->log("Добавлено значение опции в товар product_option_value_id = " . $product_option_value_id, 2);
@@ -2050,28 +1987,9 @@ class ModelExtensionExchange1c extends Model {
 	 */
 
 
-//	/**
-//	 * ver 2
-//	 * update 2017-10-06
-//	 */
-//	private function addProductUnit($product_id, $unit, $product_feature_id) {
-//
-//		if (empty($this->UNITS)) {
-//			$unit_id = $this->addUnit($unit);
-//		} else {
-//			$unit_id = $this->getUnitByName($unit['name']);
-//		}
-//		$this->query("INSERT INTO `" . DB_PREFIX . "product_unit` SET `product_id` = " . (int)$product_id . ", `product_feature_id` = " . (int)$product_feature_id . ", `unit_id` = " . (int)$unit_id . ", `ratio` = " . (int)$unit['ratio']);
-//		$product_unit_id = $this->db->getLastId();
-//
-//		return $product_unit_id;
-//
-//	}
-
-
 	/**
-	 * ver 14
-	 * update 2018-03-06
+	 * ver 17
+	 * update 2018-06-27
 	 * Добавляет товар в базу
 	 * Возвращает product_id
 	 */
@@ -2079,7 +1997,7 @@ class ModelExtensionExchange1c extends Model {
 
 		//$this->log($data, 2);
 
-		$data['status'] = $this->config->get('exchange1c_product_status') == 'disable_new' ? 0 : 1;
+		$data['status'] = $this->config->get('exchange1c_product_new_status_disable') ? 0 : 1;
 
 		// ЕДИНИЦА ДЛИНЫ
 		if ($this->config->get('config_length_class_id')) {
@@ -2091,44 +2009,39 @@ class ModelExtensionExchange1c extends Model {
 			$data['weight_class_id']	= $this->config->get('config_weight_class_id');
 		}
 
-		// Основная картинка, если надо наложим водяные знаки
-		$watermark = $this->config->get('exchange1c_watermark');
-		if ($watermark && !empty($data['image'])) {
-			$data['image'] = $this->setWatermarkImage($data['image'], $watermark);
-		}
-
 		// Подготовим список полей по которым есть данные
 		$fields = $this->prepareQueryProduct($data);
 		if ($fields) {
+			if (isset($data['product_id'])) {
+				$fields = "`product_id` = " . $data['product_id'] . (empty($fields) ? "" : ", " . $fields);
+			}
 			$this->query("INSERT INTO `" . DB_PREFIX . "product` SET " . $fields . ", `date_added` = '" . $this->NOW . "', `date_modified` = '" . $this->NOW . "'");
 			$product_id = $this->db->getLastId();
-			$this->log("Товар добавлен, product_id = " . $product_id, 2);
 		} else {
 			// Если нет данных - выходим
 			$this->log("addProduct() - нет данных");
 			return 0;
 		}
 
-		// Дополнительные упаковки товара
-		if (isset($data['units'])) {
-			foreach ($data['units'] as $unit) {
-				$this->log($unit, 2);
-				$product_feature_id = isset($data['product_feature_id']) ? $data['product_feature_id'] : 0;
-				$this->addProductUnit($product_id, $unit, $product_feature_id);
-			}
+		// Статус на складе
+		if ((int)$this->config->get('exchange1c_product_default_stock_status')) {
+			$data['stock_status_id'] = (int)$this->config->get('exchange1c_product_default_stock_status');
 		}
 
-		// Сформируем SEO
-		$update_fields = $this->seoGenerateProduct($product_id, $data);
-		$this->log($update_fields, 2);
+		// ПРОИЗВОДИТЕЛЬ
+		if (isset($data['manufacturer_name']))
+			$data['manufacturer_id'] = $this->setManufacturer(htmlspecialchars($data['manufacturer_name']));
 
-		if ($update_fields) {
-			$this->compareArraysData($data, $update_fields);
+		// Сформируем SEO
+		if ($this->config->get('exchange1c_seo_product_mode') != 'disable') {
+			$update_fields = $this->seoGenerateProduct($product_id, $data);
+			if ($update_fields)
+				$this->compareArraysData($data, $update_fields);
 		}
 
 		$fields = $this->prepareQueryDescription($data, "set");
 		$this->query("INSERT INTO `" . DB_PREFIX . "product_description` SET `product_id` = " . (int)$product_id . ", `language_id` = " . $this->LANG_ID . ", " . $fields);
-		$this->log("Добавлено описание товара, product_id = " . $product_id, 2);
+		$this->log("Товар добавлен, product_id = " . $product_id, 2);
 
 		// Связь с 1С только по Ид объекта из торговой системы
 		$sql = "INSERT INTO `" . DB_PREFIX . "product_to_1c` SET `product_id` = " . (int)$product_id . ", `guid` = '" . $this->db->escape($data['product_guid']) . "'";
@@ -2143,7 +2056,7 @@ class ModelExtensionExchange1c extends Model {
 		$this->log("Товар добавлен в магазин, store_id = " . $this->STORE_ID, 2);
 
 		// Записываем атрибуты в товар
-		if (isset($data['attributes'])) {
+		if (isset($data['attributes']) && $this->config->get('exchange1c_product_attribute_not_import') != 1) {
 			foreach ($data['attributes'] as $attribute) {
 				$this->query("INSERT INTO `" . DB_PREFIX . "product_attribute` SET `product_id` = " . (int)$product_id . ", `attribute_id` = " . (int)$attribute['attribute_id'] . ", `attribute_value_id` = " . (int)$attribute['attribute_value_id'] . ",`language_id` = " . $this->LANG_ID . ", `text` = '" .  $this->db->escape($attribute['value']) . "'");
 				$attribute_id = $this->db->getLastId();
@@ -2181,8 +2094,6 @@ class ModelExtensionExchange1c extends Model {
 
 		}
 
-		//$this->setProductUnit($data['unit'], $data['product_id'], 0, true);
-
 		// Очистим кэш товаров
 		//$this->cache->delete('product');
 
@@ -2205,6 +2116,9 @@ class ModelExtensionExchange1c extends Model {
 			foreach ($query->row as $key => $value) {
 				$data[$key] = $value;
 			}
+		} else {
+			$this->errorLog(2301);
+			return false;
 		}
 
 		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_description` WHERE `product_id` = " . (int)$product_id . " AND `language_id` = " . $this->LANG_ID);
@@ -2219,23 +2133,6 @@ class ModelExtensionExchange1c extends Model {
 		return $data;
 
 	} // getProduct()
-
-
-	/**
-	 * ver 2
-	 * update 2017-04-16
-	 * Устанавливает товар в магазин который производится загрузка
-	 * Если това в этом магазине не найден, то добавляем
-	 */
-	private function setProductShop($product_id) {
-
-		$query = $this->query("SELECT `store_id`  FROM `" . DB_PREFIX . "product_to_store` WHERE `product_id` = " . (int)$product_id . " AND `store_id` = " . $this->STORE_ID);
-		if (!$query->num_rows) {
-			$this->query("INSERT INTO `" . DB_PREFIX . "product_to_store` SET `product_id` = " . (int)$product_id . ", `store_id` = " . $this->STORE_ID);
-			$this->log("> Добавлена привязка товара к магазину store_id: " . $this->STORE_ID,2);
-		}
-
-	} // setProductShop()
 
 
 	/**
@@ -2296,7 +2193,7 @@ class ModelExtensionExchange1c extends Model {
 			$key = array_search($category_id, $old_categories);
 			if ($key !== false) {
 				unset($old_categories[$key]);
-				$this->log("Категория уже есть в товаре, id: " . $category_id, 2);
+				$this->log("Категория уже есть в товаре, category_id=" . $category_id, 2);
 			} else {
 				// старой такой нет категориии
 				$sql  = "INSERT INTO `" . DB_PREFIX . "product_to_category` SET `product_id` = " . (int)$product_id . ", `category_id` = " . (int)$category_id;
@@ -2304,7 +2201,7 @@ class ModelExtensionExchange1c extends Model {
 					$sql .= $index == 0 ? ", `main_category` = 1" : ", `main_category` = 0";
 				}
 				$this->query($sql);
-				$this->log("Категория добавлена в товар, category_id: " . $category_id, 2);
+				$this->log("Категория добавлена в товар, category_id=" . $category_id, 2);
 			}
 		}
 
@@ -2357,14 +2254,12 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 17
-	 * update 2018-03-25
+	 * ver 19
+	 * update 2018-05-23
 	 * Обновляет товар в базе поля в таблице product
 	 * Если есть характеристики, тогда получает общий остаток по уже загруженным характеристикам прибавляет текущий и обновляет в таблице product
 	 */
 	private function updateProduct($product_id, $data) {
-
-		//$this->log($data, 2);
 
 		$update = false;
 		$no_update = array();
@@ -2377,13 +2272,18 @@ class ModelExtensionExchange1c extends Model {
 		}
 
 		// ПРОИЗВОДИТЕЛИ ТОВАРА
-		if (isset($data['manufacturer']) && $this->config->get('exchange1c_product_manufacturer_no_import') != 1) {
-			$data['manufacturer_id'] = $data['manufacturer']['manufacturer_id'];
+		if ($this->config->get('exchange1c_product_manufacturer_no_import') == 1) {
+			$this->log("[i] Обновление производителя отключено", 2);
+		} elseif (isset($data['manufacturer_name'])) {
+			$manufacturer_id = $this->setManufacturer(htmlspecialchars($data['manufacturer_name']));
 		}
 
 		// КАРТИНКИ
-		if (isset($data['image']) && $this->config->get('exchange1c_product_images_no_import') == 1) {
-			$no_update[] = 'image';
+		if ($this->config->get('exchange1c_product_images_no_import') == 1) {
+			if (isset($data['image']))
+				unset($data['image']);
+			if (isset($data['images']))
+				unset($data['images']);
 			$this->log("[i] Обновление картинок отключено", 2);
 		}
 
@@ -2399,12 +2299,6 @@ class ModelExtensionExchange1c extends Model {
 			$data['status'] = 0;
 		}
 
-		// Основная картинка, если надо наложим водяные знаки
-		$watermark = $this->config->get('exchange1c_watermark');
-		if ($watermark && !empty($data['image'])) {
-			$data['image'] = $this->setWatermarkImage($data['image'], $watermark);
-		}
-
 		$old_data = $this->getProduct($product_id);
 		$this->log($old_data, 2);
 
@@ -2415,26 +2309,19 @@ class ModelExtensionExchange1c extends Model {
 		//$this->log($data['description'], 2);
 
 		// Формируем SEO для товара и получаем поля которые изменились
-		$modify_fields2 = $this->seoGenerateProduct($product_id, $data);
-		//$this->log($modify_fields2, 2);
-		//$this->log($data['description'], 2);
+		if ($this->config->get('exchange1c_seo_manufacturer_mode') != 'disable')
+			$modify_fields2 = $this->seoGenerateProduct($product_id, $data);
+		else
+			$modify_fields2 = array();
 
-		// Возможно надо почистить цены характеристик, только в разработке
-
-		// Освободим память
-		unset($update_fields1);
-		unset($update_fields2);
-
-		// Это массив полей которые были изменены
 		$modify_fields = array_merge($modify_fields1, $modify_fields2);
-		//$this->log($modify_fields, 2);
 
 		// Формируем поля для обновления таблицы product
 		$update_fields = $this->prepareQueryProduct($modify_fields, 'set');
 		//$this->log($update_fields, 2);
 		if ($update_fields) {
 			$this->query("UPDATE `" . DB_PREFIX . "product` SET " . $update_fields . ", `date_modified` = '" . $this->NOW . "' WHERE `product_id` = " . (int)$product_id);
-			$this->log("В таблице product обновлены поля", 2);
+			$this->log("В таблице product обновлены поля: " . $update_fields);
 		} elseif ($modify_fields) {
 			// Если было хоть одно изменение, пропишем дату обновления товара
 			$this->query("UPDATE `" . DB_PREFIX . "product` SET `date_modified` = '" . $this->NOW . "' WHERE `product_id` = " . (int)$product_id);
@@ -2446,14 +2333,14 @@ class ModelExtensionExchange1c extends Model {
 		//$this->log($update_fields, 2);
 		if ($update_fields) {
 			$this->query("UPDATE `" . DB_PREFIX . "product_description` SET " . $update_fields . " WHERE `product_id` = " . $product_id);
-			$this->log("В таблице product_description обновлены поля", 2);
+			$this->log("В таблице product_description обновлены поля: " . $update_fields);
 		}
 
 		// Освободим память
 		unset($update_fields);
 
 		// Записываем атрибуты в товар
-		if (isset($data['attributes'])) {
+		if (isset($data['attributes']) && $this->config->get('exchange1c_product_attribute_not_import') != 1) {
 			$this->updateProductAttributes($product_id, $data['attributes']);
 			if ($this->ERROR) return false;
 		}
@@ -2466,7 +2353,7 @@ class ModelExtensionExchange1c extends Model {
 			if ($this->ERROR) return false;
 		}
 
-		// Категории
+		// КАТЕГОРИИ
 		if (isset($data['categories'])) {
 			// Заполнение родительских категорий в товаре
 			if ($this->config->get('exchange1c_fill_parent_cats') == 1) {
@@ -2477,8 +2364,8 @@ class ModelExtensionExchange1c extends Model {
 			if ($this->ERROR) return false;
 		}
 
-		// Картинки
-		if (!empty($data['images'])) {
+		// ДОПОЛНИТЕЛЬНЫЕ КАРТИНКИ
+		if (isset($data['images'])) {
 			$this->setProductImages($product_id, $data['images']);
 			if ($this->ERROR) return false;
 		}
@@ -2487,8 +2374,8 @@ class ModelExtensionExchange1c extends Model {
 		$product_feature_id = isset($data['product_feature_id']) ? $data['product_feature_id'] : 0;
 
 		// При полном обмене удаляем все страрые цены
+		// Скорее всего еще нужно удалить
 		if ($this->config->get('exchange1c_clean_prices_full_import')) {
-			$this->query("DELETE FROM `" . DB_PREFIX . "product_price` WHERE `product_id` = " . (int)$product_id);
 			$this->query("DELETE FROM `" . DB_PREFIX . "product_discount` WHERE `product_id` = " . (int)$product_id);
 			$this->query("DELETE FROM `" . DB_PREFIX . "product_special` WHERE `product_id` = " . (int)$product_id);
 		}
@@ -2505,40 +2392,9 @@ class ModelExtensionExchange1c extends Model {
 	 * ver 1
 	 * update 2017-09-24
 	 */
-	private function searchPrice($price_data, $old_prices) {
-
-		$this->log($price_data, 2);
-		$this->log($old_prices, 2);
-		foreach ($old_prices as $old_price) {
-
-			if ($old_price['customer_group_id'] == $price_data['customer_group_id']) {
-
-				if (isset($old_price['quantity'])) {
-
-					if ($old_price['quantity'] == $price_data['quantity']) {
-						return $old_price;
-					}
-				} else {
-
-					return $old_price;
-				}
-			}
-		}
-		return false;
-
-	} // searchPrice()
-
-
-	/**
-	 * ver 1
-	 * update 2017-09-24
-	 */
 	private function searchData($search_fields, $data) {
 
-		//$this->log($data, 2);
 		foreach ($data as $obj) {
-			//$this->log($obj, 2);
-			//if (!is_array($obj)) continue;
 			if (count(array_intersect_assoc($search_fields, $obj)) == count($search_fields))	return $obj;
 		}
 		return false;
@@ -2547,13 +2403,14 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 5
-	 * update 2018-04-02
+	 * ver 6
+	 * update 2018-05-21
 	 * Устанавливает цену скидки или акции товара
 	 */
 	private function setProductPrice($data_price, $product_id, $old_prices, &$delete_prices) {
 
 		$product_price_id = 0;
+
 		$search_fields = array(
 			'customer_group_id'	=> $data_price['customer_group_id']
 		);
@@ -2655,21 +2512,20 @@ class ModelExtensionExchange1c extends Model {
 				$product_price_id = $this->db->getLastId();
 
 			}
-		}
 
-		return $product_price_id;
+		}
 
 	} // setProductPrice()
 
 
 	/**
-	 * ver 2
-	 * update 2017-11-02
+	 * ver 4
+	 * update 2018-06-20
 	 */
 	private function getProductPrices($product_id) {
 
 		$data_price = array();
-		$query = $this->query("SELECT `product_discount_id`, `price`, `quantity`, `customer_group_id`, `product_feature_id`, `priority` FROM `" . DB_PREFIX . "product_discount` WHERE `product_id` = " . $product_id);
+		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_discount` WHERE `product_id` = " . $product_id);
 		$data_price['discount'] = array();
 		foreach ($query->rows as $discount) {
 			$data_price['discount'][$discount['product_discount_id']] = array(
@@ -2695,235 +2551,14 @@ class ModelExtensionExchange1c extends Model {
 			);
 		}
 
-		$query = $this->query("SELECT `product_price_id`, `product_feature_id`, `customer_group_id`, `price` FROM `" . DB_PREFIX . "product_price` WHERE `product_id` = " . $product_id);
-		$data_price['features'] = array();
-		foreach ($query->rows as $price) {
-			$data_price['features'][$price['product_price_id']] = array(
-				'product_price_id'		=> $price['product_price_id'],
-				'product_feature_id'	=> $price['product_feature_id'],
-				'customer_group_id'		=> $price['customer_group_id'],
-				'price'					=> $price['price']
-			);
-		}
 		return $data_price;
 
 	} // getProductPrices()
 
 
 	/**
-	 * ver 5
-	 * update 2018-03-24
-	 */
-	private function setFeaturePrice(&$data_price, $product_id, $data, &$all_prices, &$delete_prices) {
-
-		// Поиск старой цены
-		$search_field = array(
-			'product_feature_id'	=> $data['product_feature_id'],
-			'customer_group_id'		=> $data_price['customer_group_id'],
-		);
-
-		if ($data_price['table_price'] == 'discount') {
-			// Если скидка характеристики
-			$found_price = $this->searchData($search_field, $all_prices['discount']);
-
-			if ($found_price) {
-
-				$product_price_id = $found_price['product_price_id'];
-
-				// Удалять цену не надо
-				unset($delete_prices['discount'][$product_price_id]);
-
-				$update_fields = $this->compareArraysData($data_price, $found_price);
-
-				if ($update_fields) {
-
-					$sql = array();
-					if (isset($update_fields['price'])) {
-						$sql[] =  "`price` = " . $update_fields['price'];
-						$all_prices['discount'][$product_price_id]['price'] = $update_fields['price'];
-					}
-					if (isset($update_fields['quantity'])) {
-						$sql[] =  "`quantity` = " . $update_fields['quantity'];
-						$all_prices['discount'][$product_price_id]['quantity'] = $update_fields['quantity'];
-					}
-					if (isset($update_fields['priority'])) {
-						$sql[] =  "`priority` = " . $update_fields['priority'];
-						$all_prices['discount'][$product_price_id]['priority'] = $update_fields['priority'];
-					}
-					if (isset($update_fields['customer_group_id'])) $sql[] = "`customer_group_id` = " . $update_fields['customer_group_id'];
-					$sql = implode(", ", $sql);
-					$this->query("UPDATE `" . DB_PREFIX . "product_discount` SET " . $sql . " WHERE `product_discount_id` = " . (int)$product_price_id);
-					// Обновим цену
-				}
-
-			} else {
-
-				// Добавляем цену
-				$this->query("INSERT INTO `" . DB_PREFIX . "product_discount` SET `product_id` = " . $product_id . ", `customer_group_id` = " . $data_price['customer_group_id'] . ", `product_feature_id` = " . $data['product_feature_id'] . ", `quantity` = " . $data_price['quantity'] . ", `priority` = " . $data_price['priority'] . ", `price` = " . $data_price['price'] . ", `date_start` = '" . $this->NOW . "'");
-				$product_price_id = $this->db->getLastId();
-
-				$all_prices['discount'][$product_price_id] = array(
-					'product_price_id'		=> $product_price_id,
-					'customer_group_id'		=> $data_price['customer_group_id'],
-					'product_feature_id'	=> $data['product_feature_id'],
-					'quantity'				=> $data_price['quantity'],
-					'priority'				=> $data_price['priority'],
-					'price'					=> $data_price['price']
-				);
-			}
-
-		} elseif ($data_price['table_price'] == 'special') {
-			// Если акция характеристики
-			$found_price = $this->searchData($search_field, $all_prices['special']);
-
-			if ($found_price) {
-
-				$product_price_id = $found_price['product_price_id'];
-
-				// Удалять цену не надо
-				unset($delete_prices['special'][$product_price_id]);
-
-				$update_fields = $this->compareArraysData($data_price, $found_price);
-
-				if ($update_fields) {
-
-					$sql = array();
-					if (isset($update_fields['price'])) {
-						$sql[] =  "`price` = " . $update_fields['price'];
-						$all_prices['special'][$product_price_id]['price'] = $update_fields['price'];
-					}
-					if (isset($update_fields['priority'])) {
-						$sql[] =  "`priority` = " . $update_fields['priority'];
-						$all_prices['special'][$product_price_id]['priority'] = $update_fields['priority'];
-					}
-					if (isset($update_fields['customer_group_id'])) $sql[] = "`customer_group_id` = " . $update_fields['customer_group_id'];
-					$sql = implode(", ", $sql);
-					$this->query("UPDATE `" . DB_PREFIX . "product_special` SET " . $sql . " WHERE `product_special_id` = " . (int)$product_price_id);
-					// Обновим цену
-				}
-
-			} else {
-
-				// Добавляем цену
-				$this->query("INSERT INTO `" . DB_PREFIX . "product_special` SET `product_id` = " . $product_id . ", `customer_group_id` = " . $data_price['customer_group_id'] . ", `product_feature_id` = " . $data['product_feature_id'] . ", `priority` = " . $data_price['priority'] . ", `price` = " . $data_price['price'] . ", `date_start` = '" . $this->NOW . "'");
-				$product_price_id = $this->db->getLastId();
-
-				$all_prices['special'][$product_price_id] = array(
-					'product_price_id'		=> $product_price_id,
-					'customer_group_id'		=> $data_price['customer_group_id'],
-					'product_feature_id'	=> $data['product_feature_id'],
-					'priority'				=> $data_price['priority'],
-					'price'					=> $data_price['price']
-				);
-			}
-
-		} else {
-
-			// Основная цена характеристики
-			$found_price = $this->searchData($search_field, $all_prices['features']);
-
-			//$this->log($search_field, 2);
-			//$this->log($found_price, 2);
-
-			if ($found_price) {
-
-				$product_price_id = $found_price['product_price_id'];
-
-				// Удалять цену не надо
-				unset($delete_prices['features'][$product_price_id]);
-
-				$update_fields = $this->compareArraysData($data_price, $found_price);
-
-				if ($update_fields) {
-
-					$sql = array();
-					if (isset($update_fields['price'])) {
-						$sql[] =  "`price` = " . $update_fields['price'];
-						$all_prices['features'][$product_price_id]['price'] = $update_fields['price'];
-					}
-
-					if (isset($update_fields['customer_group_id'])) $sql[] = "`customer_group_id` = " . $update_fields['customer_group_id'];
-					$sql = implode(", ", $sql);
-					$this->query("UPDATE `" . DB_PREFIX . "product_price` SET " . $sql . " WHERE `product_price_id` = " . (int)$product_price_id);
-					// Обновим цену
-				}
-			} else {
-
-				// Добавляем цену
-				$this->query("INSERT INTO `" . DB_PREFIX . "product_price` SET `product_id` = " . $product_id . ", `product_feature_id` = " . $data['product_feature_id'] . ", `customer_group_id` = " . $data_price['customer_group_id'] . ", `price` = " . $data_price['price']);
-				$product_price_id = $this->db->getLastId();
-
-				$all_prices['features'][$product_price_id] = array(
-					'product_price_id'		=> $product_price_id,
-					'product_feature_id'	=> $data['product_feature_id'],
-					'customer_group_id'		=> $data_price['customer_group_id'],
-					'price'					=> $data_price['price']
-				);
-			}
-
-		}
-
-	} //setFeaturePrice()
-
-
-	/**
-	 * ver 1
-	 * update 2017-10-04
-	 * Функция устанавливает остаток товара в таблицу product_quantity
-	 */
-	private function setProductQuantity($product_id, &$old_quantities, $warehouse_id, $product_feature_id, $quantity) {
-
-		if ($old_quantities) {
-
-			$search_fields = array(
-				'warehouse_id' 			=> $warehouse_id,
-				'product_feature_id'	=> $product_feature_id
-			);
-
-			$old_quantity = $this->searchData($search_fields, $old_quantities);
-
-			if ($old_quantity) {
-
-				$this->log("old_quantity:", 2);
-				$this->log($old_quantity, 2);
-
-				if ($old_quantity['quantity'] != $quantity) {
-					$this->query("UPDATE `" . DB_PREFIX . "product_quantity` SET `quantity` = " . (float)$quantity . " WHERE `product_quantity_id` = " . (int)$old_quantity['product_quantity_id']);
-					$old_quantities[$old_quantity['product_quantity_id']]['quantity'] = $quantity;
-				} else {
-					$this->log("Остаток на складе warehouse_id = " . $warehouse_id . " не изменился", 2);
-				}
-			} else {
-				$this->log("Старый остаток не найден, добавим", 2);
-				$this->query("INSERT INTO `" . DB_PREFIX . "product_quantity` SET `product_id` = " . (int)$product_id . ", `product_feature_id` = " . (int)$product_feature_id . ", `warehouse_id` = " . (int)$warehouse_id . ", `quantity` = " . (float)$quantity);
-				$product_quantity_id = $this->db->getLastId();
-				$old_quantities[$product_quantity_id] = array(
-					'product_quantity_id'	=> $product_quantity_id,
-					'product_feature_id'	=> $product_feature_id,
-					'warehouse_id'			=> $warehouse_id,
-					'quantity'				=> $quantity
-				);
-			}
-
-		} else {
-
-			$this->query("INSERT INTO `" . DB_PREFIX . "product_quantity` SET `product_id` = " . (int)$product_id . ", `product_feature_id` = " . (int)$product_feature_id . ", `warehouse_id` = " . (int)$warehouse_id . ", `quantity` = " . (float)$quantity);
-			$product_quantity_id = $this->db->getLastId();
-			$old_quantities[$product_quantity_id] = array(
-				'product_quantity_id'	=> $product_quantity_id,
-				'product_feature_id'	=> $product_feature_id,
-				'warehouse_id'			=> $warehouse_id,
-				'quantity'				=> $quantity
-			);
-
-		} // if
-
-	} // setProductQuantity()
-
-
-	/**
-	 * ver 1
-	 * update 2017-11-24
+	 * ver 2
+	 * update 2018-05-23
 	 * Удаляет цены у товара
 	 */
 	private function deletePrices($data) {
@@ -2939,12 +2574,6 @@ class ModelExtensionExchange1c extends Model {
 		if ($data['special']) {
 			foreach ($data['special'] as $data_price) {
 				$this->query("DELETE FROM `" . DB_PREFIX . "product_special` WHERE `product_special_id` = " . (int)$data_price['product_price_id']);
-				$result++;
-			}
-		}
-		if ($data['features']) {
-			foreach ($data['features'] as $data_price) {
-				$this->query("DELETE FROM `" . DB_PREFIX . "product_price` WHERE `product_price_id` = " . (int)$data_price['product_price_id']);
 				$result++;
 			}
 		}
@@ -2984,137 +2613,153 @@ class ModelExtensionExchange1c extends Model {
 	} // getProductOptionsValues()
 
 
+    /**
+     * ver 2
+     * update 2018-06-20
+     * Анализирует изменения цены товара и пересчитывает опции
+     * $price - текущая цена товара
+     */
+    private function setProductMinPrice($product_id, $price) {
+
+		$product_options = $this->getProductOptions($product_id);
+		$value_prices = array();
+		$price_min = 0;
+		foreach ($product_options as $value_id => $option) {
+			foreach ($option['values'] as $value) {
+				$value_price = ($value['price_prefix'] == '-') ? -$value['price'] : $value['price'];
+				$value_prices[$value_id] = $value_price;
+
+				if ($value_price > 0) {
+					if ($price_min == 0) {
+						$price_min = $value_price;
+					} else {
+						$price_min = min($price_min, $value_price);
+					}
+				}
+			}
+			$this->log("Минимальная цена: " . $price_min);
+
+			// Если изменилась минимальная цена, пересчитываем опции
+			if ($price_min < $price || ($price == 0 && $price_min > $price)) {
+				$option_value = array();
+				$price_offset = $price - $price_min;
+				$this->log("Цена товара изменилась на: " . $price_offset, 2);
+				foreach ($value_prices as $value_id => $value_price) {
+					$option_price = $value_price + $price_offset;
+					if ($option_price < 0) {
+						$option_value['price_prefix'] = '-';
+					} elseif ($option_price == 0) {
+						$option_value['price_prefix'] = '';
+					} elseif ($option_price > 0) {
+						$option_value['price_prefix'] = '+';
+					}
+					$option_value['price'] = abs($option_price);
+					$product_option_value_id = $this->setProductOptionValue(
+						$product_id,
+						$option['product_option_id'],
+						$option['option_id'],
+						$option['values'][$value_id]['option_value_id'],
+						$option_value
+					);
+				}
+
+				// Минимальную цену отправим в товар
+				$price = $price_min;
+			}
+
+		}
+		return $price;
+
+	} // setProductMinPrice()
+
+
 	/**
-	 * ver 16
-	 * update 2018-03-23
+	 * ver 21
+	 * update 2018-08-08
 	 * Обновляет товар в базе поля в таблице product
 	 * Если есть характеристики, тогда получает общий остаток по уже загруженным характеристикам прибавляет текущий и обновляет в таблице product
 	 */
 	private function updateOffers($product_id, $data, $old_data) {
 
-		$this->log("Обновление предложения:", 2);
-
-		$quantities_all = $this->getProductQuantities($product_id);
-		//$this->log("quantities_all:", 2);
-		//$this->log($quantities_all, 2);
-
-		// Остаток предложения
-		$quantity_feature = 0;
-
-		// Если есть остатки по складам
-		if (count($data['quantities'])) {
-
-			foreach ($data['quantities'] as $warehouse_id => $quantity) {
-
-				$this->setProductQuantity($product_id, $quantities_all, $warehouse_id, $data['product_feature_id'], $quantity);
-				if ($data['product_feature_id']) {
-					$quantity_feature += $quantity;
-				}
-
-			} // foreach()
-
-		} elseif (isset($data['quantity'])) {
-
-			// Нет складов
-			$this->setProductQuantity($product_id, $quantities_all, 0, $data['product_feature_id'], $data['quantity']);
-			if ($data['product_feature_id']) {
-				$quantity_feature = $data['quantity'];
-			}
-
-		} // if ($data['quantities'])
-
-		// Общий остаток
-		if ($quantities_all) {
-			$data['quantity'] = 0;
-			foreach ($quantities_all as $data_quantity) {
-				$data['quantity'] += $data_quantity['quantity'];
-			}
-		}
-
-        $this->log("Остаток (общий): " . $data['quantity']);
+		$this->log("Запись предложения...");
+		$this->log("Старые данные:", 2);
+		$this->log($old_data, 2);
+		$this->log("Предложение прочитано файла:", 2);
+		$this->log($data, 2);
 
 		// Цены
 		if (isset($data['prices'])) {
 
-			$data['price'] = 0;
-
-			$all_prices = $this->getProductPrices($product_id);
-			$delete_prices = $all_prices;
-			$this->log("Старые цены:", 2);
-			$this->log($all_prices, 2);
+			$prices_old = $this->getProductPrices($product_id);
+			$delete_prices = $prices_old;
+			$this->log("Старые акции и скидки:", 2);
+			$this->log($prices_old, 2);
 
 			foreach ($data['prices'] as $data_price) {
 
 				if ($data['feature_guid']) {
 
-					$this->setFeaturePrice($data_price, $product_id, $data, $all_prices, $delete_prices);
+					//$this->setFeaturePrice($data_price, $product_id, $data, $prices_old, $delete_prices);
+					if ($data_price['table_price'] == 'product') {
+						$data['price_feature'] = $data_price['price'];
+						$this->log("Цена опции = " . $data['price_feature']);
+					}
 
 				} else {
 
-					// Если у товара нет характеристик
+					// НЕ ХАРАКТЕРИСТИКА
 					if ($data_price['table_price'] == 'product') {
 						$data['price'] = $data_price['price'];
-						$this->log("Цена основная '" . $data_price['keyword'] . "' = " . $data['price']);
+						$this->log("Цена товара '" . $data_price['keyword'] . "' = " . $data['price']);
 
 					} else {
-
-						$this->setProductPrice($data_price, $product_id, $all_prices, $delete_prices);
+						// Скидки и Акции
+						$this->setProductPrice($data_price, $product_id, $prices_old, $delete_prices);
 					}
 				}
 			} // foreach()
 
-			// В товар запишем минимальную цену только из цен опций
-			// Найдем минимальную цену и сравним со старой, если отличается в меньшую сторону, обновим
-			if (!empty($all_prices['features'])) {
-
-				$price_min = 0;
-				$this->log("Основная цена (старая): " . $old_data['price'], 2);
-
-				foreach ($all_prices['features'] as $data_price) {
-					$this->log($data_price, 2);
-					if ($price_min == 0) {
-						$price_min = $data_price['price'];
-					} else {
-						$price_min = min($price_min, $data_price['price']);
-					}
-				}
-
-				$data['price'] = $price_min;
-				$this->log("Основная цена (новая): " . $data['price']);
-
-			}
-
 			// Удаление цен которых нет в предложении.
 			// ВНИМАНИЕ! работает только если предложение не является характеристикой
-			if (!$data['product_feature_id']) {
+			if (empty($data['product_feature_id'])) {
 				$this->log("Нет характеристик, можно удалить старые цены:", 2);
 				$this->deletePrices($delete_prices);
 			}
 
-		}
+		} // if (isset($data['prices']))
 		// Цены
 
 		// Опции
-		if (isset($data['product_feature_id']) && isset($data['options'])) {
+		if (isset($data['product_feature_id'])) {
+
 			// Существующие опции товара
 			$old_product_options = $this->getProductOptions($product_id);
 			$this->log("Существующие опции товара product_id = " . $product_id, 2);
 			$this->log($old_product_options, 2);
 
-//			if (empty($data['options'])) {
-//				$data['options'] = $this->getProductOptionsValues($product_id);
-//			}
+			$this->log("Остаток характеристики: " . $data['quantity']);
 
+			// Если характеристики указаны в предложении, для XML 2.03 и 2.04 они указываются в import.xml
 			if (isset($data['options'])) {
-				$this->log("Остаток характеристики: " . $quantity_feature);
+				foreach ($data['options'] as $option) {
 
-				foreach ($data['options'] as $name => $option) {
+					$this->log($option, 2);
 					$data_value = array(
 						'subtract'	=> isset($option['subtract']) ? $option['subtract'] : 1,
-						'quantity'	=> $quantity_feature,
-						'name'		=> $option['value'],
-						'quantity'	=> $quantity_feature
+						'quantity'	=> $data['quantity'],
+						'name'		=> $option['value']
 					);
+
+					// Цена опции считается от старой цены товара
+					if (isset($data['price_feature'])) {
+						if ($data['price_feature'] > $old_data['price']) {
+							$data_value['price'] = ($data['price_feature'] - $old_data['price']);
+							$data_value['price_prefix'] = '+';
+						} elseif ($data['price_feature'] < $old_data['price']) {
+							$data_value['price'] = ($old_data['price'] - $data['price_feature']);
+							$data_value['price_prefix'] = '-';
+						}
+					}
 
 					if (!empty($data['images'])) {
 						$data_value['image'] = $data['images'][0];
@@ -3130,27 +2775,94 @@ class ModelExtensionExchange1c extends Model {
 					// Значения характеристики
 					$this->setProductFeatureValue($data['product_feature_id'], $product_id, $product_option_id, $product_option_value_id);
 					// Значения характеристики
+
+				} // foreach
+
+			} else {
+
+				// Характеристики не указаны, но указан Ид Характеристики и остаток
+				// Получим значение характеристики
+				$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_feature_id` = " . (int)$data['product_feature_id']);
+				$this->log($query, 2);
+				if ($query->num_rows == 1) {
+					$product_option_value_id = $query->row['product_option_value_id'];
+					$product_option_id = $query->row['product_option_id'];
+
+					// Ищем значение в существующих опциях
+					$data_value = array();
+					foreach ($old_product_options as $option) {
+						if (isset($option['values'][$product_option_value_id])) {
+							$data_value = $option['values'][$product_option_value_id];
+							$data_value['option_id'] = $option['option_id'];
+							break;
+						}
+					}
+
+					if (empty($data_value)) {
+						$this->errorLog(2302);
+						$this->log("Не найдено значение опции в таблице product_option_value по product_option_val");
+					}
+
+					// Остаток опции
+					if (isset($data['quantity'])) {
+
+						$data_value['quantity'] = $data['quantity'];
+
+						// Посчитаем общий остаток
+						$query = $this->query("SELECT SUM(`quantity`) as `quantity` FROM `" . DB_PREFIX . "product_option_value` WHERE `product_id` = " . (int)$product_id);
+						if ($query->num_rows) {
+							$data['quantity'] = $query->row['quantity'];
+							$this->log('Общий остаток из опций: ' . $data['quantity']);
+						}
+					}
+
+					// Цена опции
+					if (isset($data['price_feature'])) {
+						if ($data['price_feature'] > $old_data['price']) {
+							$data_value['price'] = ($data['price_feature'] - $old_data['price']);
+							$data_value['price_prefix'] = '+';
+						} elseif ($data['price_feature'] < $old_data['price']) {
+							$data_value['price'] = ($old_data['price'] - $data['price_feature']);
+							$data_value['price_prefix'] = '-';
+						}
+					}
+
+					if ($data_value)
+						$product_option_value_id = $this->setProductOptionValue($product_id, $product_option_id, $data_value['option_id'], $data_value['option_value_id'], $data_value, $old_product_options);
+
+				} // if ($query->num_rows == 1)
+
+			} // elseif (isset($data['options']))
+			// Опции
+
+			// Цена на товар как минимальная цена значения опции
+			if ($this->config->get('exchange1c_product_price_min_option') == 1) {
+                $this->log("Расчет минимальной цены опции...");
+				$price_min = $this->setProductMinPrice($product_id, $old_data['price']);
+				if ($price_min < $old_data['price']) {
+					$this->log("Установлена новая мин. цена товара из опций = " . $price_min);
+					$data['price'] = $price_min;
 				}
-				// Найдем опцию в товаре
-				// Добавим опцию в товар
+			}
 
+		} // if (isset($data['product_feature_id']))
+		// Характеристика
+
+		// Остаток общий
+		if (isset($data['quantity'])) {
+			// СТАТУС НА СКЛАДЕ
+			$this->log('Остаток: ' . $data['quantity']);
+			if ($this->config->get('exchange1c_product_default_stock_status') && $data['quantity'] <= 0) {
+				$data['stock_status_id'] = $this->config->get('exchange1c_product_default_stock_status');
+				$this->log("Установлен статус при отсутствии на складе, stock_status_id:" . $data['stock_status_id'], 2);
+			}
+
+			// Отключаем товар если остаток меньше или равен 0
+			if ($this->config->get('exchange1c_product_disable_if_quantity_zero') == 1 && $data['quantity'] <= 0) {
+				$data['status'] = 0;
+				$this->log("Товар с нулевым остатком или меньше нуля - отключен");
 			}
 		}
-		// Опции
-
-		// Единицы измерений
-		if (isset($data['units'])) {
-
-			foreach ($data['units'] as $unit) {
-
-				$update_fields = $this->compareArraysData($data['unit'], $this->UNITS);
-				$this->log($this->UNITS, 2);
-				$this->log($update_fields, 2);
-				$this->log($data['unit'], 2);
-
-			}
-		}
-		// Единицы измерений
 
 		if ($data['feature_guid']) {
 			$no_update = array('name');
@@ -3160,7 +2872,6 @@ class ModelExtensionExchange1c extends Model {
 
 		$data['date_modified'] = $this->NOW;
 
-		$this->log($old_data, 2);
 		$this->log($data, 2);
 
 		$update_fields = $this->compareArraysData($data, $old_data, $no_update);
@@ -3236,6 +2947,22 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
+	 * Получает product_id по модели
+	 */
+	private function getProductByModel($model) {
+
+		$query = $this->query("SELECT `product_id` FROM `" . DB_PREFIX . "product` WHERE `model` = '" . $this->db->escape($model) . "'");
+		if ($query->num_rows) {
+	 		$this->log("Найден product_id: " . $query->row['product_id'] . " по модели '" . $model . "'",2);
+			return $query->row['product_id'];
+		}
+		$this->log("Не найден товар по модели '" . $model . "'",2);
+		return 0;
+
+	} // getProductByModel()
+
+
+	/**
 	 * Получает product_id по наименованию товара
 	 */
 	private function getProductByName($name) {
@@ -3268,8 +2995,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 10
-	 * update 2018-04-05
+	 * ver 11
+	 * update 2018-05-11
 	 * Обновление или добавление товара
 	 * вызывается при обработке каталога
 	 */
@@ -3295,10 +3022,10 @@ class ModelExtensionExchange1c extends Model {
 	 		} elseif ($this->config->get('exchange1c_product_sync_mode') == 'model' && isset($data['model'])) {
 	 			$this->log("Поиск товара по модели: " . $data['model'], 2);
 				if (empty($data['model'])) {
- 					$this->log("ВНИМАНИЕ! Артикул пустой! Товар пропущен. Проверьте товар " . $data['name'], 2);
+ 					$this->log("ВНИМАНИЕ! пустое поле Модель! Товар пропущен. Проверьте товар " . $data['name'], 2);
  					return false;
  				}
-				$product_id = $this->getProductBySKU($data['sku']);
+				$product_id = $this->getProductByModel($data['model']);
 				if ($product_id)
 					$check_link = true;
 
@@ -3336,7 +3063,7 @@ class ModelExtensionExchange1c extends Model {
  			}
 		}
 
-		// Основная картинка
+		// ОСНОВНУЮ КАРТИНКУ ЗАПИШЕМ В ТОВАР
 		if (isset($data['images'][0])) {
 			$data['image'] = $data['images'][0];
 			unset($data['images'][0]);
@@ -3351,15 +3078,14 @@ class ModelExtensionExchange1c extends Model {
 
 			} else {
 
-				$this->log("Это новый товар, добавляем...");
-				$data['new'] = true;
+				$this->log("Это новый товар");
  				$product_id = $this->addProduct($data);
  				if ($this->ERROR) return false;
 			}
 
  		} else {
 
-			$data['new'] = false;
+			unset($data['product_id']);
  			$this->log("Обновляем товар...");
 
  			$this->updateProduct($product_id, $data);
@@ -3381,7 +3107,7 @@ class ModelExtensionExchange1c extends Model {
 					$sql = "INSERT INTO `" . DB_PREFIX . "product_to_1c` SET `product_id` = " . (int)$product_id . ", `guid` = '" . $this->db->escape($data['product_guid']) . "'";
 					if (isset($data['version'])) {
 						$sql .= ", `version` = '" . $this->db->escape($data['version']) ."'";
-						$this->log("Добавлена версия товара, version = " . $data['version'], 2);
+						$this->log("Версия товара в УС: " . $data['version'], 2);
 					}
 					$this->query($sql);
 				} else {
@@ -3403,16 +3129,14 @@ class ModelExtensionExchange1c extends Model {
 //			$this->setProductDescription($data, $new);
 //		}
 
-		$this->log("setProduct(): Товар обработан");
-
  		return $product_id;
 
  	} // setProduct()
 
 
 	/**
-	 * ver 2
-	 * update 2017-10-20
+	 * ver 4
+	 * update 2018-05-09
 	 * Читает реквизиты товара из XML в массив данных
 	 */
 	private function parseRequisite($xml, &$data) {
@@ -3424,7 +3148,7 @@ class ModelExtensionExchange1c extends Model {
 			//$this->log($requisite, 2);
 			$count	++;
 			$name 	= trim((string)$requisite->Наименование);
-			$value 	= (string)$requisite->Значение;
+			$value 	= trim((string)$requisite->Значение);
 
 			switch ($name){
 				case 'Вес':
@@ -3445,11 +3169,10 @@ class ModelExtensionExchange1c extends Model {
 				break;
 				case 'Производитель':
 					// Устанавливаем производителя из свойства только если он не был еще загружен в секции Товар
-					if ($this->config->get('exchange1c_product_manufacturer_no_change') == 0 && empty($data['manufacturer'])) {
-						$data['manufacturer'] = array(
-							'name' => htmlspecialchars($value)
-						);
-						$this->log("> Реквизит: " . $name . " = " . $data['manufacturer'], 2);
+					if ($this->config->get('exchange1c_product_manufacturer_no_change') == 0 && empty($data['manufacturer_id'])) {
+						$data['manufacturer_name'] = htmlspecialchars($value);
+						$data['manufacturer_id'] = $this->setManufacturer($data['manufacturer_name']);
+						$this->log("> Реквизит: " . $name . " = " . $data['manufacturer_name'], 2);
 					}
 				break;
 				case 'Код':
@@ -3469,128 +3192,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 3
-	 * update 2017-10-23
-	 * Получает путь к картинке и накладывает водяные знаки
-	 */
-	private function applyWatermark($filename, $watermark, $wm_filename) {
-
-		$filename_path = DIR_IMAGE . $filename;
-		$watermark_path = DIR_IMAGE . $watermark;
-
-		if (is_file($filename_path)) {
-
-			// Создаем объект картинка из водяного знака и получаем информацию о картинке
-			$image = new Image($filename_path);
-			$image->watermark(new Image($watermark_path));
-
-			// Сохраняем картинку с водяным знаком
-			$image->save(DIR_IMAGE . $wm_filename);
-			return true;
-		}
-		return false;
-
-	} // applyWatermark()
-
-
-	/**
-	 * ver 2
-	 * update 2017-04-18
-	 * Определяет что за файл и принимает дальнейшее действие
-	 */
-	private function setFile($filename, $product_id) {
-
-		$info = pathinfo($filename);
-		if (isset($info['extension'])) {
-
-			// Если расширение txt - грузим в описание
-			if ($info['extension'] == "txt") {
-				$description = file_get_contents($filename);
-				// если не в кодировке UTF-8, переводим
-				if (!mb_check_encoding($description, 'UTF-8')) {
-					$description = nl2br(htmlspecialchars(iconv('windows-1251', 'utf-8', $description)));
-				}
-				// обновляем только описание
-				$this->setProductDescription(array('description'	=> $description, 'product_id' => $product_id));
-				$this->log("> Добавлено описание товара из файла: " . $info['basename'],1);
-				return true;
-			}
-		}
-		return false;
-
-	} // setFile())
-
-
-	/**
-	 * ver 1
-	 * update 2017-10-23
-	 * Формирует название файла с водяным знаком
-	 */
-	private function getWatermarkFilename($image) {
-
-		$path_image = explode('/', $image);
-		$filename = array_pop($path_image);
-		$filename_obj = explode('.', $filename);
-		$wm_filename = trim($this->config->get('exchange1c_watermark_prefix')) . $filename_obj[0] . trim($this->config->get('exchange1c_watermark_suffix')) . '.' . $filename_obj[1];
-		$path = '';
-		for($i = 0; $i < count($path_image);  $i++) {
-			$path .= ($path ? '/' : '') . $path_image[$i];
-		}
-		$wm_filename = $path . '/' . $wm_filename;
-		return $wm_filename;
-
-	} // getWatermarkFilename()
-
-
-	/**
-	 * ver 6
-	 * update 2017-10-30
-	 * Накладывает водяной знак на картинку
-	 */
-	private function setWatermarkImage($image, $watermark) {
-
-		if (!file_exists(DIR_IMAGE . $image)) {
-			$this->log("Файл картинки '" . $image . "' отсутствует, наложение водяных знаков невозможно");
-			return $image;
-		}
-
-		// название файла с водяным знаком
-		$wm_image = $this->getWatermarkFilename($image);
-
-		// ищем файл с водяными знаками и оставляем его в товаре
-		//if (!file_exists(DIR_IMAGE . $image) && file_exists(DIR_IMAGE . $wm_image)) {
-		if (file_exists(DIR_IMAGE . $wm_image)) {
-			//$this->log("Найдена картинка с водяными знаками, но нет оригинала. Будет использована ранее созданная картинка.");
-			$this->log("Найдена картинка с водяными знаками ранее созданная.");
-			return $wm_image;
-		}
-
-		// Проверим является ли файл с наложенным водяным знаком
-		if ($image == $wm_image) {
-			$this->log("Файл картинки имеет название файла с водяным знаком, что значит водяные знаки уже наложены");
-			return $image;
-		}
-
-		$this->log("Новое имя файла с водяным знаком: " . $wm_image);
-
-		if ($this->applyWatermark($image, $watermark, $wm_image)) {
-			$this->log("Записан файл с водяным знаком: " . $wm_image);
-			if ($this->config->get('exchange1c_watermark_old_no_delete') != 1) {
-				unlink(DIR_IMAGE . $image);
-			}
-		} else {
-			$this->log("Ошибка наложения водяного знака на картинку: '" . $image . "'");
-			return $image;
-		}
-
-		return $wm_image;
-
-	} // setWatermarkImage()
-
-
-	/**
-	 * ver 10
-	 * update 2017-10-30
+	 * ver 11
+	 * update 2018-07-13
 	 * Устанавливает дополнительные картинки в товаре
 	 */
 	private function setProductImages($product_id, $images_data, $new = false) {
@@ -3599,6 +3202,7 @@ class ModelExtensionExchange1c extends Model {
 		if (!$new) {
 			if ($this->FULL_IMPORT) {
 				$this->query("DELETE FROM `" . DB_PREFIX . "product_image` WHERE `product_id` = " . (int)$product_id);
+				$this->log("Удалена картинка: " . $image);
 			} else {
 				// Прочитаем  все старые картинки
 				$query = $this->query("SELECT `product_image_id`,`image` FROM `" . DB_PREFIX . "product_image` WHERE `product_id` = " . (int)$product_id);
@@ -3616,23 +3220,16 @@ class ModelExtensionExchange1c extends Model {
 				$this->deleteCacheImage($image_info);
 			}
 
-			// Накладываем водяные знаки
-			$watermark = $this->config->get('exchange1c_watermark');
-			if ($watermark) {
-				$this->log("Накладываем водяные знаки...");
-				$image = $this->setWatermarkImage($image, $watermark);
-				if ($this->ERROR) return false;
-			}
-
 			// Основная картинка
 			if ($index == 0) continue;
 
-			$this->log("Картинка: " . $image, 2);
+			$this->log("Картинка: " . $image);
 
 			// Установим картинку в товар, т.е. если нет - добавим, если есть возвратим product_image_id
 			$product_image_id = array_search($image, $old_images);
 			if (!$product_image_id) {
 				$this->query("INSERT INTO `" . DB_PREFIX . "product_image` SET `product_id` = " . $product_id . ", `image` = '" . $this->db->escape($image) . "', `sort_order` = " . $index);
+				$this->log("Добавлена картинка: " . $image);
 			} else {
 				if (!$new) {
 					unset($old_images[$product_image_id]);
@@ -3650,11 +3247,13 @@ class ModelExtensionExchange1c extends Model {
 				if (is_file(DIR_IMAGE . $image)) {
 					// Также удалим файл с диска
 					unlink(DIR_IMAGE . $image);
-					$this->log("> Удалена старая картинка: " . DIR_IMAGE . $image);
+					$this->log("Удален старый файл: " . DIR_IMAGE . $image);
 				}
 			}
-			if (count($delete_images)) {
+			$count_image = count($delete_images);
+			if ($count_image) {
 				$this->query("DELETE FROM `" . DB_PREFIX . "product_image` WHERE `product_image_id` IN (" . implode(",",$delete_images) . ")");
+				$this->log("Удалены старые картинки: " . $count_image);
 			}
 		}
 
@@ -3709,16 +3308,13 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 8
-	 * update 2017-12-19
+	 * ver 9
+	 * update 2018-05-14
 	 * Читает картинки из XML в массив
 	 */
-	private function parseImages($xml, &$images) {
+	private function parseImages($xml) {
 
-		if (!$xml) {
-			$this->log("У товара нет картинок");
-			return false;
-		}
+		$images = array();
 
 		foreach ($xml as $image) {
 
@@ -3726,37 +3322,24 @@ class ModelExtensionExchange1c extends Model {
 
 			// Пропускаем файл с пустым именем
 			if (empty($image)) {
-				$this->log("Пустое наименование картинки, не будет добавлена в товар.", 2);
+				$this->log("Пустое наименование картинки, пропуск.", 2);
 				continue;
 			}
 
-			// Пропускаем несуществующие файлы если включено в настройках
-			if (!file_exists(DIR_IMAGE . $image)) {
+			if (!file_exists(DIR_IMAGE . $image) && $this->config->get('exchange1c_product_images_check')) {
 
-				if ($this->config->get('exchange1c_product_images_check') == 1) {
-					$this->log("файл не существует, согласно настройкам не будет записан в товар", 2);
-					continue;
-				}
+				// Пропускаем несуществующие файлы если включено в настройках
+				$this->log("файл не существует, согласно настройкам не будет записан в товар", 2);
+				continue;
 
-			} else {
-
-				// Обрабатываем только картинки
-				$image_info = @getimagesize(DIR_IMAGE . $image);
-				if ($image_info == NULL) {
-					$this->log("ВНИМАНИЕ! файл не является картинкой, в товар не будет добавлен: " . DIR_IMAGE . $image, 2);
-					continue;
-				};
 			}
 
-			//$this->log("parseImages() - Картинка: " . $image, 2);
+			$this->log("Картинка: " . $image, 2);
 			$images[] = $image;
 
 		} // foreach()
 
-		$this->log("Прочитано картинок: " . count($images));
-		$this->STAT['feature_images_num'] = count($images);
-
-		return true;
+		return $images;
 
 	} // parseImages()
 
@@ -3956,8 +3539,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 4
-	 * update 2017-12-29
+	 * ver 5
+	 * update 2018-05-15
 	 * Обновляет атрибут в базе если есть изменения
 	 */
 	private function updateAttribute($attribute_id, $data, $values) {
@@ -3970,6 +3553,8 @@ class ModelExtensionExchange1c extends Model {
 
 		// Сравним имя атрибута
 		if ($data['name'] != $old_data['name']) {
+			$this->log("Старый атрибут '" . $old_data['name'] . "'");
+			$this->log("Новый атрибут '" . $data['name'] . "'");
 			$this->query("UPDATE `" . DB_PREFIX . "attribute_description` SET `name` = '" . $this->db->escape($data['name']) . "' WHERE `attribute_id` = " . $attribute_id);
 			$update = true;
 		}
@@ -4003,7 +3588,7 @@ class ModelExtensionExchange1c extends Model {
 		}
 
 		// Если включено всегда обновлять группу атрибута
-		if ($this->config->get('exchange1c_attribute_group_mode') == 'always') {
+		if ($this->config->get('exchange1c_attribute_group_mode') == 'always' && $old_data['attribute_group_id'] != $data['attribute_group_id']) {
 			if (isset($data['attribute_group_id'])) {
 				$this->query("UPDATE `" . DB_PREFIX . "attribute` SET `attribute_group_id` = '" . $data['attribute_group_id'] . "' WHERE `attribute_id` = " . $attribute_id);
 			} else {
@@ -4084,18 +3669,17 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 8
-	 * update 2018-03-14
+	 * ver 10
+	 * update 2018-05-15
 	 * Загружает атрибуты (Свойства из 1С) в классификаторе
 	 */
 	private function parseClassifierAttributes($xml) {
 
+		$this->log("********************************************");
 		// Читаем из базы группы атрибутов
 		if (empty($this->ATTRIBUTE_GROUPS)) {
 			$this->ATTRIBUTE_GROUPS = $this->getAttributeGroups();
 		}
-		$this->log("Группы атрибутов в базе:", 2);
-		//$this->log($this->ATTRIBUTE_GROUPS, 2);
 
 		// Для разных версий XML
 		if ($xml->Свойство) {
@@ -4119,13 +3703,17 @@ class ModelExtensionExchange1c extends Model {
 			$delete_attributes = array();
 		}
 
-		$manufacturer_tag = $this->config->get('exchange1c_product_manufacturer_tag');
+		$manufacturer_tag = 'Производитель';
+		if ($this->config->get('exchange1c_product_manufacturer_tag'))
+			$manufacturer_tag = $this->config->get('exchange1c_product_manufacturer_tag');
+
 
 		$this->log("Свойств в файле: " . count($properties));
 		$this->STAT['attribute_num'] = count($properties);
 
 		foreach ($properties as $property) {
 
+			$this->log("********************************************");
 			$guid			= (string)$property->Ид;
 
 			$attribute_id	= isset($this->ATTRIBUTES[$guid]) ? $this->ATTRIBUTES[$guid]['attribute_id'] : 0;
@@ -4134,13 +3722,6 @@ class ModelExtensionExchange1c extends Model {
 				$delete = (string)$xml->ПометкаУдаления == 'true' ? true : false;
 			} else {
 				$delete = false;
-			}
-
-			// Для товаров
-			if ($property->ДляТоваров) {
-				if ((string)$property->ДляТоваров == 'true') {
-					$this->log("Для товаров", 2);
-				}
 			}
 
 			$data = array(
@@ -4152,27 +3733,34 @@ class ModelExtensionExchange1c extends Model {
 				'values_type'	=> (string)$property->ТипЗначений,
 				'guid'			=> $guid
 			);
-			//$this->log("Данные прочитанного атрибута:", 2);
-			//$this->log($data, 2);
+			$this->log("Атрибут: " . $data['name'] . ', GUID: ' . $data['guid']);
+
+			// Для товаров
+			if ($property->ДляТоваров) {
+				if ((string)$property->ДляТоваров == 'true') {
+					$this->log("Для товаров", 2);
+				}
+			}
 
 			// Для предложений не записываем в атрибуты, а записываем в опции
 			if ($property->ДляПредложений) {
-				if ((string)$property->ДляПредложений == 'true') {
-					$this->log("Для предложений", 2);
-					// это опции для характеристики, в атрибуты товаров не загружаем их
-					$option_id = $this->setOption($data['name'], $this->config->get('exchange1c_product_options_type'));
-					$this->log("Опция '" . $data['name'] . "' из свойства", 2);
-
-					if ($property->ВариантыЗначений->Справочник) {
-						foreach ($property->ВариантыЗначений->Справочник as $value) {
-			 				$option_value = htmlspecialchars(trim((string)$value->Значение));
-			 				$guid = (string)$value->ИдЗначения;
-			 				$this->setOptionValue($option_value, $option_id);
-							$this->log("Значение опции '" . $option_value . "' из свойства", 2);
-						}
-					}
+//				if ((string)$property->ДляПредложений == 'true') {
+//					$this->log("Для предложений", 2);
+//					// это опции для характеристики, в атрибуты товаров не загружаем их
+//					$option_id = $this->setOption($data['name'], $this->config->get('exchange1c_product_options_type'));
+//					$this->log("Опция '" . $data['name'] . "' из свойства", 2);
+//
+//					if ($property->ВариантыЗначений->Справочник) {
+//						foreach ($property->ВариантыЗначений->Справочник as $value) {
+//			 				$option_value = htmlspecialchars(trim((string)$value->Значение));
+//			 				$guid = (string)$value->ИдЗначения;
+//			 				$this->setOptionValue($option_value, $option_id);
+//							$this->log("Значение опции '" . $option_value . "' из свойства", 2);
+//						}
+//					}
+					$this->log('Для предложений, не будет загружен в атрибуты');
 					continue;
-				}
+//				}
 			}
 
 			// Фильтр типов значений
@@ -4260,8 +3848,7 @@ class ModelExtensionExchange1c extends Model {
 				// Прочитаем производителя
 				case $manufacturer_tag:
 					foreach ($values as $manufacturer_guid => $value) {
-						$this->setManufacturer($value, $manufacturer_guid);
-						$this->log("Производитель: " . $value, 2);
+						$this->setManufacturer($value);
 					}
 
 				default:
@@ -4293,7 +3880,10 @@ class ModelExtensionExchange1c extends Model {
 
 		} // foreach ($properties as $property)
 
+
 		if (count($delete_attributes)) {
+
+			$this->log("********************************************");
 
 			$delete_obj = array();
 			$this->log($delete_attributes, 2);
@@ -4309,17 +3899,18 @@ class ModelExtensionExchange1c extends Model {
 			$this->query("DELETE FROM `" .  DB_PREFIX . "attribute_value`" . $where);
 
 			$this->log("Атрибутов удалено: " . count($delete_attributes));
+			$this->log("********************************************");
 		}
 
-		$this->log("********************************************");
 		$this->log("Завершено чтение атрибутов из файла", 2);
+		$this->log("********************************************");
 
 	} // parseClassifierAttributes()
 
 
 	/**
-	 * ver 5
-	 * update 2017-11-23
+	 * ver 7
+	 * update 2018-05-15
 	 * Читает свойства товара из XML (товар, категория) и записывает их в массив
 	 * $data - прочитанные данные о продукте из XML
 	 */
@@ -4338,18 +3929,20 @@ class ModelExtensionExchange1c extends Model {
 		//$this->log($this->ATTRIBUTE_GROUPS, 2);
 
 		// Название элемента с производителем
-		$manufacturer_tag = $this->config->get('exchange1c_product_manufacturer_tag');
+		$manufacturer_tag = 'Производитель';
+		if ($this->config->get('exchange1c_product_manufacturer_tag'))
+			$manufacturer_tag = $this->config->get('exchange1c_product_manufacturer_tag');
 
 		foreach ($xml->ЗначенияСвойства as $property) {
 
 			// Ид объекта в 1С
 			$attribute_guid 	= (string)$property->Ид;
-			$attribute_value 	= trim(htmlspecialchars((string)$property->Значение));
+			$attribute_value 	= htmlspecialchars(trim((string)$property->Значение));
 
 			// Загружаем только те что в классификаторе
 			if (!isset($this->ATTRIBUTES[$attribute_guid])) {
 
-				$this->log("[i] Свойство не было загружено в классификаторе, Ид: " . $attribute_guid, 2);
+				$this->log("[i] Свойство не было загружено в классификаторе, Ид = " . $attribute_guid, 2);
 				continue;
 
 			} else {
@@ -4407,19 +4000,29 @@ class ModelExtensionExchange1c extends Model {
 
 			switch ($attribute['name']) {
 
-				case $manufacturer_tag:
-					$this->log("Прочитан производитель из тега: '" . $manufacturer_tag . "'");
+				case 'Производитель':
+					$this->log("Производитель из свойства: 'Производитель'");
 
 					// Устанавливаем производителя из свойства если только он не был ранее прочитан
 					if ($this->config->get('exchange1c_product_manufacturer_no_change') != 1 && empty($data['manufacturer'])) {
 
-						$data['manufacturer'] = array(
-							'name' 				=> $attribute_value,
-							'manufacturer_id' 	=> $this->setManufacturer($attribute_value)
-						);
+						$data['manufacturer_name']	= htmlspecialchars(trim($attribute_value));
+						$data['manufacturer_id'] 	= $this->setManufacturer($data['manufacturer_name']);
 
-						$this->log("> Производитель (из свойства): '" . $attribute_value . "'", 2);
-						$this->log($data['manufacturer'], 2);
+						$this->log("> Производитель (из свойства): '" . $data['manufacturer_name'] . "', manufacturer_id = " . $data['manufacturer_id'], 2);
+					}
+				break;
+
+				case $manufacturer_tag:
+					$this->log("Производитель из свойства: '" . $manufacturer_tag . "'");
+
+					// Устанавливаем производителя из свойства если только он не был ранее прочитан
+					if ($this->config->get('exchange1c_product_manufacturer_no_change') != 1 && empty($data['manufacturer'])) {
+
+						$data['manufacturer_name']	= htmlspecialchars(trim($attribute_value));
+						$data['manufacturer_id'] 	= $this->setManufacturer($data['manufacturer_name']);
+
+						$this->log("> Производитель (из свойства): '" . $data['manufacturer_name'] . "', manufacturer_id = " . $data['manufacturer_id'], 2);
 					}
 				break;
 
@@ -4493,8 +4096,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 4
-	 * update 2017-09-03
+	 * ver 5
+	 * update 2018-06-14
 	 * Обновляем производителя в базе данных
 	 */
 	private function updateManufacturer($manufacturer_id, $data, $name) {
@@ -4510,17 +4113,14 @@ class ModelExtensionExchange1c extends Model {
 			$query = $this->query("SELECT `name`, `description`, `meta_title`, `meta_description`, `meta_keyword` FROM `" . DB_PREFIX . "manufacturer_description` WHERE `manufacturer_id` = " . (int)$manufacturer_id . " AND `language_id` = " . $this->LANG_ID);
 
 			// SEO
-			$this->seoGenerateManufacturer($manufacturer_id, $data);
-
+			if ($this->config->get('exchange1c_seo_manufacturer_mode') != 'disable')
+				$this->seoGenerateManufacturer($manufacturer_id, $data);
 
 			// Сравнивает запрос с массивом данных и формирует список измененных полей
 			$update_fields = $this->compareArrays($query, $data);
 
-			if ($update_fields) {
-
+			if ($update_fields)
 				$this->query("UPDATE `" . DB_PREFIX . "manufacturer_description` SET " . $update_fields . " WHERE `manufacturer_id` = " . (int)$manufacturer_id . " AND `language_id` = " . $this->LANG_ID);
-
-			}
 
 		} else {
 
@@ -4536,14 +4136,16 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 7
-	 * update 2018-03-23
+	 * ver 8
+	 * update 2018-06-14
 	 * Добавляем производителя
 	 * Отказ от использования GUID
 	 */
 	private function addManufacturer($data) {
 
 		// ДОБАВЛЯЕМ
+		$this->log("Добавляем производителя " . $data['name']);
+		$this->log($data, 2);
 
 		$sql_set = "";
 		if (isset($this->FIELDS['manufacturer']['noindex'])) {
@@ -4560,26 +4162,29 @@ class ModelExtensionExchange1c extends Model {
 			'sort_order'	=> $data['sort_order']
 		);
 
- 		$this->log("Добавлен производитель: '" . $data['name'] . "', manufacturer_id: " . $manufacturer_id, 2);
+ 		$this->log("Добавлен производитель: '" . $data['name'] . "', manufacturer_id = " . $manufacturer_id, 2);
 
 		if (isset($this->TAB_FIELDS['manufacturer_description'])) {
 
 			// SEO
-			$this->seoGenerateManufacturer($manufacturer_id, $data);
+			if ($this->config->get('exchange1c_seo_manufacturer_mode') != 'disable')
+				$this->seoGenerateManufacturer($manufacturer_id, $data);
 
-			if (!isset($this->FIELDS['manufacturer_description']['name'])) {
+			if (!isset($this->FIELDS['manufacturer_description']['name']))
 				unset($data['name']);
-			}
 
 			$sql = $this->prepareQueryDescription($data, "set");
 
-			$query = $this->query("INSERT INTO `" . DB_PREFIX . "manufacturer_description` SET " . $sql . ", `language_id` = " . $this->LANG_ID . ", `manufacturer_id` = " . (int)$manufacturer_id);
+			if ($sql) {
+				$query = $this->query("INSERT INTO `" . DB_PREFIX . "manufacturer_description` SET " . $sql . ", `language_id` = " . $this->LANG_ID . ", `manufacturer_id` = " . (int)$manufacturer_id);
+			} else {
+				$query = $this->query("INSERT INTO `" . DB_PREFIX . "manufacturer_description` SET `manufacturer_id` = " . (int)$manufacturer_id .", `language_id` = " . $this->LANG_ID . ", `description` = ''");
+			}
 		}
 
 		// СВЯЗЬ
-		if ($data['guid']) {
+		if ($data['guid'])
 			$this->query("INSERT INTO `" . DB_PREFIX . "manufacturer_to_1c` SET `guid` = '" . $this->db->escape($data['guid']) . "', `manufacturer_id` = " . (int)$manufacturer_id);
-		}
 
 		// МАГАЗИН
 		$this->query("INSERT INTO `" . DB_PREFIX . "manufacturer_to_store` SET `manufacturer_id` = " . (int)$manufacturer_id . ", `store_id` = " . $this->STORE_ID);
@@ -4590,13 +4195,14 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 4
-	 * update 2018-03-23
+	 * ver 6
+	 * update 2018-05-11
 	 * Устанавливаем производителя
 	 * Ид производителя нужен для XML 2.09 и выше
 	 */
 	private function setManufacturer($name, $guid = '') {
 
+		$this->log('Производитель: ' . $name, 2);
 		$manufacturer_id = 0;
 
 		if (empty($this->MANUFACTURERS)) {
@@ -4605,13 +4211,14 @@ class ModelExtensionExchange1c extends Model {
 		//$this->log($this->MANUFACTURERS, 2);
 
 		foreach ($this->MANUFACTURERS as $manufacturer_id => $manufacturer_data) {
-			if ($name == $manufacturer_data['name'] && !$guid) {
-				$this->log("Найден производитель manufacturer_id = " . $manufacturer_id, 2);
-				return $manufacturer_id;
-			}
 			if ($guid) {
 				if ($name == $manufacturer_data['name'] && $guid == $manufacturer_data['guid']) {
 					$this->log("Найден производитель manufacturer_id = " . $manufacturer_id . ", Ид = " . $guid, 2);
+					return $manufacturer_id;
+				}
+			} else {
+				if ($name == $manufacturer_data['name']) {
+					$this->log("Найден производитель manufacturer_id = " . $manufacturer_id, 2);
 					return $manufacturer_id;
 				}
 			}
@@ -4623,83 +4230,14 @@ class ModelExtensionExchange1c extends Model {
 			'name'			=> $name,
 			'image'			=> "",
 			'sort_order'	=> 0,
-			'guid'			=> $guid
+			'guid'			=> $guid,
+			'description'	=> ''
 		);
 		$manufacturer_id = $this->addManufacturer($data);
 
 		return $manufacturer_id;
 
 	} // setManufacturer()
-
-
-	/**
-	 * ver 3
-	 * update 2017-12-15
-	 * Обрабатывает единицу измерения товара
-	 * Возвращает unit_id
-	 */
-	private function parseProductUnit($xml) {
-
-		if (empty($this->UNITS)) {
-			$this->getUnits();
-		}
-
-		$data = array();
-
-		$code = (int)$xml;
-		if ($code) {
-			// BITRIX
-			$data['code'] = $code;
-		} else {
-			$name = trim((string)$xml);
-			$code = (int)$xml['Код'];
-			$data['full_name'] 	= $xml['НаименованиеПолное'] ? trim((string)$xml['НаименованиеПолное']) : $name;
-			$data['name'] 		= $name;
-		}
-
-		$data['code'] 		= $code;
-
-		// Поищем в базе
-		foreach ($this->UNITS as $unit_id => $unit) {
-			if ($data['code'] == $unit['code']) {
-				return $unit_id;
-			}
-		}
-
-		$unit_id = $this->addUnit($data);
-		$this->log("Добавлена новая единица измерения, unit_id = " . $unit_id);
-
-		return $unit_id;
-
-	} // parseProductUnit()
-
-
-	/**
-	 * ver 2
-	 * update 2017-12-15
-	 * Единицы измерений
-	 */
-	private function getUnits() {
-
-		// Прочитаем старые соответствия единиц измерения
-		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "unit_to_1c`");
-		if ($query->num_rows) {
-			foreach ($query->rows as $unit) {
-				$this->UNITS[$unit['unit_id']] = array(
-					'unit_id'		=> $unit['unit_id'],
-					'name'			=> $unit['name'],
-					'full_name'		=> $unit['full_name'],
-					'code'			=> $unit['code'],
-					'version'		=> $unit['version'],
-					'guid'			=> $unit['guid']
-				);
-			}
-		}
-
-		$this->log("На сайте единиц: " . count($this->UNITS));
-		$this->STAT['unit_num'] = count($this->UNITS);
-
-	} // getUnits()
 
 
 	/**
@@ -4738,83 +4276,6 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 5
-	 * update 2017-12-15
-	 * Обрабатывает единицы измерения в классификаторе ver. XML >= 2.09
-	 * Заполняем справочник единиц которые будут использованы в товарах
-	 */
-	private function parseClassifierUnits($xml) {
-
-		$result = array();
-		if (empty($this->UNITS)) {
-			$this->getUnits();
-		}
-		$this->log($this->UNITS, 2);
-
-		$this->log("***************** ЕДИНИЦЫ ИЗМЕРЕНИЙ ********************");
-
-		foreach ($xml->ЕдиницаИзмерения as $unit) {
-
-			// Сопоставляет Ид с id единицей измерения CMS
-			$delete		= (string)$unit->ПометкаУдаления == 'false' ? false : true;
-			$guid		= (string)$unit->Ид;
-			$data = array(
-				'name'			=> trim((string)$unit->НаименованиеКраткое),
-				'full_name'		=> trim((string)$unit->НаименованиеПолное),
-				'code'			=> trim((int)$unit->Код),
-				'version'		=> (string)$unit->НомерВерсии,
-				'guid'			=> $guid
-			);
-			$this->log("Единица: '" . $data['name'] . "', полное наименование: '" . $data['full_name'] . "'", 2);
-
-			$unit_id = 0;
-
-			// Проверим наличие единицы в базе
-			foreach ($this->UNITS as $data_unit) {
-				if ($data['code'] == $data_unit['code'] || $data['name'] == $data_unit['name']) {
-					$unit_id = $data_unit['unit_id'];
-					break;
-				}
-			}
-
-			if ($unit_id) {
-				if ($delete) {
-					$this->query("DELETE FROM `" . DB_PREFIX . "unit_to_1c` WHERE `unit_id` = " . $unit_id);
-					unset($this->UNITS[$unit_id]);
-
-				} else {
-					$update_fields = $this->compareArraysData($data, $this->UNITS[$unit_id]);
-					$sql = $this->prepareQuery($update_fields, "set");
-
-					if ($sql) {
-						$this->query("UPDATE `" . DB_PREFIX . "unit_to_1c` SET " . $sql . " WHERE `unit_id` = " . $unit_id);
-						foreach ($update_fields as $field => $value) {
-							$this->UNITS[$unit_id][$field] = $value;
-						}
-					}
-				}
-
-			} else {
-				// Добавляем только не помеченные на удаление
-				if (!$delete) {
-					$this->query("INSERT INTO `" . DB_PREFIX . "unit_to_1c` SET " . $this->prepareQuery($data, "set"));
-					$unit_id = $this->db->getLastId();
-				}
-            }
-
-			if ($unit_id) {
-				$result[$guid] = $unit_id;
-			}
-		}
-
-		$this->log("Прочитаны единицы измерения в классификаторе (XML >= 2.09)", 2);
-
-		return $result;
-
-	} // parseClassifierUnits()
-
-
-	/**
 	 * ver 2
 	 * update 2017-04-14
 	 * Отзывы парсятся с Яндекса в 1С, а затем на сайт
@@ -4847,6 +4308,7 @@ class ModelExtensionExchange1c extends Model {
 	 * update 2017-11-01
 	 * Удаляет старые неиспользуемые картинки
 	 * Сканирует все файлы в папке import_files и ищет где они указаны в товаре, иначе удаляет файл
+	 * Вызывается из контроллера, manualCleaningOldImages()
 	 */
 	public function cleanOldImages($folder) {
 
@@ -4912,10 +4374,11 @@ class ModelExtensionExchange1c extends Model {
 
 	/**
 	 * Удаляет связи все
+	 * Вызывается из контроллера, manualCleaningLinks()
 	 */
 	public function cleanLinks() {
 
-		$clear = array('product_to_1c','category_to_1c','attribute_to_1c','manufacturer_to_1c','store_to_1c','unit_to_1c','store_to_1c');
+		$clear = array('product_to_1c','category_to_1c','attribute_to_1c','manufacturer_to_1c','store_to_1c','store_to_1c');
 		$result = "";
 		foreach ($clear as $table) {
 			$this->query("DELETE FROM `" . DB_PREFIX . $table . "`");
@@ -4923,31 +4386,14 @@ class ModelExtensionExchange1c extends Model {
 		}
 		return $result;
 
-	} // cleanProductData()
-
-
-	/**
-	 * ver 2
-	 * update 2017-12-19
-	 * Отключает все товары, можно сделать опцию удаления ненужных и их связи и так далее
-	 */
-	private function cleanProductData($product_id) {
-
-		$this->log("Очистка опций, а также их цен и остатков");
-		//$this->query("DELETE FROM `" . DB_PREFIX . "product_feature` WHERE `product_id` = " . $product_id);
-		//$this->query("DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_id` = " . $product_id);
-		//$this->query("DELETE FROM `" . DB_PREFIX . "product_option` WHERE `product_id` = " . $product_id);
-		//$this->query("DELETE FROM `" . DB_PREFIX . "product_option_value` WHERE `product_id` = " . $product_id);
-		//$this->query("DELETE FROM `" . DB_PREFIX . "product_price` WHERE `product_id` = " . $product_id);
-		//$this->query("DELETE FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . $product_id);
-
-	} // cleanProductData()
+	} // cleanLinks()
 
 
 	/**
 	 * ver 2
 	 * update 2017-06-13
 	 * Удаляет все дубли связей с торговой системой
+	 * Вызывается из контроллера, manualRemoveDoublesLinks()
 	 */
 	public function removeDoublesLinks() {
 
@@ -4974,48 +4420,6 @@ class ModelExtensionExchange1c extends Model {
 		return $result;
 
 	} // removeDoublesLinks()
-
-
-	/**
-	 * ver 5
-	 * update 2017-10-20
-	 * Формирует название товара
-	 */
-	private function setProductName($product, &$data) {
-
-		if ($product->Наименование && $this->config->get('exchange1c_import_product_name') == "name") {
-			$data['name'] = htmlspecialchars(trim((string)$product->Наименование));
-			$this->log("Наименование установлено из элемента 'Наименование'", 2);
-
-		} elseif ($product->ПолноеНаименование && $this->config->get('exchange1c_import_product_name') == "fullname") {
-			$this->log("Наименование записано из полного наименования", 2);
-			$data['name'] = htmlspecialchars(trim((string)$product->ПолноеНаименование));
-			$this->log("Наименование установлено из элемента 'ПолноеНаименование'", 2);
-
-		} elseif ($this->config->get('exchange1c_import_product_name') == "manually") {
-			// Название поля наименования
-			$field_name = $this->config->get('exchange1c_import_product_name_field');
-			$data['name'] = htmlspecialchars(trim((string)$product->$field_name));
-			$this->log("Наименование установлено из элемента '" . $field_name . "'", 2);
-		}
-
-	} // setProductName()
-
-
-	/**
-	 * ver 2
-	 * update 2017-08-13
-	 * Возвращает название модели
-	 */
-	private function parseProductModel($product, &$data) {
-
-		if ($product->Модель) {
-			$data['model'] = htmlspecialchars((string)$product->Модель);
-		} elseif ($this->config->get('exchange1c_product_sku_in_model') == 1 && isset($data['sku'])) {
-			$data['model'] =  htmlspecialchars($data['sku']);
-		}
-
-	} // parseProductModel()
 
 
 	/**
@@ -5060,37 +4464,12 @@ class ModelExtensionExchange1c extends Model {
 			if (isset($this->CATEGORIES[$guid])) {
 				$result[] = $this->CATEGORIES[$guid]['category_id'];
 			} else {
-				$this->log("[!] Категория не найдена по Ид: " . $guid);
+				$this->log("[!] Категория не найдена по Ид = " . $guid);
 			}
 		}
 
 		$this->log("Найдено категорий: " . count($result), 2);
 		return $result;
-
-	} // parseProductCategories()
-
-
-	/**
-	 * ver 1
-	 * update 2018-03-05
-	 * Загружает в базу товарные категории
-	 */
-	private function parseProductCategories2($xml, $parent_id = 0) {
-
-		foreach ($xml->Категория as $category) {
-			$guid = (string)$category->Ид;
-			$name = (string)$category->Наименование;
-			$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_category` WHERE guid = '" . $this->db->escape($guid) . "'");
-			if ($query->num_rows) {
-				if ($query->row['name'] != $name) {
-					$this->query("UPDATE `" . DB_PREFIX . "product_category` SET name = '" . $this->db->escape($name) . "'");
-				}
-			} else {
-				$this->query("INSERT INTO `" . DB_PREFIX . "product_category` SET parent_id = " . (int)$parent_id . ", name = '" . $this->db->escape($name) . "', guid = '" . $this->db->escape($guid) . "'");
-			}
-		}
-
-		$this->log("Обработана товарная категория: '" . $name . "', Ид: '" . $guid . "'", 2);
 
 	} // parseProductCategories()
 
@@ -5126,82 +4505,6 @@ class ModelExtensionExchange1c extends Model {
 		return $data;
 
 	} // getManufacturers()
-
-
-	/**
-	 * ver 4
-	 * update 2018-03-23
-	 * Читает из XML данные производителя: наименование
-	 * Отказ от использования GUID поиск будет только по наименованию
-	 */
-	private function parseProductManufacturer($product_xml) {
-
-		$manufacturer_tag = $this->config->get('exchange1c_product_manufacturer_tag');
-
-		$name = "";
-
-		// Читаем изготовителя, добавляем/обновляем его в базу
-		if ($product_xml->Изготовитель) {
-
-			$name = trim(htmlspecialchars((string)$product_xml->Изготовитель->Наименование));
-
-		} elseif ($product_xml->$manufacturer_tag) {
-
-        	$name = trim(htmlspecialchars((string)$product_xml->$manufacturer_tag->Наименование));
-
-		} else {
-
-			return 0;
-		}
-
-		$manufacturer_id = $this->setManufacturer($name);
-
-       	return $manufacturer_id;
-
-
-	} // parseProductManufacturer()
-
-
-	/**
-	 * ver 3
-	 * update 2017-10-22
-	 * Читает из XML данные картинок и возвращает массив
-	 */
-	private function parseProductImages($product, $data) {
-
-		$images = array();
-		if ($product->Картинка) {
-			$this->parseImages($product->Картинка, $images);
-			if ($this->ERROR) return false;
-		} // if ($product->Картинка)
-
-		// CML 2.04
-		if ($product->ОсновнаяКартинка) {
-			$this->parseImages($product->ОсновнаяКартинка, $images);
-			if ($this->ERROR) return false;
-
-			// дополнительные, когда элементы в файле называются <Картинка1>, <Картинка2>...
-			$cnt = 1;
-			$var = 'Картинка'.$cnt;
-
-			while (!empty($product->$var)) {
-				$this->parseImages($product->$var, $images);
-				if ($this->ERROR) return false;
-				$cnt++;
-				$var = 'Картинка'.$cnt;
-			}
-
-		} // if ($product->ОсновнаяКартинка)
-
-		if ($images) {
-			$this->log("Картинок прочитано: " . count($images));
-		} else {
-			$this->log("Картинок в товаре нет", 2);
-		}
-
-		return $images;
-
-	} // parseProductManufacturer()
 
 
 	/**
@@ -5258,29 +4561,61 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 2
-	 * update 2017-09-03
-	 * Проверяет товар на существование в базе
+	 * ver 5
+	 * update 2018-05-11
+	 * Проверяет товар на существование в базе и проверяет связи с Ид
 	 */
 	private function searchProduct(&$data) {
 
-  		$query = $this->query("SELECT `product_id`, `version` FROM `" . DB_PREFIX . "product_to_1c` WHERE `guid` = '" . $this->db->escape($data['product_guid']) . "'");
-		if (!$query->num_rows) {
-			return 0;
+		$product_id = 0;
+		$version = '';
+
+		if ($data['product_id']) {
+
+			// Проверим связи по ID
+			$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_to_1c` WHERE `product_id` = " . (int)$data['product_id']);
+  			if ($query->num_rows) {
+
+				$product_id 	= $query->row['product_id'];
+				$version 		= $query->row['version'];
+				// Если Ид отличается
+				if ($query->row['guid'] != $data['product_guid']) {
+					$this->query("UPDATE `" . DB_PREFIX . "product_to_1c` SET `guid` = '" . $this->db->escape($data['product_guid']) . "' WHERE `product_id` = " . (int)$data['product_id']);
+				}
+			}
+
+  		} else {
+
+			// Проверим связи по Ид
+			$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_to_1c` WHERE `guid` = '" . $this->db->escape($data['product_guid']) . "'");
+			if ($query->num_rows) {
+				$product_id 	= $query->row['product_id'];
+				$version 		= $query->row['version'];
+			}
+
+  		}
+
+   		//$this->log($product_id);
+		$data['old_version'] = $version;
+
+		// Проверим существование товара
+		if ($product_id) {
+			$query_product = $this->query("SELECT `product_id` FROM `" . DB_PREFIX . "product` WHERE `product_id` = " . (int)$product_id);
+			if (!$query_product->num_rows && $product_id) {
+				// Удалим связь на несуществующий товар
+				$this->query("DELETE FROM `" . DB_PREFIX . "product_to_1c` WHERE `product_id` = " . (int)$product_id);
+				$product_id = 0;
+			}
 		}
 
-		$data['old_version'] = $query->row['version'];
-
-		$this->log("Товар найден");
-
-		return $query->row['product_id'];
+		return $product_id;
 
 	} // searchProduct()
 
 
 	/**
-	 * ver 1
-	 * update 2018-04-05
+	 * ver 3
+	 * update 2018-06-28
 	 *
 	 */
 	private function parseProductRules($xml, &$data) {
@@ -5292,28 +4627,32 @@ class ModelExtensionExchange1c extends Model {
 		$this->log($rules, 2);
 		$rules = explode("\r\n", $rules);
 		$num = 0;
+
 		foreach ($rules as $rule_str) {
+
+			$rule_str = trim($rule_str);
+
+			if (empty($rule_str)) {
+				continue;
+			}
+
 			$num++;
-			$rule_data = explode(':', $rule_str);
+			$rule_data = explode('#', $rule_str);
 			if (count($rule_data) != 3) {
 				$this->log("Неверный формат правил в строке " . $num . " правило '" . $rule_str . "'");
 				continue;
 			}
 			$result = '';
-			$this->log($rule_data, 2);
+			//$this->log($rule_data, 2);
 			if (isset($rule_data[0])) {
 				$tag = trim($rule_data[0]);
 				if ($xml->$tag) {
 					$result = trim((string)$xml->$tag);
-					$this->log($result,2);
+					//$this->log($result,2);
 				};
 			}
-			if (isset($rule_data[1]) && $result) {
-				$script = trim($rule_data[1]);
-				$this->log($result, 2);
-				//$script = str_replace('$', '\$', $script);
-				//$script = str_replace("$result", "'" . $result . "'", $script);
-				$this->log($script, 2);
+			$script = trim($rule_data[1]);
+			if (!empty($script) && $result) {
 
 				//ob_start();
 				$return = eval("\$result= $script;");
@@ -5322,7 +4661,7 @@ class ModelExtensionExchange1c extends Model {
 				}
 				//$result = ob_get_contents();
 				//ob_end_clean();
-				$this->log($result, 2);
+				//$this->log($result, 2);
 			}
 			if (isset($rule_data[2])) {
 				$field = trim($rule_data[2]);
@@ -5335,8 +4674,117 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 19
-	 * update 2018-03-24
+	 * ver 1
+	 * update 2018-06-21
+	 */
+	private function getCategoriesEmpty($only_enabled = true) {
+
+		$all_categories = array();
+		$not_empty_categories = array();
+
+		$query = $this->db->query("SELECT `category_id` FROM `" . DB_PREFIX . "category`" . ($only_enabled? " WHERE `status` = 1" : ""));
+
+		foreach ($query->rows as $result) {
+			$all_categories[] = $result['category_id'];
+		}
+
+		$query = $this->db->query("SELECT DISTINCT(`parent_id`) as category_id FROM `" . DB_PREFIX . "category` WHERE `parent_id` > 0" . ($only_enabled? " AND `status` = 1" : ""));
+
+		foreach ($query->rows as $result) {
+			$not_empty_categories[] = $result['category_id'];
+		}
+
+		$query = $this->db->query("SELECT DISTINCT(pc.`category_id`) FROM `" . DB_PREFIX . "category` as c,`" . DB_PREFIX . "product_to_category` as pc, `" . DB_PREFIX . "product` as p WHERE pc.`category_id` = c.`category_id` AND pc.`product_id` = p.`product_id` AND p.`status` = 1" . ($only_enabled? " AND c.`status` = 1" : ""));
+
+		foreach ($query->rows as $result) {
+			$not_empty_categories[] = $result['category_id'];
+		}
+
+		$empty_categories = array_diff($all_categories, $not_empty_categories);
+
+		return $empty_categories;
+
+	} // getCategoriesEmpty()
+
+
+	/**
+	 * ver 1
+	 * update 2018-06-21
+	 */
+	private function getCategoriesNotEmpty() {
+
+		$all_categories = array();
+		$not_empty_categories = array();
+
+		$query = $this->db->query("SELECT `category_id` FROM `" . DB_PREFIX . "category` WHERE `status` = 0");
+		foreach ($query->rows as $result) {
+			$all_categories[] = $result['category_id'];
+		}
+		//$this->log($all_categories,2);
+
+		$query = $this->db->query("SELECT DISTINCT(pc.`category_id`) FROM `" . DB_PREFIX . "category` as c,`" . DB_PREFIX . "product_to_category` as pc, `" . DB_PREFIX . "product` as p WHERE pc.`category_id` = c.`category_id` AND pc.`product_id` = p.`product_id` AND p.`status` = 1 AND c.`status` = 1");
+		foreach ($query->rows as $result) {
+			$not_empty_categories[] = $result['category_id'];
+		}
+		//$this->log($not_empty_categories,2);
+
+		$enable_categories = array_diff($all_categories, $not_empty_categories);
+		return $enable_categories;
+
+	} // getCategoriesNotEmpty()
+
+
+	/**
+	 * ver 1
+	 * update 2018-06-21
+	 */
+	private function disableCategoriesEmpty() {
+
+		$empty_categories = $this->getCategoriesEmpty(false);
+		$count = count($empty_categories);
+		$result_count = $count;
+
+		if ($count > 0) {
+			$query = $this->db->query("UPDATE `" . DB_PREFIX . "category` SET `status` = 1 WHERE `sort_order` >= 0 AND `status` = 0");
+			$query = $this->db->query("UPDATE `" . DB_PREFIX . "category` SET `status` = 0 WHERE `category_id` IN (" . join(', ', $empty_categories) . ")");
+
+   			while ($count > 0) {
+				$empty_categories = $this->getCategoriesEmpty(true);
+				$count = count($empty_categories);
+
+				if ($count > 0) {
+					$result_count += $count;
+					$query = $this->db->query("UPDATE `" . DB_PREFIX . "category` SET `status` = 0 WHERE `category_id` IN (" . join(', ', $empty_categories) . ")");
+				}
+			}
+		}
+		return $result_count;
+
+	} // disableCategoriesEmpty()
+
+
+	/**
+	 * ver 1
+	 * update 2018-06-21
+	 */
+	private function enableCategoriesEmpty() {
+
+		$no_empty_categories = $this->getCategoriesNotEmpty();
+		$count = count($no_empty_categories);
+		$this->log($no_empty_categories, 2);
+
+		if ($count > 0) {
+			$query = $this->db->query("UPDATE `" . DB_PREFIX . "category` SET `status` = 1 WHERE `category_id` IN (" . join(', ', $no_empty_categories) . ")");
+		}
+
+		return $count;
+
+	} // enableCategoriesEmpty()
+
+
+	/**
+	 * ver 28
+	 * update 2018-06-26
 	 * Обрабатывает товары из раздела <Товары> в XML
 	 * При порционной выгрузке эта функция запускается при чтении каждого файла
 	 * При полной выгрузке у товара очищаются все и загружается по новой.
@@ -5364,9 +4812,10 @@ class ModelExtensionExchange1c extends Model {
 			$guid = explode("#", (string)$product->Ид);
 			$data['product_guid']	= $guid[0];
 			$data['feature_guid']	= isset($guid[1]) ? $guid[1] : '';
+			$data['product_id']		= 0;
+			$data['status']			= 1;
 
-			$this->log("---------------------------------");
-			$this->log("ТОВАР: '" . $data['name'] . "', GUID: '" . $data['product_guid'] . "'");
+			$this->log("~ТОВАР: '" . $data['name'] . "', GUID: '" . $data['product_guid'] . "'");
 			if ($data['feature_guid']) {
 				$this->log("ХАРАКТЕРИСТИКА GUID: '" . $data['feature_guid'] . "'");
 			}
@@ -5376,45 +4825,55 @@ class ModelExtensionExchange1c extends Model {
 				$data['version'] = (string)$product->НомерВерсии;
 			}
 
-			// MPN
-			if ($this->config->get('exchange1c_product_guid_in_mpn') == 1) {
-				$data['mpn']			= $data['product_guid'];
+			// ТОВАР ПОМЕЧЕН НА УДАЛЕНИЕ В УЧЕТНОЙ СИСТЕМЕ И СКОРО БУДЕТ УДАЛЕН
+			$data['delete'] = false;
+			if ($product->ПометкаУдаления) {
+				$data['delete'] = trim((string)$product->ПометкаУдаления) == 'true' ? true : false;
+			}
+			// Из УНФ передается статус Удален
+			if ($product['Статус'] == 'Удален') {
+				$data['delete'] = true;
+				$this->log('Товар удален в УС');
+			}
+			if ($product->Статус) {
+				$data['delete'] = trim((string)$product->Статус) == 'Удален' ? true : false;
 			}
 
-			// УДАЛЕНИЕ
-			$data['delete'] = (string)$product->ПометкаУдаления == 'true' ? true : false;
-
 			// ШТРИХКОД
-			$data['ean'] = $product->Штрихкод ? (string)$product->Штрихкод : "";
+			$data['ean'] = $product->Штрихкод ? trim((string)$product->Штрихкод) : "";
 			if (!$data['ean']) {
-				$data['ean'] = $product->ШтрихКод ? (string)$product->ШтрихКод : "";
+				$data['ean'] = $product->ШтрихКод ? trim((string)$product->ШтрихКод) : "";
 			}
 
 			// АРТИКУЛ
-			$data['sku'] = $product->Артикул ? htmlspecialchars((string)$product->Артикул) : "";
+			$data['sku'] = $product->Артикул ? htmlspecialchars(trim((string)$product->Артикул)) : "";
 
 			// YANDEX MARKET
 			if (isset($this->TAB_FIELDS['product']['noindex'])) {
 				$data['noindex']		= 1; // В некоторых версиях
 			}
 
-			// СТАТУС
-			if ($this->FULL_IMPORT) {
-				if ($this->config->get('exchange1c_product_status') == 'disable_before_import') {
-					$data['status'] = 0;
-				}
-			}
-
 			// ОПИСАНИЕ (не учавствует в SEO поэтому можно отключать при чтении для экономии памяти)
 			if ($product->Описание && $this->config->get('exchange1c_product_description_no_import') != 1)	{
 				//$data['description']	=  nl2br(htmlspecialchars((string)$product->Описание));
-				$description			=  htmlspecialchars((string)$product->Описание);
+				$description			=  htmlspecialchars(trim((string)$product->Описание));
 				$data['description']	=  str_replace(array("\r\n", "\r", "\n"), "<br />", $description);
 				//$this->log($data['description'], 2);
 			}
 
 			// ПРОИЗВОДИТЕЛЬ
-			$this->parseProductManufacturer($product, $data);
+			$manufacturer_tag = 'Производитель';
+			if ($this->config->get('exchange1c_product_manufacturer_tag'))
+				$manufacturer_tag = $this->config->get('exchange1c_product_manufacturer_tag');
+
+			// Читаем изготовителя, добавляем/обновляем его в базу
+			if ($product->Изготовитель) {
+				$data['manufacturer_name'] = trim((string)$product->Изготовитель->Наименование);
+			} elseif ($product->Производитель) {
+				$data['manufacturer_name'] = trim((string)$product->Производитель);
+			} elseif ($product->$manufacturer_tag) {
+	        	$data['manufacturer_name'] = trim((string)$product->$manufacturer_tag->Наименование);
+			}
 
 			// РЕКВИЗИТЫ
 			if ($product->ЗначениеРеквизита) {
@@ -5424,49 +4883,70 @@ class ModelExtensionExchange1c extends Model {
 			}
 
 			// МОДЕЛЬ
-			$this->parseProductModel($product, $data);
+			if ($product->Модель) {
+				$data['model'] = htmlspecialchars(trim((string)$product->Модель));
+			}
 
 			// НАИМЕНОВАНИЕ
-			$this->setProductName($product, $data);
+			if ($product->Наименование && $this->config->get('exchange1c_import_product_name') == "name") {
+				$data['name'] = htmlspecialchars(trim((string)$product->Наименование));
+				$this->log("Наименование установлено из элемента 'Наименование'", 2);
+
+			} elseif ($product->ПолноеНаименование && $this->config->get('exchange1c_import_product_name') == "fullname") {
+				$this->log("Наименование записано из полного наименования", 2);
+				$data['name'] = htmlspecialchars(trim((string)$product->ПолноеНаименование));
+				$this->log("Наименование установлено из элемента 'ПолноеНаименование'", 2);
+
+			} elseif ($this->config->get('exchange1c_import_product_name') == "manually") {
+				// Название поля наименования
+				$field_name = $this->config->get('exchange1c_import_product_name_field');
+				$data['name'] = htmlspecialchars(trim((string)$product->$field_name));
+				$this->log("Наименование установлено из элемента '" . $field_name . "'", 2);
+			}
 
 			// КАТЕГОРИИ
-			if ($product->Группы) {
+			if ($product->Группы && $this->config->get('exchange1c_product_category_no_import') != 1) {
 				// Если надо обновлять категории товара
 				$data['categories']	= $this->parseProductCategories($product->Группы);
 				if (empty($data['categories'])) {
 					$this->errorLog(2004);
 					return false;
 				}
-			}
-
-			// СТАТУС НА СКЛАДЕ
-			if ($this->config->get('exchange1c_product_default_stock_status')) {
-				$data['stock_status_id'] = $this->config->get('exchange1c_product_default_stock_status');
-				$this->log("Статус наличия stock_status_id = " . $data['stock_status_id'], 2);
+				$this->log("Категорий прочитано: " . count($data['categories']));
 			}
 
 			// АТРИБУТЫ
-			if ($product->ЗначенияСвойств && $this->config->get('exchange1c_product_attribute_mode_import') != 'not_import') {
+			if ($product->ЗначенияСвойств && $this->config->get('exchange1c_product_attribute_not_import') != 1) {
 				$data['attributes'] = $this->parseProductAttributes($product->ЗначенияСвойств, $data);
 				if ($this->ERROR) return false;
-				//$this->log("Атрибуты товара:", 2);
-				//$this->log($data['attributes'], 2);
+				$this->log("Атрибутов прочитано: " . count($data['attributes']));
 			}
 
 			// КАРТИНКИ
-			$data['images'] = $this->parseProductImages($product, $data);
-			//$this->log("Картинки товара:", 2);
-			//$this->log($data['images'], 2);
+			if ($product->Картинка) {
+				$data['images'] = $this->parseImages($product->Картинка);
+				if ($this->ERROR) return false;
+				$this->log("Картинок прочитано: " . count($data['images']));
+			} // if ($product->Картинка)
 
-			// БАЗОВАЯ ЕДИНИЦА
-			if ($product->БазоваяЕдиница) {
-				// Базовая единица товара, если возвращается 0, то нет такой в базе
-				$data['unit_id'] = $this->parseProductUnit($product->БазоваяЕдиница);
-				$this->log("Базовая единица, unit_id = " . $data['unit_id'], 2);
-			} // $product->БазоваяЕдиница
-			elseif ($product->ЕдиницыИзмерения) {
-				$this->log("Единицы измерения BITRIX (XML 2.09 и выше) - пока не реализовано");
-			} // $product->БазоваяЕдиница
+			// CML 2.04
+			if ($product->ОсновнаяКартинка) {
+				$data['images'] = $this->parseImages($product->ОсновнаяКартинка);
+				if ($this->ERROR) return false;
+
+				// дополнительные, когда элементы в файле называются <Картинка1>, <Картинка2>...
+				$cnt = 1;
+				$var = 'Картинка'.$cnt;
+
+				while (!empty($product->$var)) {
+					$images = $this->parseImages($product->$var);
+					if ($this->ERROR) return false;
+					$cnt++;
+					$var = 'Картинка'.$cnt;
+				}
+
+				$this->log("Картинок прочитано: " . count($data['images']));
+		} // if ($product->ОсновнаяКартинка)
 
 			// НАЛОГИ
 			if ($product->СтавкиНалогов && $this->config->get('exchange1c_product_taxes_no_import') != 1) {
@@ -5496,17 +4976,18 @@ class ModelExtensionExchange1c extends Model {
 			// такое встречается в старых версиях XML 2.03, 2.04, 2.05
 			// Тут перечисляются все характеристики товара
 			if ($product->ХарактеристикиТовара && $this->config->get('exchange1c_product_feature_import') == 1) {
-				//$this->cleanProductData($product_id);
 
 				// Прочитаем все характеристики товара
 				$product_feature = $this->getProductFeature($data['feature_guid']);
-				$this->log("Характеристика в базе:", 2);
-				$this->log($product_feature, 2);
 
 				if ($product_feature) {
+					$this->log("Характеристика в базе:", 2);
+					$this->log($product_feature, 2);
 					$product_feature_id = $product_feature['product_feature_id'];
 				} else {
+					$this->log("Характеристик в базе нет", 2);
 					$product_feature_id = $this->addFeature($product_id, $data['feature_guid'], $data['ean'], $data['sku']);
+					$this->log("Добавлена характеристика product_feature_id = " . $product_feature_id, 2);
 				}
 
 				if (!$product_feature_id) {
@@ -5515,8 +4996,12 @@ class ModelExtensionExchange1c extends Model {
 				}
 
 				$product_options = $this->getProductOptions($product_id);
-				$this->log("Опции товара:", 2);
-				$this->log($product_options, 2);
+				if ($product_options) {
+					$this->log("Опции товара:", 2);
+					$this->log($product_options, 2);
+				} else {
+					$this->log("У товара нет опций в базе", 2);
+				}
 
 				// Считаем опции с файла
 				$data_options = $this->parseProductOptions($product->ХарактеристикиТовара);
@@ -5531,23 +5016,27 @@ class ModelExtensionExchange1c extends Model {
 				$options = $this->setProductOptions($data_options, $product_id, $product_options, $product_feature_id);
 				$this->log("Опции которых нет в файле:", 2);
 				$this->log($options, 2);
-				$this->log("Обработана характеристика product_feature_id = " . $product_feature_id, 2);
 				if ($this->ERROR) return false;
 			}
 
 			unset($data);
 
-			// ПРЕРЫВАНИЕ
-			if (file_exists(DIR_CACHE . 'exchange1c/break')) {
-				$this->errorLog(2004);
-				return false;
-			}
 		} // foreach
 
-		$this->log("***** ТОВАРЫ ПРОЧИТАНЫ", 2);
+		// После загрузки каталога проверим на пустые папки и отключим их
+		if ($this->config->get('exchange1c_category_empty_disable') == 1) {
+			$count_disable = $this->disableCategoriesEmpty();
+			$this->log("Отключено пустых категорий: " . $count_disable);
+		}
+
+		// Включение не пустых категорий
+		$count_enable = $this->enableCategoriesEmpty();
+		$this->log("Включено не пустых категорий: " . $count_enable);
+
+		$this->log("ТОВАРЫ ПРОЧИТАНЫ", 2);
+		$this->log("********************************************");
 		$this->log("Налоги на сайте:", 2);
 		$this->log($this->TAXES, 2);
-		$this->log("XML v" . $this->XML_VER, 2);
 		$this->log("Текущее время: " . $this->NOW, 2);
 
 		return true;
@@ -5556,8 +5045,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 6
-	 * update 2017-12-25
+	 * ver 9
+	 * update 2018-06-28
 	 * Разбор каталога из файла XML
 	 * $xml->Каталог
 	 */
@@ -5570,12 +5059,31 @@ class ModelExtensionExchange1c extends Model {
 
 		$this->checkFullImport($xml);
 
-		if ($this->config->get('exchange1c_flush_quantity') == 'all' && $this->FULL_IMPORT) {
-			$this->clearProductsQuantity();
-		}
-
 		// Если есть товары в файле
 		if ($xml->Товары) {
+
+            if ($this->FULL_IMPORT && $this->config->get('exchange1c_category_disable_before_full_import') == 1) {
+				// Отключим все категории в магазине
+				if ($this->STORE_ID) {
+					$this->query("UPDATE `" . DB_PREFIX . "category` c LEFT JOIN `" . DB_PREFIX . "category_to_store` c2s ON (c.category_id = c2s.category_id) SET c.status = 0 WHERE c2s.store_id = " . (int)$this->STORE_ID . " AND c.status = 1");
+				} else {
+					$this->query("UPDATE `" . DB_PREFIX . "category` SET status = 0 WHERE status = 1");
+				}
+			}
+
+			if ($this->FULL_IMPORT && $this->config->get('exchange1c_product_disable_before_full_import') == 1) {
+				// Отключить все товары перед загрузкой
+				// Если магазин определен то только в этом магазине, если не определен, то во всех магазинах
+				if ($this->STORE_ID) {
+					$this->query("UPDATE `" . DB_PREFIX . "product` p LEFT JOIN `" . DB_PREFIX . "product_to_store` p2s ON (p.product_id = p2s.product_id) SET p.status = 0 WHERE p2s.store_id = " . (int)$this->STORE_ID . " AND p.status = 1");
+				} else {
+					$this->query("UPDATE `" . DB_PREFIX . "product` SET status = 0 WHERE status = 1");
+				}
+			}
+
+			if ($this->config->get('exchange1c_flush_quantity') == 'all' && $this->FULL_IMPORT) {
+				$this->clearProductsQuantity();
+			}
 
 			if (empty($this->CATEGORIES)) {
 				$this->statStart('category_parse');
@@ -5600,202 +5108,6 @@ class ModelExtensionExchange1c extends Model {
 	 * ****************************** ФУНКЦИИ ДЛЯ ЗАГРУЗКИ ПРЕДЛОЖЕНИЙ ******************************
 	 */
 
-	/**
-	 * ver 2
-	 * update 2017-09-23
-	 * Добавляет склад в базу данных
-	 */
-	private function addWarehouse($warehouse_guid, $name) {
-
-		$this->query("INSERT INTO `" . DB_PREFIX . "warehouse` SET `name` = '" . $this->db->escape($name) . "', `guid` = '" . $this->db->escape($warehouse_guid) . "'");
-		$warehouse_id = $this->db->getLastId();
-		$this->log("> Склад добавлен, warehouse_id = " . $warehouse_id, 2);
-
-		$this->WAREHOUSES[$warehouse_guid] = array(
-			'warehouse_id'	=> $warehouse_id,
-			'name'			=> $name
-		);
-
-		return $warehouse_id;
-
-	} // addWarehouse()
-
-
-	/**
-	 * ver 2
-	 * update 2017-09-23
-	 * Ищет warehouse_id по GUID
-	 */
-	private function getWarehouseByGuid($warehouse_guid) {
-
-		if ($this->WAREHOUSES) {
-
-        	if (isset($this->WAREHOUSES[$warehouse_guid])) {
-        		return $this->WAREHOUSES[$warehouse_guid]['warehouse_id'];
-        	}
-
-		} else {
-
-			$query = $this->query('SELECT `warehouse_id` FROM `' . DB_PREFIX . 'warehouse` WHERE `guid` = "' . $this->db->escape($warehouse_guid) . '"');
-			if ($query->num_rows) {
-				return $query->row['warehouse_id'];
-			}
-
-		}
-
-		$this->log("Склад не найден в базе", 2);
-		return 0;
-
-	} // getWarehouseByGuid()
-
-
-	/**
-	 * ver 1
-	 * Возвращает id склада
-	 */
-	private function setWarehouse($warehouse_guid, $name) {
-
-		// Поищем склад по 1С Ид
-		$warehouse_id = $this->getWarehouseByGuid($warehouse_guid);
-		if (!$warehouse_id) {
-			$warehouse_id = $this->addWarehouse($warehouse_guid, $name);
-			$this->log("> Склад добавлен, warehouse_id = " . $warehouse_id,2);
-		}
-  		return $warehouse_id;
-
-	} // setWarehouse()
-
-
-	/**
-	 * ver 2
-	 * update 2017-04-05
-	 * Получает общий остаток товара по всем складам и опциям
-	 */
-	private function getProductQuantityTotal($product_id) {
-
-		$query = $this->query("SELECT SUM(`quantity`) as `quantity` FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . $product_id);
-		if ($query->num_rows) {
-			return (float)$query->row['quantity'];
-		} else {
-			return false;
-		}
-
-	} // getProductQuantityTotal()
-
-
-	/**
-	 * ver 2
-	 * update 2017-04-05
-	 * Получает все цены характеристик товара и возвращает минимальную среди цен которые больше нуля
-	 */
-	private function getProductPriceMin($product_id) {
-
-		$default_customer_group_id = $this->config->get('config_customer_group_id');
-		$query = $this->query("SELECT MIN(`price`) as `price` FROM `" . DB_PREFIX . "product_price` WHERE `product_id` = " . $product_id . " AND `customer_group_id` = " . $default_customer_group_id . " AND `price` > 0");
-		if ($query->num_rows) {
-			return (float)$query->row['price'];
-		} else {
-			return false;
-		}
-
-	} // getProductPriceMin()
-
-
-	/**
-	 * ver 1
-	 * Получает остаток товара по фильтру
-	 */
-	private function getProductQuantity($product_quantity_filter) {
-
-		$result = array();
-		$where = "`product_id` = " . $product_quantity_filter['product_id'];
-		$where .= " AND `product_feature_id` = " . (isset($product_quantity_filter['product_feature_id']) ?  $product_quantity_filter['product_feature_id'] : 0);
-		$where .= " AND `warehouse_id` = " . (isset($product_quantity_filter['warehouse_id']) ?  $product_quantity_filter['warehouse_id'] : 0);
-
-		$query = $this->query("SELECT `product_quantity_id`,`quantity` FROM `" . DB_PREFIX . "product_quantity` WHERE " . $where);
-		if ($query->num_rows) {
-			$result['quantity'] 			= $query->row['quantity'];
-			$result['product_quantity_id']	= $query->row['product_quantity_id'];
-			return $result;
-		} else {
-			$result['product_quantity_id']	= 0;
-			return $result;
-		}
-
-	} // getProductQuantity()
-
-
-	/**
-	 * ver 3
-	 * update 2017-10-01
-	 * Получает все остатки товара по опциям, по складам и по характеристикам
-	 */
-	private function getProductQuantities($product_id) {
-
-		$result = array();
-
-		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "product_quantity` WHERE `product_id` = " . $product_id);
-		if ($query->num_rows) {
-			// Общий остаток
-			foreach ($query->rows as $row) {
-				$result[$row['product_quantity_id']] = array(
-					'product_quantity_id'	=> $row['product_quantity_id'],
-					'product_feature_id'	=> $row['product_feature_id'],
-					'warehouse_id'			=> $row['warehouse_id'],
-					'quantity'				=> $row['quantity']
-				);
-			}
-		}
-		return $result;
-
-	} // getProductQuantities()
-
-
-	/**
-	 * ver 1
-	 * Добавляет остаток товара по фильтру
-	 */
-	private function addProductQuantity($product_quantity_filter, $quantity) {
-
-		$set = "";
-		foreach ($product_quantity_filter as $field => $value) {
-			$set .= ", `" . $field . "` = " . $value;
-		}
-		$this->query("INSERT INTO `" . DB_PREFIX . "product_quantity` SET `quantity` = '" . (float)$quantity . "'" . $set);
-		$product_quantity_id = $this->db->getLastId();
-		$this->log("> Добавлены остатки в товар, product_quantity_id = " . $product_quantity_id, 2);
-		return $product_quantity_id;
-
-	} // addProductQuantity()
-
-
-	/**
-	 * ver 1
-	 * Ищет совпадение данных в массиве данных, при совпадении значений, возвращает ключ второго массива
-	 */
-	private function findMatch($data1, $data_array) {
-
-		$bestMatch = 0;
-		foreach ($data_array as $key2 => $data2) {
-			$matches = 0;
-			$fields = 0;
-			foreach ($data1 as $key1 => $value) {
-				if (isset($data2[$key1])) {
-					$fields++;
-					if ($data2[$key1] == $value) {
-						$matches++;
-					}
- 				}
-			}
-			// у всех найденых полей совпали значения
-			if ($matches == $fields){
-				return $key2;
-			}
-		}
-		return false;
-
-	} // findMatch()
-
 
 	/**
 	 * ver 3
@@ -5811,148 +5123,59 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * Удаляет склад и все остатки поо нему
+	 * ver 8
+	 * update 2018-05-24
+	 * Читает остатки общие, если остатки по складам тогда суммируются
 	 */
-	private function deleteWarehouse($warehouse_guid) {
+	private function parseQuantity($xml) {
 
-		$warehouse_id = $this->getWarehouseByGuid($warehouse_guid);
-		if ($warehouse_id) {
-			// Удаляем все остатки по этму складу
-			$this->deleteStockWarehouse($warehouse_id);
-			// Удалим остатки по этому складу
-			$this->query("DELETE FROM `" . DB_PREFIX . "product_quantity ` WHERE `warehouse_id` = " . (int)$warehouse_id);
-			// Удаляем склад
-			$this->query("DELETE FROM `" . DB_PREFIX . "warehouse ` WHERE `guid` = '" . $this->db->escape($warehouse_guid) . "'");
-			$this->log("Удален склад, GUID '" . $warehouse_guid . "' и все остатки на нем.",2);
-		}
+		$quantity = 0;
 
-	} // deleteWarehouse()
-
-
-	/**
-	 * ver 2
-	 * update 2017-04-26
-	 * Загружает список складов из классификатора
-	 */
-	private function parseClassifierWarehouses($xml) {
-
-		$data = array();
-		foreach ($xml->Склад as $warehouse){
-			if (isset($warehouse->Ид) && isset($warehouse->Наименование) ){
-				$warehouse_guid = (string)$warehouse->Ид;
-				$name = trim((string)$warehouse->Наименование);
-				$delete = isset($warehouse->ПометкаУдаления) ? $warehouse->ПометкаУдаления : "false";
-				if ($delete == "false") {
-					$data[$warehouse_guid] = array(
-						'name' => $name
-					);
-					$data[$warehouse_guid]['warehouse_id'] = $this->setWarehouse($warehouse_guid, $name);
-					$this->log("Склад: '" . $name . "', id = " . $data[$warehouse_guid]['warehouse_id'], 2);
-				} else {
-					// Удалить склад
-					$this->log("[!] Склад помечен на удаление в торговой системе и будет удален");
-					$this->deleteWarehouse($warehouse_guid);
-				}
-			}
-		}
-		$this->log("Складов в классификаторе: " . count($xml->Склад), 2);
-		return $data;
-
-	} // parseClassifierWarehouses()
-
-
-	/**
-	 * ver 6
-	 * update 2018-03-24
-	 * Читает остатки общие и по складам, вычисляет общий остаток по складам
-	 * Возвращает общий остаток, а по складам прописывает в $data['quantities']
-	 * где индекс - это warehouse_id, а значение - остаток
-	 */
-	private function parseQuantity($xml, &$total_quantity) {
-
-		$use_warehouse = $this->config->get('exchange1c_warehouse_quantity_import');
-
-		// Остатки по складам
-		$quantities = array();
-
-		// есть секция с остатками, обрабатываем
-		if ($xml->Остаток) {
-
-			foreach ($xml->Остаток as $product_quantity) {
-
+		// есть секция с остатками, обрабатываем (XML 2.09, 2.10)
+		if ($xml->Остатки) {
+			foreach ($xml->Остатки->Остаток as $product_quantity) {
 				// Если нет складов или общий остаток предложения
 				if ($xml->Остаток->Количество) {
 					$quantity = (float)$product_quantity->Количество;
 
-				// есть секция со складами и включено использование складов
-				} elseif ($product_quantity->Склад->Ид && $use_warehouse) {
-					$warehouse_guid		= (string)$product_quantity->Склад->Ид;
-					$warehouse_id		= $this->getWarehouseByGuid($warehouse_guid);
-					$quantity 			= (float)$product_quantity->Склад->Количество;
-
-					if (!$warehouse_id) {
-						$this->errorLog(2020, $warehouse_guid);
-						return false;
+				// есть секция со складами, посчитаем общее количество по складам
+				} elseif ($product_quantity->Склад) {
+					foreach ($product_quantity->Склад as $quantity_warehouse) {
+						$quantity += (float)$product_quantity->Склад->Количество;
 					}
-
-					$quantities[$warehouse_id] = $quantity;
-
 				}
-
-				$total_quantity += $quantity;
-
 			}
-
-		} elseif ($xml->Склад) {
-
-			foreach ($xml->Склад as $product_quantity) {
-
-				$quantity = (float)$product_quantity['КоличествоНаСкладе'];
-
-				// есть секция со складами
-				if ($use_warehouse) {
-					$warehouse_guid = (string)$product_quantity['ИдСклада'];
-					$warehouse_id = $this->getWarehouseByGuid($warehouse_guid);
-
-					if (!$warehouse_id) {
-						$this->errorLog(2020, $warehouse_guid);
-						return false;
-					}
-
-					$quantities[$warehouse_id] = $quantity;
-					$this->log("Количество на складе warehouse_id='" . $warehouse_id . "' = " . $quantity, 2);
-				} else {
-					// Склады не используются, остаток только общий записывается
-				}
-
-				$total_quantity += $quantity;
-
-			} // foreach
 		}
 
-		return $quantities;
+		if ($xml->Количество) {
+			$quantity = (float)$xml->Количество;
+
+		} elseif ($xml->Склад) {
+			// Секция с остатками по складам, читаем если нет секции Количество
+			foreach ($xml->Склад as $product_quantity) {
+				$quantity += (float)$product_quantity['КоличествоНаСкладе'];
+			} // foreach
+
+		}
+		return $quantity;
 
 	} // parseQuantity()
 
 
 	/**
-	 * Возвращает массив данных валюты по id
-	 */
-	private function getCurrency($currency_id) {
-
-		$query = $this->query("SELECT * FROM `" . DB_PREFIX . "currency` WHERE `currency_id` = " . $currency_id);
-		if ($query->num_rows) {
-			return $query->row;
-		}
-		return array();
-
-	} // getCurrency()
-
-
-	/**
+	 * ver 2
+	 * update 2018-06-15
 	 * Возвращает массив данных валюты по id
 	 */
 	private function getCurrencyConfig($config, $name) {
+
+		if (empty($config)) {
+			$currency_default = $this->config->get('config_currency');
+			$query = $this->query("SELECT * FROM `" . DB_PREFIX . "currency` WHERE `code` = '" . $currency_default . "'");
+			if ($query->num_rows) {
+				return $query->row;
+			}
+		}
 
 		$data = array();
 		if (!$name) return $data;
@@ -6076,12 +5299,12 @@ class ModelExtensionExchange1c extends Model {
 			$found = -1;
 			foreach ($config_price_type as $key => $cpt) {
 				if (!empty($cpt['id_cml']) && $cpt['id_cml'] == $guid) {
-					$this->log("autoLoadPriceType() - Найдена цена по Ид: '" . $guid . "'", 2);
+					$this->log("autoLoadPriceType() - Найдена цена по Ид = '" . $guid . "'", 2);
 					$found = $key;
 					break;
 				}
 				if (strtolower(trim($cpt['keyword'])) == strtolower($name)) {
-					$this->log("autoLoadPriceType() - Найдена цена по наименованию: '" . $name . "'", 2);
+					$this->log("autoLoadPriceType() - Найдена цена по наименованию = '" . $name . "'", 2);
 					$found = $key;
 					break;
 				}
@@ -6169,11 +5392,6 @@ class ModelExtensionExchange1c extends Model {
 			return false;
 		}
 
-		if (empty($config_currency)) {
-			$this->errorLog(2032);
-			return false;
-		}
-
 		// Перебираем все цены из CML
 		foreach ($xml->ТипЦены as $price_type)  {
 			$currency		= $this->getCurrencyConfig($config_currency, (string)$price_type->Валюта);
@@ -6221,6 +5439,7 @@ class ModelExtensionExchange1c extends Model {
 				}
 				$this->log('Вид цены: ' . $name,2);
 			} else {
+				$this->log("Ошибка! Не найден тип цен по Ид '" . $guid . "' в настройках модуля");
 				$this->errorLog(2033, $name, $guid);
 				return false;
 			}
@@ -6232,65 +5451,13 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 2
-	 * update 2017-10.06
-	 * Записывает единицу в справочник
-	 */
- 	private function addUnit($data) {
-
-		$name 		= empty($data['name']) 		? "шт" 		: $data['name'];
-		$full_name 	= empty($data['full_name']) ? "Штука" 	: $data['full_name'];
-		$code 		= empty($data['code']) 		? "796" 	: $data['code'];
-
-		if (isset($this->TAB_FIELDS['unit'])) {
-			$query = $this->query("SELECT `code`, `name` FROM `" . DB_PREFIX . "unit` WHERE `rus_name1` = '" . $this->db->escape($data['name']) . "'");
-			if ($query->num_rows) {
-				$code		= $query->row['code'];
-				$full_name	= $query->row['name'];
-			}
-		}
-
-		$this->query("INSERT INTO `" . DB_PREFIX . "unit_to_1c` SET `name` = '" . $this->db->escape($name) . "', `full_name` = '" . $this->db->escape($full_name) . "', `code` = '" . $code . "'");
-        $unit_id = (int)$this->db->getLastId();
-
-		$this->UNITS[$unit_id] = array(
-			'unit_id'		=> $unit_id,
-			'guid'			=> "",
-			'name'			=> $name,
-			'code'			=> $code,
-			'full_name'		=> $full_name,
-			'version'		=> ""
-		);
-
-		return $unit_id;
-
-	} // addUnit()
-
-
-	/**
-	 * ver 2
-	 * update 2017-06-20
-	 * Получает данные единицы по наиминованию
-	 */
-	private function getUnitByName($name) {
-
-		foreach($this->UNITS as $unit) {
-			if ($unit['name'] == $name) {
-				$this->log("Найдена единица '" . $name . "', unit_id=" . $unit['unit_id'], 2);
-				return $unit['unit_id'];
-			}
-		}
-		return 0;
-
-	} // getUnitByName()
-
-
-	/**
-	 * ver 4
-	 * update 2018-04-23
+	 * ver 6
+	 * update 2018-05-15
 	 * Загружает все цены
 	 */
-	private function parsePrice($xml, $data) {
+	private function parsePrice($xml) {
+
+		$this->STAT['parse_price'] = microtime(true);
 
 		if (!$this->PRICE_TYPES) {
 			// Читаем типы цен из настроек
@@ -6301,13 +5468,12 @@ class ModelExtensionExchange1c extends Model {
 			$this->errorLog(2034);
 			return false;
 		}
-		$this->log("this->PRICE_TYPES:", 2);
+
+		$this->log('this->PRICE_TYPES:', 2);
 		$this->log($this->PRICE_TYPES, 2);
 
 		// Массив хранения цен
 		$data_prices = array();
-
-		$this->STAT['parse_price'] = microtime(true);
 
 		// Читем цены в том порядке в каком заданы в настройках
 		foreach ($this->PRICE_TYPES as $config_price_type) {
@@ -6315,6 +5481,7 @@ class ModelExtensionExchange1c extends Model {
 			foreach ($xml->Цена as $price_data) {
 
 				$guid		= (string)$price_data->ИдТипаЦены;
+				//$this->log($price_data, 2);
 
 				// Цена
 				$price	= $price_data->ЦенаЗаЕдиницу ? (float)$price_data->ЦенаЗаЕдиницу : 0;
@@ -6343,18 +5510,23 @@ class ModelExtensionExchange1c extends Model {
 
 				// КОНВЕРТАЦИЯ ВАЛЮТ
 				// автоматическая конвертация в основную валюту CMS
+				$rate = 1;
 				if ($this->config->get('exchange1c_currency_convert') == 1) {
 
 					// КУРС
 					if (isset($config_price_type['currency']['value'])) {
 						$rate = $config_price_type['currency']['value'];
-					} else {
-						$rate = 1;
 					}
 
 					// ПЕРЕСЧЕТ ЦЕНЫ ПО КУРСУ
 					if ($rate != 1 && $rate != 0) {
-						$price = round((float)$price_data->ЦенаЗаЕдиницу / (float)$rate, $decimal_place);
+						if (!empty($config_price_type['currency']['decimal_place'])) {
+							$decimal_place = $config_price_type['currency']['decimal_place'];
+						} else {
+							$decimal_place = 2;
+						}
+						if ($price)
+							$price = round($price / (float)$rate, $decimal_place);
 					}
 				}
 
@@ -6363,39 +5535,23 @@ class ModelExtensionExchange1c extends Model {
 					continue;
 				}
 
-				// Единица измерения цены
-				$unit_data = array(
-					'name'		=> $price_data->Единица ? (string)$price_data->Единица : 'шт',
-					'ratio'		=> $price_data->Коэффициент ? (float)$price_data->Коэффициент : 1
-				);
-
-
-				// Получим единицу из классификатора
-				//$unit_split = $this->splitNameStr($unit_data['name']);
-				//$unit = $this->getUnitByName($unit_split['name']);
-
-				$unit_id = $this->getUnitByName($unit_data['name']);
-
-				if (!$unit_id) {
-					$unit_id = $this->addUnit($unit_data);
-				}
-
 				// Копируем данные с настроек
 				$data_prices[$guid] 			= $config_price_type;
-				$data_prices[$guid]['unit_id']	= $unit_id;
 				$data_prices[$guid]['price']	= $price;
 				$data_prices[$guid]['rate']		= $rate;
-				$this->log("Цена: " . $price . " за единицу: " . $unit_data['name'] . ", GUID: " . $guid, 2);
+
+				$this->log($data_prices[$guid]['keyword'] . " = " . $price . ", Ид = " . $guid, 2);
 
 
 			} // foreach ($xml->Цена as $price_data)
 
 		} // foreach ($price_types as $config_price_type)
 
+		//$this->log('Прочитаны цены:', 2);
+		//$this->log($data_prices, 2);
+
 		$this->logStat('parse_price');
 
-		//$this->log("Прочитаны цены из файла:", 2);
-		//$this->log($data_prices, 2);
 		return $data_prices;
 
  	} // parsePrices()
@@ -6404,23 +5560,6 @@ class ModelExtensionExchange1c extends Model {
 	/**
 	 * ====================================== ХАРАКТЕРИСТИКИ ======================================
 	 */
-
-
-	/**
-	 * Получение наименования производителя по manufacturer_id
-	 */
-	private function getManufacturerName($manufacturer_id, &$error) {
-
-		if (!$manufacturer_id) {
-			$error = "Не указан manufacturer_id";
-			return "";
-		}
-		$query = $this->query("SELECT `name` FROM `" . DB_PREFIX . "manufacturer` WHERE `manufacturer_id` = " . (int)$manufacturer_id);
-		$name = isset($query->row['name']) ? $query->row['name'] : "";
-		$this->log("Производитель: '" . $name . "' по id: " . $manufacturer_id, 2);
-		return $name;
-
-	} // getManufacturerName()
 
 
 	/**
@@ -6448,9 +5587,9 @@ class ModelExtensionExchange1c extends Model {
 			}
 		}
 		if ($product_id) {
-			$this->log("Найден товар по GUID, product_id = " . $product_id);
+			$this->log("Найден товар по Ид, product_id = " . $product_id);
 		} else {
-			$this->log("Не найден товар по GUID " . $product_guid, 2);
+			$this->log("Не найден товар по Ид = " . $product_guid, 2);
 		}
 		return $product_id;
 
@@ -6459,6 +5598,7 @@ class ModelExtensionExchange1c extends Model {
 
 	/**
 	 * Проверка существования товара по product_id
+	 * НЕИСПОЛЬЗУЕТСЯ!
 	 */
 	private function getProductIdByCode($code) {
 
@@ -6469,7 +5609,7 @@ class ModelExtensionExchange1c extends Model {
 		if ($product_id) {
 			$this->log("Найден товар по <Код>, product_id = " . $product_id, 2);
 		} else {
-			$this->log("Не найден товар по <Код> " . $code, 2);
+			$this->log("Не найден товар по <Код>, code = " . $code, 2);
 		}
 
 		return $product_id;
@@ -6535,8 +5675,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 1
-	 * update 2017-08-14
+	 * ver 2
+	 * update 2018-06-17
 	 * Читает все существующие опции товара из базы
 	 */
 	private function getProductOptions($product_id) {
@@ -6564,6 +5704,7 @@ class ModelExtensionExchange1c extends Model {
 
 					foreach ($query_value->rows as $row_value) {
 						$values[$row_value['product_option_value_id']] = array(
+							'product_option_value_id' => $row_value['product_option_value_id'],
 							'option_value_id'	=> $row_value['option_value_id'],
 							'name'				=> $row_value['name'],
 							'quantity'			=> $row_value['quantity'],
@@ -6590,6 +5731,7 @@ class ModelExtensionExchange1c extends Model {
 	 * ver 1
 	 * update 2017-12-03
 	 * Читает все существующие Характеристики товара из базы
+	 * НЕ ИСПОЛЬЗУЕТСЯ!
 	 */
 	private function getProductFeatures($product_id) {
 
@@ -6751,9 +5893,10 @@ class ModelExtensionExchange1c extends Model {
 	private function setProductOptions($data_options, $product_id, $product_options, $product_feature_id, $quantity = 0, $price = 0) {
 
 		// Удалим глючные опции
-		$this->query("DELETE FROM `" . DB_PREFIX . "product_option` WHERE `option_id` = '0'");
-		$this->query("DELETE FROM `" . DB_PREFIX . "product_option_value` WHERE `option_id` = '0'");
-		$this->query("DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_option_id` = '0'");
+		// Отнесем в сервис меню
+		//$this->query("DELETE FROM `" . DB_PREFIX . "product_option` WHERE `option_id` = '0'");
+		//$this->query("DELETE FROM `" . DB_PREFIX . "product_option_value` WHERE `option_id` = '0'");
+		//$this->query("DELETE FROM `" . DB_PREFIX . "product_feature_value` WHERE `product_option_id` = '0'");
 
 		$options = array();
 
@@ -6796,11 +5939,11 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 2
-	 * update 2018-03-23
+	 * ver 3
+	 * update 2018-05-15
 	 * Получает, или добавляет опции в базу и прописывает option_id и option_value_id
 	 */
-	private function setOptions($product_id, &$options, $images) {
+	private function setOptions($product_id, &$options, $image = '') {
 
 		if (empty($options)) {
 			$this->errorLog(2310);
@@ -6808,9 +5951,6 @@ class ModelExtensionExchange1c extends Model {
 		}
 
 		$type = $this->config->get('exchange1c_product_options_type');
-
-		// Выбираем для опции только одну картинку
-		$image = count($images) ? $images[0] : '';
 
 		foreach ($options as $name => $product_option) {
 
@@ -6867,6 +6007,9 @@ class ModelExtensionExchange1c extends Model {
 							// Опция не используется ни в одном товаре, удалим и опцию и значения
 							$this->query("DELETE FROM `" . DB_PREFIX . "option` WHERE `option_id` = '" . $option_data['option_id'] . "'");
 							$this->query("DELETE FROM `" . DB_PREFIX . "option_value` WHERE `option_id` = '" . $option_data['option_id'] . "'");
+							// Добавлено пользователем Windemiatrix
+							$this->query("DELETE FROM `" . DB_PREFIX . "option_description` WHERE `option_id` = '" . $option_data['option_id'] . "'");
+							$this->query("DELETE FROM `" . DB_PREFIX . "option_to_product` WHERE `option_id` = '" . $option_data['option_id'] . "'");
 						}
 					}
 				}
@@ -6877,14 +6020,13 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 16
-	 * update 2018-04-02
+	 * ver 22
+	 * update 2018-08-08
 	 * Разбор предложений
 	 */
 	private function parseOffers($xml) {
 
-		$this->log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		$this->log("Начало разбора предложений");
+		$this->log("~Начало разбора предложений");
 
 		if (!$xml->Предложение) {
 			$this->log("parseOffers(): Пустое предложение, пропущено");
@@ -6895,13 +6037,10 @@ class ModelExtensionExchange1c extends Model {
 		$this->log("Предложений в файле: " . count($xml->Предложение));
 		$this->STAT['offers_num'] = count($xml->Предложение);
 
-		// Читаем все единицы измерений в глобальную переменную $this->UNITS
-		$this->getUnits();
-
 		// Перебираем все предложения
 		foreach ($xml->Предложение as $offer) {
 
-			$this->log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+			$this->log("~ПРЕДЛОЖЕНИЕ");
 
 			// Получаем Ид товара и характеристики
 			$guid = explode("#", (string)$offer->Ид);
@@ -6921,40 +6060,62 @@ class ModelExtensionExchange1c extends Model {
 			// Есть ли связь Ид с товаром в таблице product_to_1c
 			$product_id = $this->getProductIdByGuid($data['product_guid']);
 
-			// Если товар не найден, пропускаем
+			// Если товар не найден
 			if (!$product_id) {
-				$this->errorLog(2300, $data['product_guid']);
-				return false;
+				if ($this->config->get('exchange1c_product_not_found_stop_error')) {
+					$this->errorLog(2300, $data['product_guid']);
+					return false;
+				} else {
+					$this->log("Товар не найден по Ид " . $data['product_guid'] . " и будет пропущен");
+					continue;
+				}
 			}
 
 			// Получим старые данные товара
 			$old_product = $this->getProduct($product_id);
+			if ($this->ERROR) return false;
+
+			if ($offer->ПометкаУдаления) {
+				if ((string)$offer->ПометкаУдаления == 'true') {
+					$data['status'] = 0;
+				}
+			}
+			//}
 
 			$this->log("Предложение Ид: " . $data['product_guid'] . ", product_id = " . $product_id, 2);
 
-			// Единицы измерений
-			$data['units'] = array();
-
-			// Базовая единица измерения товара или характеристики
-			if ($offer->БазоваяЕдиница) {
-				$data['unit_id'] = $this->parseProductUnit($offer->БазоваяЕдиница);
+			// Штрихкод характеристики
+			if ($offer->Штрихкод) {
+				$data['feature_ean'] = trim((string)$offer->Штрихкод);
 			}
-
-			// Штрихкод товара или характеристики
-			$data['feature_ean'] = $offer->Штрихкод ? trim((string)$offer->Штрихкод) : "";
 
 			// Артикул характеристики
-			$data['feature_sku'] = $offer->Артикул ? htmlspecialchars(trim((string)$offer->Артикул)) : "";
-
-			// Картинки для характеристики
-			$data['images'] = array();
-			if ($offer->Картинка && $this->config->get('exchange1c_product_images_no_import') != 1) {
-				$this->parseImages($offer->Картинка, $data['images']);
+			if ($offer->Артикул) {
+				$sku =  htmlspecialchars(trim((string)$offer->Артикул));
+				if ($old_product['sku'] != $sku)
+					$data['feature_sku'] = $sku;
 			}
 
-			// Характеристика
-			if ($data['feature_guid']) {
-				$data['feature_name'] = htmlspecialchars(trim((string)$offer->Наименование));
+			// ОСТАТКИ
+			if ($offer->Остатки || $offer->Количество || $offer->Склад) {
+				$data['quantity'] = $this->parseQuantity($offer, $data);
+				if ($this->ERROR) return false;
+			}
+
+			// ЦЕНЫ
+			if ($offer->Цены && $this->config->get('exchange1c_product_price_no_import') != 1) {
+				$data['prices'] = $this->parsePrice($offer->Цены);
+				if ($this->ERROR) return false;
+			}
+
+			// ХАРАКТЕРИСТИКА
+			if ($data['feature_guid'] && $this->config->get('exchange1c_product_feature_import')) {
+
+				// Если включена загрузка характеристик (опций)
+
+				// Наименование пока нигде не используется
+				//$data['feature_name'] = htmlspecialchars(trim((string)$offer->Наименование));
+
 				// Данные старой характеристики
 				$old_feature = $this->getfeature($product_id, $data['feature_guid']);
 				if ($old_feature) {
@@ -6963,67 +6124,31 @@ class ModelExtensionExchange1c extends Model {
 				} else {
 					$data['product_feature_id'] = $this->addFeature($product_id, $data['feature_guid'], $data['feature_ean'], $data['feature_sku']);
 				}
-			} else {
-				$data['product_feature_id'] = 0;
-			}
 
-			// Общий остаток
-			$data['quantity'] = 0;
+				if ($offer->ХарактеристикиТовара) {
 
-			// остатки по складам
-			$data['quantities'] = array();
+					$this->statStart('parse_options');
+					$this->log("Читаем опции в предложении...");
 
-			// ОСТАТКИ (offers, rests)
-			if ($offer->Склад) {
+					// Читаем опции из файла в том режиме в котором они определены в настройках.
+					$data['options'] = $this->parseProductOptions($offer->ХарактеристикиТовара);
 
-				$data['quantities'] = $this->parseQuantity($offer, $data['quantity']);
- 				if ($this->ERROR) return false;
+					// Картинка для характеристики, берется только первая
+					if ($offer->Картинка && $this->config->get('exchange1c_product_images_no_import') != 1) {
+						$feature_image = (string)$offer->Картинка;
+					} else {
+						$feature_image = '';
+					}
 
-			} elseif ($offer->Остатки) {
+					// Сопоставим option_id и option_value_id значеням
+					$this->setOptions($product_id, $data['options'], $feature_image);
 
-				// остатки характеристики (CML >= 2.09) файл rests_*.xml
-				$data['quantities'] = $this->parseQuantity($offer->Остатки, $data['quantity']);
-				if ($this->ERROR) return false;
+					$this->statStop('parse_options');
+					if ($this->ERROR) return false;
 
-			} else {
-
-				if ($offer->Количество) {
-					$data['quantity'] = (float)$offer->Количество;
 				}
-			}
 
-			$this->log("Остаток: " . $data['quantity']);
-
-			if ($this->config->get('exchange1c_product_disable_if_quantity_zero') == 1 && $data['quantity'] <= 0) {
-				$data['status'] = 0;
-				$this->log("Товар с нулевым остатком или меньше нуля - отключен");
-			} else {
-				$data['status'] = 1;
-			}
-
-			// Цены товара или характеристики (offers*.xml, prices*.xml)
-			if ($offer->Цены && $this->config->get('exchange1c_product_price_no_import') != 1) {
-				$data['prices'] = $this->parsePrice($offer->Цены, $product_id);
-				if ($this->ERROR) return false;
-			}
-
-			// Есть характеристики, пытаемся читать их в свойства
-			if ($offer->ХарактеристикиТовара && $this->config->get('exchange1c_product_feature_import') == 1) {
-
-				$this->statStart('parse_options');
-				$this->log("Читаем опции в предложении");
-
-				// Читаем опции из файла в том режиме в котором они определены в настройках.
-				$data['options'] = $this->parseProductOptions($offer->ХарактеристикиТовара);
-
-				// Сопоставим option_id и option_value_id значеням
-				$this->setOptions($product_id, $data['options'], $data['images']);
-
-
-				$this->statStop('parse_options');
-				if ($this->ERROR) return false;
-
-			}
+			} // if ($data['feature_guid'] && $this->config->get('exchange1c_product_feature_import'))
 
 			// Обновляем товар
 			$this->statStart('update_offers');
@@ -7033,21 +6158,11 @@ class ModelExtensionExchange1c extends Model {
 
 			unset($data);
 
-			// Прерывание процесса загрузки по наличию файла break в папке /system/storage/cache/exchange1c
-			if (file_exists(DIR_CACHE . 'exchange1c/break')) {
-				$this->errorLog(2005);
-				return false;
-			}
 		} // foreach()
-
-		// Удалим старые опции если выгрузка только изменений
-//		if ($this->FULL_IMPORT) {
-			$this->deleteOldProductOptions();
-//		}
 
 		$this->logStat('offers');
 
-		$this->log("<<< Конец разбора предложений");
+		$this->log("Конец разбора предложений");
 		return true;
 
 	} // parseOffers()
@@ -7100,12 +6215,6 @@ class ModelExtensionExchange1c extends Model {
 				$this->PRICE_TYPES = $this->parseClassifierPriceType($xml->ТипыЦен);
 				if ($this->ERROR) return false;
 			}
-		}
-
-		// Загрузка складов
-		if ($xml->Склады) {
-			$this->WAREHOUSES = $this->parseClassifierWarehouses($xml->Склады);
-			if ($this->ERROR) return false;
 		}
 
 		// Загружаем предложения
@@ -7419,61 +6528,85 @@ class ModelExtensionExchange1c extends Model {
 			$order['company'] = $query->row['company'];
 			$order['company_inn'] = $query->row['company_inn'];
 			$order['company_kpp'] = $query->row['company_kpp'];
-		} else {
-			$order['firstname'] = "";
-			$order['lastname'] = "";
-			$order['middlename'] = "";
-			$order['company'] = "";
-			$order['company_inn'] = "";
-			$order['company_kpp'] = "";
 		}
-		$this->log($order);
 
 	} // getCustomerInfo()
 
 
 	/**
-	 * ver 5
-	 * update 2018-04-09
+	 * ver 6
+	 * update 2018-07-11
 	 * Формирует Контрагента
 	 */
 	private function setCustomer($order) {
 
 		$customer = array();
-		$this->log($order, 2);
-
-		if ($this->config->get('exchange1c_order_customer_export') != 1) {
-			return $customer;
-		}
+		$this->log("Фамилия: " . $order['lastname'], 2);
+		$this->log("Имя: " . $order['firstname'], 2);
+		$this->log("Отчество: " . $order['middlename'], 2);
+		$this->log("ФИО: " . $order['username'], 2);
 
 		// Счетчик
 		$counter = 0;
+
+		if (empty($order['username'])) {
+			$this->errorLog(2110);
+			return false;
+		}
+
+		// Проверка на ошибки, если вбито например Иванов Иван Иванович в одно поле "Имя"
+		$fio = explode(" ", trim($order['username']));
+
+		if (empty($order['firstname'])) {
+			if (count($fio) == 1) {
+				$this->errorLog(2111);
+				return false;
+			}
+		}
+
+		if (empty($order['lastname'])) {
+			if (count($fio) == 1) {
+				$this->errorLog(2112);
+				return false;
+
+			} else if (count($fio) == 2) {
+				$order['lastname'] = $fio[1];
+				$order['firstname'] = $fio[0];
+
+			} else if (count($fio) == 3) {
+				$order['lastname'] = $fio[0];
+				$order['firstname'] = $fio[1];
+				$order['middlename'] = $fio[2];
+			}
+		}
 
 		// Обязательные поля покупателя для торговой системы
 		$customer = array(
 			'Ид'					=> $order['customer_id'] . '#' . $order['email'],
 			'Роль'					=> 'Покупатель',
-			'Наименование'			=> $order['username'],
-			'ПолноеНаименование'	=> $order['username'],
-			'Фамилия'				=> $order['lastname'],
-			'Имя'					=> $order['firstname'],
-			'Отчество'				=> $order['middlename'],
+			'Наименование'			=> trim($order['username']),
+			'ПолноеНаименование'	=> trim($order['username']),
+			'Фамилия'				=> trim($order['lastname']),
+			'Имя'					=> trim($order['firstname']),
+			'Отчество'				=> trim($order['middlename']),
 			'Телефон'				=> array(
 				'Представление' => $order['telephone']
 				),
 			'Email'					=> array(
 				'Представление' => $order['email']
 				),
-			'АдресРегистрации'		=> $this->setCustomerAddress($order)
+			'АдресРегистрации'		=> $this->setCustomerAddress($order),
 		);
 
+		$customer['Адрес']		= $customer['АдресРегистрации'];
+
 		// Поля для юр. лица или физ. лица
-		if ($order['company']) {
+		if ($order['payment_company']) {
  			// Если плательщиком является организация
 			// Контактное лицо организации (физ. лицо)
-			$customer['Адрес']						= $this->setCustomerAddress($order);
-			$customer['ЮридическийАдрес']			= $this->setCustomerAddress($order);
-			$customer['Контакты']					= $this->setCustomerContacts($order);
+//			$customer['Адрес']						= $this->setCustomerAddress($order);
+			$customer['ЮридическийАдрес']			= $customer['АдресРегистрации'];
+			//$customer['Контакты']					= $customer['АдресРегистрации'];
 
 //			$customer['Представители']				= array(
 //				'Представитель' => array(
@@ -7490,6 +6623,8 @@ class ModelExtensionExchange1c extends Model {
 			$customer['КПП'] 						= $order['company_kpp'];
 		}
 
+		$this->log('setCustomer():', 2);
+		$this->log($customer, 2);
 		return $customer;
 
 	} // setCustomer()
@@ -7549,14 +6684,16 @@ class ModelExtensionExchange1c extends Model {
 			}
 		}
 
+		$this->log('queryOrdersExport():', 2);
+		$this->log($orders_export, 2);
 		return $orders_export;
 
 	} // queryOrdersExport()
 
 
 	/**
-	 * ver 12
-	 * update 2018-04-08
+	 * ver 13
+	 * update 2018-08-25
 	 * Выгружает заказы в торговую систему
 	 */
 	public function queryOrders() {
@@ -7576,15 +6713,19 @@ class ModelExtensionExchange1c extends Model {
 
 			$this->load->model('customer/customer_group');
 			$this->load->model('sale/order');
-			$this->load->model('catalog/unit');
 
 			foreach ($orders_export as $order_id => $order_status_id) {
 
 				$order = $this->model_sale_order->getOrder($order_id);
-
-				$this->getCustomerInfo($order);
+				$this->log('model_sale_order->getOrder():', 2);
+				$this->log($order, 2);
 
 				$this->log("> Выгружается заказ #" . $order['order_id']);
+
+				// Если при оформлении заказа покупатель зарегистрировался
+				if ($order['customer_id']) {
+					$this->getCustomerInfo($order);
+				}
 
 				$order['date'] = date('Y-m-d', strtotime($order['date_added']));
 				$order['time'] = date('H:i:s', strtotime($order['date_added']));
@@ -7605,22 +6746,25 @@ class ModelExtensionExchange1c extends Model {
 					//,'Соглашение'  => $customer_group['name'] // the agreement
 				);
 
-				$this->getCustomerInfo($order);
-
 				// Первая буква должна быть заглавной и убираем лишние пробелы сдева и справа
 				// ТОЛЬКО ДЛЯ САЙТА РАБОТАЮЩЕГО НА КОДИРОВКЕ UTF-8
 				$order['lastname'] = mb_convert_case(trim($order['lastname']), MB_CASE_TITLE, "UTF-8");
 				$order['firstname'] = mb_convert_case(trim($order['firstname']), MB_CASE_TITLE, "UTF-8");
-				$order['middlename'] = mb_convert_case(trim($order['middlename']), MB_CASE_TITLE, "UTF-8");
+				if (isset($order['middlename']))
+					$order['middlename'] = mb_convert_case(trim($order['middlename']), MB_CASE_TITLE, "UTF-8");
+				else
+					$order['middlename'] = '';
 
 				// Собираем полное наименование покупателя, ФИО
 				$order['username'] =  $order['lastname'] . ' ' . $order['firstname'] . ($order['middlename'] ? ' ' . $order['middlename'] : '');
 
 				// ПОКУПАТЕЛЬ (КОНТРАГЕНТ)
 				$document['Документ' . $document_counter]['Контрагенты']['Контрагент'] = $this->setCustomer($order);
+				if ($this->ERROR) return false;
 
 				// РЕКВИЗИТЫ ДОКУМЕНТА
 				$document['Документ' . $document_counter]['ЗначенияРеквизитов'] = $this->setDocumentRequisites($order, $document);
+				if ($this->ERROR) return false;
 
 				// ТОВАРЫ ДОКУМЕНТА
 				$products = $this->model_sale_order->getOrderProducts($order_id);
@@ -7658,23 +6802,6 @@ class ModelExtensionExchange1c extends Model {
 						$current_product['Ид'] .= "#" . $feature_guid;
 					}
 
-					// Базовая единица
-					$unit = $this->model_catalog_unit->getProductUnit($product['unit_id']);
-					$this->log($product, 2);
-					$this->log('unit_id: ' . $product['unit_id'], 2);
-					$this->log($unit, 2);
-					if ($unit) {
-						$current_product['БазоваяЕдиница'] = array(
-							'Код' 					=> $unit['code'],
-							'НаименованиеПолное' 	=> $unit['full_name']
-						);
-					} else {
-						$current_product['БазоваяЕдиница'] = array(
-							'Код' 					=> '796',
-							'НаименованиеПолное' 	=> 'Штука'
-						);
-					}
-
 					// Доставка в комментарий
 					$query = $this->query("SELECT `title` FROM `" . DB_PREFIX . "order_total` WHERE `order_id` = " . $order_id . " AND `code` = 'shipping'");
 					if ($query->num_rows) {
@@ -7691,6 +6818,7 @@ class ModelExtensionExchange1c extends Model {
 
 		} // if (count($orders_export))
 		//$this->log($document, 2);
+
 		// Формируем заголовок
 		$root = '<?xml version="1.0" encoding="utf-8"?><КоммерческаяИнформация ВерсияСхемы="2.07" ДатаФормирования="' . date('Y-m-d', time()) . '" />';
 
@@ -7733,6 +6861,7 @@ class ModelExtensionExchange1c extends Model {
 	 * ver 4
 	 * update 2017-09-08
 	 * Возвращает валюту по коду
+	 * НЕ ИСПОЛЬЗУЕТСЯ
 	 */
 	private function getCurrencyByCode($code) {
 
@@ -7758,6 +6887,8 @@ class ModelExtensionExchange1c extends Model {
 
 		}
 
+		$this->log('getCurrencyByCode():', 2);
+		$this->log($data, 2);
 		return $data;
 
 	} // getCurrencyByCode()
@@ -7793,29 +6924,6 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 2
-	 * update 2017-04-05
-	 * Добавляет товар в заказ
-	 */
-	private function addOrderProduct($order_id, $order_product_data) {
-
-		$this->query("INSERT INTO `" . DB_PREFIX . "order_product`
-			SET `product_id` = " . (int)$order_product_data['product_id'] . ",
-			`order_id` = " . (int)$order_id . ",
-			`unit_id` = " . (int)$order_product_data['unit_id'] . ",
-			`name` = '" . $this->db->escape($order_product_data['name']) . "',
-			`model` = '" . $this->db->escape($order_product_data['model']) . "',
-			`price` = " . (float)$order_product_data['price'] . ",
-			`quantity` = " . (float)$order_product_data['quantity'] . ",
-			`total` = " . (float)$order_product_data['total']
-		);
-		$this->log("Товар '" . $order_product_data['name'] . "' добавлен в заказ #" . $order_id, 2);
-		return $this->db->getLastId();
-
-	} // addOrderProduct()
-
-
-	/**
 	 * ver 1
 	 * update 2018-03-20
 	 * Обновляет товар в заказе
@@ -7827,7 +6935,6 @@ class ModelExtensionExchange1c extends Model {
 		$this->query("UPDATE `" . DB_PREFIX . "order_product`
 			SET `product_id` = " . (int)$order_product_data['product_id'] . ",
 			`order_id` = " . (int)$order_id . ",
-			`unit_id` = " . (int)$order_product_data['unit_id'] . ",
 			`name` = '" . $this->db->escape($order_product_data['name']) . "',
 			`model` = '" . $this->db->escape($order_product_data['model']) . "',
 			`price` = " . (float)$order_product_data['price'] . ",
@@ -7907,20 +7014,6 @@ class ModelExtensionExchange1c extends Model {
 	/**
 	 * ver 2
 	 * update 2017-04-05
-	 * Удаляем товар из заказа со всеми опциями
-	 */
-	private function deleteOrderProduct($order_product_id) {
-
-		$this->query("DELETE FROM `" . DB_PREFIX . "order_product` WHERE `order_product_id` = " . (int)$order_product_id);
-		$this->query("DELETE FROM `" . DB_PREFIX . "order_option` WHERE `order_product_id` = " . (int)$order_product_id);
-		$this->log("Удалены товары и опции в заказе",2);
-
-	} // deleteOrderProduct()
-
-
-	/**
-	 * ver 2
-	 * update 2017-04-05
 	 * Меняет статус заказа
 	 */
 	private function getOrderStatusLast($order_id) {
@@ -7973,10 +7066,10 @@ class ModelExtensionExchange1c extends Model {
 		}
 
 		// Меняем статус если он равен начальному
-		if ((int)$this->config->get('exchange1c_order_status_export') != (int)$order_status_id) {
-			$this->log("Статус документа не меняем так как он уже не имеет статуса указанного для выгрузки");
-			return 0;
-		}
+		//if ((int)$this->config->get('exchange1c_order_status_export') != (int)$order_status_id) {
+		//	$this->log("Статус документа не меняем так как он уже не имеет статуса указанного для выгрузки");
+		//	return 0;
+		//}
 
 		// если он изменился, изменим в заказе
 		$this->query("INSERT INTO `" . DB_PREFIX . "order_history` SET `order_id` = " . (int)$order_id . ", `order_status_id` = " . (int)$new_order_status_id . ", `date_added` = '" . $this->NOW . "', `comment` = 'Change auto from trade system'");
@@ -7992,8 +7085,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 6
-	 * update 2018-03-19
+	 * ver 7
+	 * update 2018-06-09
 	 * Обновляет документ
 	 */
 	private function updateDocument($doc, $order, $products) {
@@ -8017,6 +7110,26 @@ class ModelExtensionExchange1c extends Model {
 		if (!empty($doc['total'])) {
 			if ($doc['total'] != $order['total']) {
 				$order_fields['total'] = $doc['total'];
+			}
+		}
+
+		// Временная заплатка!!!
+		// Проверим ФИО
+		if (isset($doc['firstname']) && isset($order['firstname'])) {
+			if ($doc['firstname'] != $order['firstname']) {
+				$order_fields['firstname'] = $doc['firstname'];
+			}
+		}
+
+		if (isset($doc['lastname']) && isset($order['lastname'])) {
+			if ($doc['lastname'] != $order['lastname']) {
+				$order_fields['lastname'] = $doc['lastname'];
+			}
+		}
+
+		if (isset($doc['middlename']) && isset($order['middlename'])) {
+			if ($doc['middlename'] != $order['middlename']) {
+				$order_fields['middlename'] = $doc['middlename'];
 			}
 		}
 
@@ -8081,11 +7194,6 @@ class ModelExtensionExchange1c extends Model {
 							$this->log("Изменена ставка налога");
 							$update = true;
 						}
-						if ($product['unit_id'] != $doc_product['unit_id']) {
-							$this->log("Изменена единица измерения");
-							$update = true;
-						}
-
 						$this->log($doc_product, 2);
 						if ($update) {
 							$this->updateOrderProduct($doc['order_id'], $doc_product, $product['order_product_id']);
@@ -8099,7 +7207,19 @@ class ModelExtensionExchange1c extends Model {
 				} else {
 					// Добавить строчку
 					$this->log("Добавление товара '" . $doc_product['name'] . "' в документ");
-					$order_product_id = $this->addOrderProduct($doc['order_id'], $doc_product);
+
+					$this->query("INSERT INTO `" . DB_PREFIX . "order_product`
+						SET `product_id` = " . (int)$doc_product['product_id'] . ",
+						`order_id` = " . (int)$doc['order_id'] . ",
+						`name` = '" . $this->db->escape($doc_product['name']) . "',
+						`model` = '" . $this->db->escape($doc_product['model']) . "',
+						`price` = " . (float)$doc_product['price'] . ",
+						`quantity` = " . (float)$doc_product['quantity'] . ",
+						`total` = " . (float)$doc_product['total']
+					);
+					$this->log("Товар '" . $doc_product['name'] . "' добавлен в заказ #" . $doc['order_id'], 2);
+					$order_product_id = $this->db->getLastId();
+
 					$update = true;
 				}
 
@@ -8107,35 +7227,58 @@ class ModelExtensionExchange1c extends Model {
 			} // foreach
 
 //			foreach ($old_products as $product) {
-//				$this->deleteOrderProduct($product['order_product_id']);
+//				$this->query("DELETE FROM `" . DB_PREFIX . "order_product` WHERE `order_product_id` = " . (int)$product['order_product_id']);
+//				$this->query("DELETE FROM `" . DB_PREFIX . "order_option` WHERE `order_product_id` = " . (int)$product['order_product_id']);
+//				$this->log("Удалены товары и опции в заказе",2);
 //				if ($this->ERROR) return false;
 //			}
 		} // if
 
-		// Обновим сумму заказа и дату модификации
-		if ($update) {
-			$this->query("UPDATE `" . DB_PREFIX . "order` SET
-			`total` = " . (float)$doc['total'] . ",
-			`date_modified` = NOW()
-			WHERE `order_id` = " . (int)$order['order_id']);
-			$this->log("Обновлено в документе: Итого",2);
+		if ($doc['total'] != $order['total']) {
+			$order_fields['total'] = $doc['total'];
+		}
 
+		$sql = "UPDATE `" . DB_PREFIX . "order` SET ";
+		if ($order_fields){
+			$sql_set = "";
+			foreach ($order_fields as $field => $value) {
+				$sql_set .= ($sql_set ? ", `" : "`") . $field . "` = '" . $value . "'";
+			}
+			$this->log($sql_set, 2);
+			$this->query($sql . $sql_set . " WHERE `order_id` = " . $order['order_id']);
+
+			// Обновим сумму заказа и дату модификации
+//			$this->query("UPDATE `" . DB_PREFIX . "order` SET
+//			`total` = " . (float)$doc['total'] . ",
+//			`date_modified` = NOW()
+//			WHERE `order_id` = " . (int)$order['order_id']);
+//			$this->log("Обновлено в документе: Итого",2);
+
+			// ИТОГИ
 			// Вычислим сумму доставки
 			$shipping_total = $doc['total'] - $product_total;
 			$this->query("UPDATE `" . DB_PREFIX . "order_total` SET
 			`value` = " . (float)$shipping_total . "
 			WHERE `order_id` = " . (int)$order['order_id'] . " AND
 			`code` = 'shipping'");
-			$this->log("Обновлена сумма доставки = " . $shipping_total, 2);
+			$this->log("Сумма доставки = " . $shipping_total, 2);
+
+			// Итоги по таблице товаров
+			$this->query("UPDATE `" . DB_PREFIX . "order_total` SET
+			`value` = " . (float)$product_total . "
+			WHERE `order_id` = " . (int)$order['order_id'] . " AND
+			`code` = 'sub_total'");
+			$this->log("Сумма товаров = " . $product_total, 2);
 
 			// Обновим тоталы, разницу между суммой товаров закинем в доставку
 			$this->query("UPDATE `" . DB_PREFIX . "order_total` SET
 			`value` = " . (float)$doc['total'] . "
 			WHERE `order_id` = " . (int)$order['order_id'] . " AND
 			`code` = 'total'");
-			$this->log("Обновлены тоталы: Всего",2);
+			$this->log("Всего = " . $doc['total'], 2);
 
 		}
+
 
 		$this->log("Документ обновлен",2);
 
@@ -8145,8 +7288,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 3
-	 * update 2018-03-14
+	 * ver 4
+	 * update 2018-08-30
 	 * Читает их XML реквизиты документа
 	 */
 	private function parseDocumentRequisite($xml, &$doc) {
@@ -8163,26 +7306,8 @@ class ModelExtensionExchange1c extends Model {
 				case 'Дата по 1С':
 					$doc['datetime'] = $value;
 				break;
-				case 'Проведен':
-					$doc['posted'] = $value;
-				break;
 				case 'Статус заказа':
 					$doc['status'] = $value;
-				break;
-				case 'Отменен':
-					$doc['canceled'] = $value;
-				break;
-				case 'Номер оплаты по 1С':
-					$doc['NumPay'] = $value;
-				break;
-				case 'Дата оплаты по 1С':
-					$doc['DataPay'] = $value;
-				break;
-				case 'Номер отгрузки по 1С':
-					$doc['NumSale'] = $value;
-				break;
-				case 'Дата отгрузки по 1С':
-					$doc['DateSale'] = $value;
 				break;
 				case 'ПометкаУдаления':
 					$doc['DeletionMark'] = $value;
@@ -8190,6 +7315,61 @@ class ModelExtensionExchange1c extends Model {
 				case 'Проведен':
 					$doc['Posted'] = $value;
 				break;
+				case 'Отменен':
+					$doc['canceled'] = $value;
+				break;
+
+				// Оплата (в процессе реализации)
+				case 'Оплачен':
+					$doc['Paid'] = $value;
+				break;
+				case 'Номер оплаты по 1С':
+					$doc['NumPay'] = $value;
+				break;
+				case 'Дата оплаты по 1С':
+					$doc['DataPay'] = $value;
+				break;
+
+				// Отгрузка (в процессе реализации)
+				case 'Отгружен':
+					$doc['Shipped'] = $value;
+				break;
+				case 'Номер отгрузки по 1С':
+					$doc['NumSale'] = $value;
+				break;
+				case 'Дата отгрузки по 1С':
+					$doc['DateSale'] = $value;
+				break;
+
+				// Доставка (в процессе реализации)
+				case 'Идентификатор отправления':
+					$doc['DeliveryID'] = $value;
+				break;
+				case 'Комментарий доставки':
+					$doc['DeliveryComment'] = $value;
+				break;
+				case 'Адрес доставки':
+					$doc['DeliveryAddress'] = $value;
+				break;
+				case 'Способ доставки':
+					$doc['DeliveryMethod'] = $value;
+				break;
+				case 'Стоимость доставки':
+					$doc['DeliveryAmount'] = $value;
+				break;
+				case 'Ставка НДС доставки':
+					$doc['DeliveryTax'] = $value;
+				break;
+				case 'Получатель':
+					$doc['DeliveryRecipient'] = $value;
+				break;
+				case 'Контактный телефон':
+					$doc['DeliveryContactPhone'] = $value;
+				break;
+				case 'Почта получателя':
+					$doc['DeliveryContactEmail'] = $value;
+				break;
+
 				default:
 			}
 		}
@@ -8271,8 +7451,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 6
-	 * update 2018-04-08
+	 * ver 7
+	 * update 2018-08-07
 	 * Контрагент
 	 * Получает ID покупателя и адреса
 	 */
@@ -8287,17 +7467,18 @@ class ModelExtensionExchange1c extends Model {
 		$customer_guid = (string)$xml->Контрагент->Ид;
 
 		// Определение типа покупателя: Организация или физ.лицо
-		if ($xml->Контрагент->ОфициальноеНаименование) {
+		// Поиск организации будет осуществлен, если заполнено поле "ОфициальноеНаименование" и указан ИНН, иначе будет прочитано как физ.лицо
+		if ($xml->Контрагент->ОфициальноеНаименование && $xml->Контрагент->ИНН) {
 			$company_name = trim((string)$xml->Контрагент->ОфициальноеНаименование);
 			$company_inn = trim((string)$xml->Контрагент->ИНН);
+			$company_kpp = trim((string)$xml->Контрагент->КПП);
 
 			$customer_type = (strlen($company_inn) == 12) ? 3 : 2;
 
 			// Поиск по организации по ИНН
-			$this->log("Поиск покупателя по организации: " . $company_name);
+			$this->log("Поиск организации по ИНН: " . $company_inn);
 			$query = $this->query("SELECT `customer_id` FROM `" . DB_PREFIX . "customer` WHERE `company_inn` = '" . $this->db->escape($company_inn) . "'");
 			if ($query->num_rows) {
-				$doc['company'] = $company_name;
 				$doc['payment_company'] = $company_name;
 				$doc['shipping_company'] = $company_name;
 				$doc['customer_id'] = $query->row['customer_id'];
@@ -8306,6 +7487,14 @@ class ModelExtensionExchange1c extends Model {
 				if ($query_address->num_rows) {
 					$doc['address_id'] = $query_address->row['address_id'];
 				}
+			}
+
+			// Если не найдено по реквизитам, значит изменилось наименование или переименован в название организации.
+			// В этом случае пропишем название организации, ИНН и КПП
+			if (!$doc['customer_id']) {
+				$doc['company'] = $company_name;
+				$doc['company_inn'] = $company_inn;
+				$doc['company_kpp'] = $company_kpp;
 			}
 
 			$this->log("В ПРОЦЕССЕ РЕАЛИЗАЦИИ");
@@ -8328,27 +7517,46 @@ class ModelExtensionExchange1c extends Model {
 			$firstname				= isset($customer[1]) ? trim($customer[1]) : '';
 			$middlename				= isset($customer[2]) ? trim($customer[2]) : '';
 
-			// поиск покупателя по ФИО получателя
+			// Покупатель
 			if (!$doc['customer_id']) {
-				$query = $this->query("SELECT `address_id`,`customer_id` FROM `" . DB_PREFIX . "address` WHERE `firstname` = '" . $this->db->escape($firstname) . "' AND `lastname` = '" . $this->db->escape($lastname) . "'");
-				if ($query->num_rows) {
-					$doc['customer_id'] = $query->row['customer_id'];
-					$doc['address_id'] = $query->row['address_id'];
+
+				$doc['firstname'] = $firstname;
+				$doc['lastname'] = $lastname;
+				$doc['middlename'] = $middlename;
+				$this->log("Покупатель не найден в базе, возможно были изменены ФИО");
+
+			}
+
+			if (!$doc['customer_id']) {
+				// поиск в адресах
+				if (!$doc['customer_id']) {
+					$query = $this->query("SELECT `address_id`,`customer_id` FROM `" . DB_PREFIX . "address` WHERE `firstname` = '" . $this->db->escape($firstname) . "' AND `lastname` = '" . $this->db->escape($lastname) . "'");
+					if ($query->num_rows) {
+						$doc['customer_id'] = $query->row['customer_id'];
+						$doc['address_id'] = $query->row['address_id'];
+					}
 				}
 			}
 
-			// поиск покупателя ФИО
 			if (!$doc['customer_id']) {
-				$query = $this->query("SELECT `customer_id` FROM `" . DB_PREFIX . "customer` WHERE `firstname` = '" . $this->db->escape($firstname) . "' AND `lastname` = '" . $this->db->escape($lastname) . "' AND `middlename` = '" . $this->db->escape($middlename) . "'");
+
+				// Поиск в покупателях
+				$sql = "SELECT `customer_id` FROM `" . DB_PREFIX . "customer` WHERE `firstname` = '" . $this->db->escape($firstname) . "' AND `lastname` = '" . $this->db->escape($lastname) . "'";
+				if ($middlename) {
+					$sql .=  " AND `middlename` = '" . $this->db->escape($middlename) . "'";
+				}
+				$query = $this->query($sql);
 				if ($query->num_rows) {
 					$doc['customer_id'] = $query->row['customer_id'];
 				}
-			}
-		}
+			} // if (!$doc['customer_id'])
 
-		if (!$doc['customer_id']) {
-			$this->errorLog(2202);
-			return false;
+		} // if ($xml->Контрагент->ОфициальноеНаименование)
+
+		if (!$doc['customer_id'] && empty($doc['firstname']) && empty($doc['lastname'])) {
+			$this->log($doc, 2);
+			//$this->errorLog(2202);
+			//return false;
 		}
 		$this->log("Покупатель в документе прочитан",2);
 		return true;
@@ -8357,19 +7565,18 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 5
-	 * update 2018-03-19
+	 * ver 6
+	 * update 2018-08-30
 	 * Товары документа
 	 */
 	private function parseDocumentProducts($xml, &$doc) {
 
-		$this->log($xml, 2);
-
-		$this->load->model('catalog/unit');
+		//$this->log($xml, 2);
 
 		foreach ($xml->Товар as $product) {
 			$guid		= explode("#", (string)$product->Ид);
 			$this->log($guid, 2);
+
 			if (!$guid) {
 				$this->errorLog(2203);
 				return false;
@@ -8386,11 +7593,21 @@ class ModelExtensionExchange1c extends Model {
 			}
 
 			if (isset($guid[0])) {
+
 				$data['product_guid'] = $guid[0];
+
+				// Доставка Ид = ORDER_DELIVERY
+				if ($data['product_guid'] == 'ORDER_DELIVERY') {
+					// Доставка в процессе реализации
+					continue;
+				}
+
 				$data['product_id'] = $this->getProductIdByGuid($data['product_guid']);
 				if (!$data['product_id']) {
-					$this->errorLog(2204, $data['name'], $data['product_guid']);
-					return false;
+					//$this->errorLog(2204, $data['name'], $data['product_guid']);
+					$this->Log("Не найден товар на сайте '" . $data['name'] . "' по Ид " . $data['product_guid']);
+					continue;
+					//return false;
 				}
 			} else {
 				$this->errorLog(2205, $data['name']);
@@ -8420,10 +7637,6 @@ class ModelExtensionExchange1c extends Model {
 				$data['model'] = (string)$product->Артикул;
 			}
 
-			if ($product->Единица) {
-				$unit = $this->model_catalog_unit->getUnitByName((string)$product->Единица);
-				$data['unit_id'] = $unit['unit_id'];
-			}
 			$data['ratio'] = (float)$product->Коэффициент;
 
 			if ($product->ЦенаЗаЕдиницу) {
@@ -8447,7 +7660,7 @@ class ModelExtensionExchange1c extends Model {
 			$doc['products'][] = $data;
 		}
 
-		$this->log($doc, 2);
+		//$this->log($doc, 2);
 		$this->log("Товары документа прочитаны", 2);
 		return true;
 
@@ -8457,25 +7670,6 @@ class ModelExtensionExchange1c extends Model {
 	/**
 	 * ******************************************* КАТЕГОРИИ *********************************************
 	 */
-
-	/**
-	 * ver 2
-	 * update 2017-05-02
-	 * Обновляет описание категории
-	 */
-	private function updateCategoryDescription($category_id, $data) {
-
-		// Надо ли обновлять
-		$fields = $this->prepareQueryDescription($data);
-
-		if ($fields) {
-			$this->query("UPDATE `" . DB_PREFIX . "category_description` SET " . $fields . " WHERE `category_id` = " . (int)$category_id . " AND `language_id` = " . $this->LANG_ID);
-			return true;
-		}
-
-		return false;
-
-	} // updateCategoryDescription()
 
 
 	/**
@@ -8556,8 +7750,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 2
-	 * update 2017-08-26
+	 * ver 3
+	 * update 2018-06-14
 	 * Добавляет категорию
 	 */
 	private function addCategory($data) {
@@ -8572,7 +7766,6 @@ class ModelExtensionExchange1c extends Model {
 		if (!isset($data['top'])) 			$data['top'] = 1;
 		if (!isset($data['column'])) 		$data['column'] = 1;
 		if (!isset($data['sort_order'])) 	$data['sort_order'] = 1;
-		if (!isset($data['sort_order'])) 	$data['sort_order'] = 1;
 		if (!isset($data['status']))		$data['status'] = $this->config->get('exchange1c_category_new_status_disable') == 1 ? 0 : 1;
 
 		$this->query("INSERT INTO `" . DB_PREFIX . "category` SET `image` = '" . $this->db->escape($data['image']) . "', `parent_id` = " . (int)$data['parent_id'] . ", `top` = " . (int)$data['top'] . ", `column` = " . (int)$data['column'] . ", `sort_order` = " . (int)$data['sort_order'] . ", `status` = " . (int)$data['status'] . ", `date_added` = '" . $this->NOW . "', `date_modified` = '" . $this->NOW . "'");
@@ -8580,9 +7773,8 @@ class ModelExtensionExchange1c extends Model {
 		$category_id = $this->db->getLastId();
 
 		// SEO
-		$this->log($data, 2);
-		$this->seoGenerateCategory($category_id, $data);
-		$this->log($data, 2);
+		if ($this->config->get('exchange1c_seo_category_mode') != 'disable')
+			$this->seoGenerateCategory($category_id, $data);
 
 		// Описание категории
 		if (!isset($data['description'])) 		$data['description'] = "";
@@ -8619,44 +7811,12 @@ class ModelExtensionExchange1c extends Model {
 
 		return $category_id;
 
-
 	} // addCategory()
 
 
 	/**
-	 * ver 1
-	 * update 2017-08-28
-	 * Объединяет массивы только те ключи которых нет в исходном
-	 * Возвращает массив с теми ключами которые отличаются и есть в обоих массивах
-	 */
-	private function arrayMergeDiff(&$data1, $data2) {
-
-		$result = array();
-
-		foreach ($data2 as $key => $data) {
-
-			if (isset($data1[$key])) {
-
-				if ($data1[$key] != $data2[$key]) {
-					$result[$key] = $data2[$key];
-				}
-
-			} else {
-
-            	$data1[$key] = $data2[$key];
-
-			}
-
-		} // foreach()
-
-		return $result;
-
-	} // arrayMergeDiff()
-
-
-	/**
-	 * ver 3
-	 * update 2017-08-28
+	 * ver 5
+	 * update 2018-06-14
 	 * Обновляет категорию
 	 */
 	private function updateCategory($category_id, $data) {
@@ -8667,25 +7827,21 @@ class ModelExtensionExchange1c extends Model {
 
 		// Используется версионирование
 		if (!empty($data['version'])) {
-
 			if ($data['version'] == $old['version']) {
 				return false;
 			}
-
 			$this->query("UPDATE `" . DB_PREFIX . "category_to_1c` SET `version` = '" . $this->db->escape($data['version']) . "' WHERE `category_id` = " . (int)$category_id);
-
 		}
 
 		// Объеденим массивы
 		//$this->log($data, 2);
-		//$change2 = $this->arrayMergeDiff($data, $old);
 		//$this->log($change2, 2);
 		$data = array_merge($old, $data);
 		//$this->log($data, 2);
 
 		// SEO
-		$this->seoGenerateCategory($category_id, $data);
-		//$this->log($data, 2);
+		if ($this->config->get('exchange1c_seo_category_mode') != 'disable')
+			$this->seoGenerateCategory($category_id, $data);
 
 		// Указываем поля которые не нужно обновлять
 		$no_update_fields = array();
@@ -8697,7 +7853,12 @@ class ModelExtensionExchange1c extends Model {
 		if ($data_update) {
 
 			// Если было обновлено описание
-			$update = $this->updateCategoryDescription($category_id, $data_update);
+			$fields = $this->prepareQueryDescription($data_update);
+
+			if ($fields) {
+				$this->query("UPDATE `" . DB_PREFIX . "category_description` SET " . $fields . " WHERE `category_id` = " . (int)$category_id . " AND `language_id` = " . $this->LANG_ID);
+				$update = true;
+			}
 
 			$fields_category = $this->prepareQueryCategory($data_update);
 
@@ -8735,13 +7896,12 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 7
-	 * update 2017-12-16
+	 * ver 9
+	 * update 2018-06-11
 	 * Парсит группы в классификаторе в XML
 	 */
 	private function parseClassifierCategories($xml, $parent_id = 0, &$num_categories) {
 
-		$this->log("Чтение категорий из классификатора...");
 		foreach ($xml->Группа as $xml_category) {
 			if ($xml_category->Ид && $xml_category->Наименование) {
 
@@ -8753,7 +7913,7 @@ class ModelExtensionExchange1c extends Model {
 
 				$data = array(
 					'parent_id'		=> $parent_id,
-					'name'			=> trim((string)$xml_category->Наименование),
+					'name'			=> htmlspecialchars(trim((string)$xml_category->Наименование)),
 					'version'		=> $xml_category->НомерВерсии ? (string)$xml_category->НомерВерсии : "",
 					'guid'			=> $guid
 				);
@@ -8779,6 +7939,7 @@ class ModelExtensionExchange1c extends Model {
 				if ($category_id) {
 					// Прочитаем данные существующей категории
 					$this->updateCategory($category_id, $data);
+					$this->CATEGORIES[$guid]['update'] = true;
 
 				} else {
 
@@ -8793,7 +7954,8 @@ class ModelExtensionExchange1c extends Model {
 
 						$this->CATEGORIES[$guid] = array(
 							'category_id'	=> $category_id,
-							'version'		=> $data['version']
+							'version'		=> $data['version'],
+							'update'		=> true
 						);
 					}
 				}
@@ -8804,18 +7966,12 @@ class ModelExtensionExchange1c extends Model {
 				// Обнуляем остаток только в текущем магазине
 				$query = $this->query("SELECT `p`.`product_id` FROM `" . DB_PREFIX . "product` `p` LEFT JOIN `" . DB_PREFIX . "product_to_category` `p2c` ON (`p`.`product_id` = `p2c`.`product_id`) LEFT JOIN `" . DB_PREFIX . "product_to_store` `p2s` ON (`p`.`product_id` = `p2s`.`product_id`) WHERE `p2c`.`category_id` = " . (int)$category_id . " AND `p2s`.`store_id` = " . $this->STORE_ID);
 				if ($query->num_rows) {
-					if ($this->config->get('exchange1c_product_disable_if_quantity_zero') == 1) {
-						$status = ", `status` = 0";
-					} else {
-						$status = "";
-					}
 					$product_ids = array();
 					foreach ($query->rows as $row) {
 						$product_ids[] = $row['product_id'];
 						$product_ids = implode(",", $product_ids);
 					}
-					$this->query("UPDATE `" . DB_PREFIX . "product` SET `quantity` = 0 " . $status . " WHERE `product_id` IN (" . $product_ids . ")");
-					$this->query("UPDATE `" . DB_PREFIX . "product_quantity` SET `quantity` = 0 WHERE `product_id` IN (" . $product_ids . ")");
+					$this->query("UPDATE `" . DB_PREFIX . "product` SET `quantity` = 0, `status` = 0 WHERE `product_id` IN (" . $product_ids . ")");
 					$this->log("Остатки в категориях обнулены");
 				}
 			}
@@ -8857,8 +8013,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 9
-	 * update 2018-03-06
+	 * ver 10
+	 * update 2018-05-11
 	 * Разбор классификатора
 	 */
 	private function parseClassifier($xml) {
@@ -8894,6 +8050,28 @@ class ModelExtensionExchange1c extends Model {
 			$this->statStart('classifier_categories_parse');
 			$num_categories = 0;
 			$this->parseClassifierCategories($xml->Группы, 0, $num_categories);
+
+			// Удалим старые категории, которых нет в файле, если полная выгрузка
+			if ($this->FULL_IMPORT) {
+				$delete_categories = array();
+				foreach ($this->CATEGORIES as $cat) {
+					if (!isset($cat['update'])) {
+						$delete_categories[$cat['guid']] = $cat['category_id'];
+					}
+				}
+				if (!empty($delete_categories)) {
+					$sql_delete_categories = implode(",",$delete_categories);
+					$this->query("DELETE FROM `" . DB_PREFIX . "category` WHERE `category_id` IN (" . $sql_delete_categories . ")");
+					$this->query("DELETE FROM `" . DB_PREFIX . "category_description` WHERE `category_id` IN (" . $sql_delete_categories . ")");
+					$this->query("DELETE FROM `" . DB_PREFIX . "category_to_1c` WHERE `category_id` IN (" . $sql_delete_categories . ")");
+
+					// Удалим из прочитанных
+					foreach ($delete_categories as $guid => $cat) {
+						unset($this->CATEGORIES[$guid]);
+					}
+				}
+			}
+
 			$this->statStop('classifier_categories_parse');
 
 			if ($this->ERROR) return false;
@@ -8904,11 +8082,6 @@ class ModelExtensionExchange1c extends Model {
 			$this->log("Категорий обработано: " . $num_categories, 2);
 			$this->log("*****");
 
-		}
-
-		// ТОВАРНЫЕ КАТЕГОРИИ
-		if ($xml->Категории) {
-			$this->parseProductCategories2($xml->Категории);
 		}
 
 		if ($xml->ТипыЦен) {
@@ -8927,33 +8100,18 @@ class ModelExtensionExchange1c extends Model {
 
 		}
 
-		if ($xml->Склады) {
-
-			$this->log("*** ЧТЕНИЕ СКЛАДОВ ***");
-
-			$data['warehouses'] = $this->parseClassifierWarehouses($xml->Склады);
-
-			if ($this->ERROR) return false;
-
-			unset($xml->Склады);
-
-			if ($data['warehouses']) {
-				$this->log("Складов загружено (CML >= v2.09): " . count($data['warehouses']), 2);
-			}
-
-		}
-
+		// Необходим дополнительный модуль
 		if ($xml->ЕдиницыИзмерения) {
 
 			$this->log("*** ЧТЕНИЕ ЕДИНИЦ ИЗМЕРЕНИЙ ***");
 
-			$num = $this->parseClassifierUnits($xml->ЕдиницыИзмерения);
+			//$num = $this->parseClassifierUnits($xml->ЕдиницыИзмерения);
 
-			if ($this->ERROR) return false;
+			//if ($this->ERROR) return false;
 
 			unset($xml->ЕдиницыИзмерения);
 
-			$this->log("Единиц измерений загружено(CML >= v2.09): " . count($num), 2);
+			//$this->log("Единиц измерений загружено(CML >= v2.09): " . count($num), 2);
 
 		}
 
@@ -8985,8 +8143,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 2
-	 * update 2017-05-30
+	 * ver 3
+	 * update 2018-05-30
 	 * Разбор документа
 	 */
 	private function parseDocument($xml) {
@@ -8994,7 +8152,8 @@ class ModelExtensionExchange1c extends Model {
 		$order_guid		= (string)$xml->Ид;
 		$order_id		= (string)$xml->Номер;
 
-		$this->log($xml, 2);
+		$this->log("********************** ЗАКАЗ #" . $order_id . " **********************");
+		//$this->log($xml, 2);
 
 		$config_currency = $this->config->get('exchange1c_currency');
 		if (empty($config_currency)) {
@@ -9015,6 +8174,11 @@ class ModelExtensionExchange1c extends Model {
 		// Просроченный платеж если date_pay будет меньше текущей
 		if ($doc['date_pay']) {
 			$this->log("По документу просрочена оплата");
+		}
+
+		// УНФ
+		if ($xml->СрокПлатежа) {
+			$doc['time_payment'] = (string)$xml->СрокПлатежа;
 		}
 
 		$this->parseDocumentCustomer($xml->Контрагенты, $doc);
@@ -9076,6 +8240,7 @@ class ModelExtensionExchange1c extends Model {
 
 	/**
 	 * Очистка лога
+	 * НЕИСПОЛЬЗУЕТСЯ
 	 */
 	private function clearLog() {
 
@@ -9087,16 +8252,16 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 6
-	 * update 2017-11-04
+	 * ver 7
+	 * update 2018-05-09
 	 * Импорт файла
 	 */
 	public function importFile($importFile, $type) {
 
 		// Функция будет сама определять что за файл загружается
 		$this->STAT['exchange'] = microtime(true);
-		$this->log("***** НАЧАЛО ЗАГРУЗКИ ДАННЫХ");
-		$this->log("Доступно памяти: " . sprintf("%.3f", memory_get_peak_usage() / 1024 / 1024) . " Mb", 2);
+		$this->log("~НАЧАЛО ЗАГРУЗКИ ДАННЫХ");
+		//$this->log("Доступно памяти: " . sprintf("%.3f", memory_get_peak_usage() / 1024 / 1024) . " Mb", 2);
 
 		// Определим язык
 		$this->getLanguageId($this->config->get('config_language'));
@@ -9124,6 +8289,7 @@ class ModelExtensionExchange1c extends Model {
 			$this->logStat('xml_load');
 			if (!$xml) {
 				$this->errorLog(3000, implode("\n", libxml_get_errors()));
+				$this->log(implode("\n", libxml_get_errors()));
 				return $this->error();
 			}
 
@@ -9140,7 +8306,7 @@ class ModelExtensionExchange1c extends Model {
 
 		// IMPORT.XML, OFFERS.XML
 		if ($xml->Классификатор) {
-			$this->log("***** ЗАГРУЗКА КЛАССИФИКАТОРА",2);
+			$this->log("~ЗАГРУЗКА КЛАССИФИКАТОРА",2);
 			$classifier = $this->parseClassifier($xml->Классификатор);
 			//$this->log($classifier, 2);
 			if ($this->ERROR) return $this->error();
@@ -9149,7 +8315,7 @@ class ModelExtensionExchange1c extends Model {
 		}
 
 		if ($xml->Каталог) {
-			$this->log("***** ЗАГРУЗКА КАТАЛОГА",2);
+			$this->log("~ЗАГРУЗКА КАТАЛОГА",2);
 			$this->parseDirectory($xml->Каталог);
 			if ($this->ERROR) return $this->error();
 			unset($xml->Каталог);
@@ -9157,7 +8323,7 @@ class ModelExtensionExchange1c extends Model {
 
 		// OFFERS.XML
 		if ($xml->ПакетПредложений) {
-			$this->log("***** ЗАГРУЗКА ПАКЕТА ПРЕДЛОЖЕНИЙ", 2);
+			$this->log("~ЗАГРУЗКА ПАКЕТА ПРЕДЛОЖЕНИЙ", 2);
 			// Пакет предложений
 			$this->parseOffersPack($xml->ПакетПредложений);
 			if ($this->ERROR) return $this->error();
@@ -9166,8 +8332,7 @@ class ModelExtensionExchange1c extends Model {
 
 		// ORDERS.XML
 		if ($xml->Документ) {
-			$this->log("****** ЗАГРУЗКА ДОКУМЕНТОВ", 2);
-			$this->clearLog();
+			$this->log("~ЗАГРУЗКА ДОКУМЕНТОВ", 2);
 			// Документ (заказ)
 			foreach ($xml->Документ as $doc) {
 				$this->parseDocument($doc);
@@ -9180,7 +8345,7 @@ class ModelExtensionExchange1c extends Model {
 			$this->log($xml,2);
 		}
 
-		$this->log("***** КОНЕЦ ЗАГРУЗКИ ДАННЫХ");
+		$this->log("~КОНЕЦ ЗАГРУЗКИ ДАННЫХ");
 		$this->logStat('exchange');
 		$this->log($this->STAT, 2);
 		$this->setConfig('stat_'.$filename, json_encode($this->STAT), 1, 'exchange1c-stat');
@@ -9211,8 +8376,8 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 7
-	 * update 2018-03-22
+	 * ver 9
+	 * update 2018-07-07
 	 * Определение дополнительных полей и запись их в глобальную переменную типа массив
 	 */
 	public function defineTableFields() {
@@ -9227,15 +8392,14 @@ class ModelExtensionExchange1c extends Model {
 			'product_description'		=> array('meta_h1'=>'','meta_title'=>'','meta_description'=>'','meta_keyword'=>''),
 			'category_description'		=> array('meta_h1'=>'','meta_title'=>'','meta_description'=>'','meta_keyword'=>''),
 			'manufacturer_description'	=> array('name'=>'','meta_h1'=>'','meta_title'=>'','meta_description'=>'','meta_keyword'=>''),
-			'product'					=> array('noindex'=>1),
+			'manufacturer_to_layout'	=> array(),
+			'product'					=> array('noindex'=>1,'unit_id'=>0),
 			'order'						=> array('middlename'=>'','shipping_middlename'=>'','payment_middlename'=>''),
-			'order_product'				=> array('product_feature_id'=>0,'unit_id'=>0),
+			'order_product'				=> array('product_feature_id'=>0),
 			'customer'					=> array('middlename'=>'','company_inn'=>'','company_kpp'=>''),
-			'cart'						=> array('product_feature_id'=>0,'unit_id'=>0),
+			'cart'						=> array('product_feature_id'=>0),
 			'attributes_value'			=> array(),
 			'attributes_value_to_1c'	=> array(),
-			'product_discount'			=> array('product_feature_id'=>''),
-			'product_special'			=> array('product_feature_id'=>''),
 			'url_alias'					=> array('seomanager'=>'')
 		);
 
@@ -9261,31 +8425,68 @@ class ModelExtensionExchange1c extends Model {
 
 
 	/**
-	 * ver 8
-	 * update 2018-03-27
+	 * ver 12
+	 * update 2018-06-15
 	 * Устанавливает обновления
 	 */
 	public function checkUpdates($settings) {
 
 		$message = "";
-		//$settings['exchange1c_version'] = "1.6.4.1";
-		$version = $settings['exchange1c_version'];
+		if (isset($settings['exchange1c_version'])) {
+			$version = $settings['exchange1c_version'];
+		} else {
+			$version = '1.6.4.1';
+			$settings['exchange1c_version'] = $version;
+		}
 		//$version = "1.6.4.1";
+		$beta = '';
 
-		if ($version == "1.6.4.1") {
+		if ($version == '1.6.4.1') {
 			$success = $this->update_1_6_4_2();
 	        if ($this->ERROR) return false;
 	   		if ($success) {
-	   			$version = "1.6.4.2";
+	   			$version = '1.6.4.2';
 	   			$message .= "Успешно обновлено до версии " . $version;
 			}
 		}
-		if ($version == "1.6.4.2") {
+		if ($version == '1.6.4.2') {
 			$success = $this->update_1_6_4_3();
 	        if ($this->ERROR) return false;
 	   		if ($success) {
-	   			$version = "1.6.4.3";
+	   			$version = '1.6.4.3';
 	   			$message .= "Успешно обновлено до версии " . $version;
+			}
+		}
+		if ($version == '1.6.4.3') {
+			$success = $this->update_1_6_4_4();
+	        if ($this->ERROR) return false;
+	   		if ($success) {
+	   			$version = '1.6.4.4';
+	   			$message .= "Успешно обновлено до версии " . $version;
+			}
+		}
+		if (version_compare($version, '1.6.4.4', '=')) {
+			$success = $this->update_1_6_4_5();
+		        if ($this->ERROR) return false;
+		   	if ($success) {
+		   		$version = '1.6.4.5';
+		   		$message .= "Успешно обновлено до версии " . $version;
+			}
+		}
+
+		$pos = strrpos($version, 'b');
+		if ($beta) {
+			$old_version = $version;
+			if ($pos === false) {
+				$version .= 'b' . $beta;
+			} else {
+				$version = substr($version, 0, $pos) . 'b' . $beta;
+			}
+			if ($old_version != $version)
+				$message .= ($message ? '<br />' : '') . 'Обновление до beta версии ' . $version;
+		} else {
+			if ($pos !== false) {
+				$version = substr($version, 0, $pos);
 			}
 		}
 
@@ -9293,7 +8494,7 @@ class ModelExtensionExchange1c extends Model {
 			//$this->setEvents();
 			$settings['exchange1c_version'] = $version;
 			$this->model_setting_setting->editSetting('exchange1c', $settings);
-			$message .= "<br /><strong>ВНИМАНИЕ! после обновления необходимо проверить все настройки и сохранить!</strong>";
+			$message .= '<br /><strong>ВНИМАНИЕ! после обновления необходимо проверить все настройки и сохранить!</strong>';
 		}
 
 		return $message;
@@ -9337,8 +8538,67 @@ class ModelExtensionExchange1c extends Model {
 
 		return true;
 
-	} // update_1_6_4_2()
+	} // update_1_6_4_3()
 
+
+	/**
+	 * Обновление до версии 1.6.4.4
+	 */
+	private function update_1_6_4_4() {
+
+		// Добавим поле модификации в значения характеристик для удаления старых опций
+		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "category_to_1c` WHERE `field` = 'version'");
+		if (!$result->num_rows) {
+			$result = $this->db->query("ALTER TABLE  `" . DB_PREFIX . "category_to_1c` ADD `version` VARCHAR(32)");
+		}
+		if (!$result) {
+			$this->ERROR = 4000;
+			$this->log("Error update to 1.6.4.4'");
+			return false;
+		}
+
+		return true;
+
+	} // update_1_6_4_4()
+
+
+	/**
+	 * Обновление до версии 1.6.4.5
+	 */
+	private function update_1_6_4_5() {
+
+		$result = true;
+		if (!$result) {
+			$this->ERROR = 4000;
+			$this->log("Error update to 1.6.4.5'");
+			return false;
+		}
+
+		return true;
+
+	} // update_1_6_4_5()
+
+
+	/**
+	 * Обновление до версии 1.6.4.6
+	 */
+	private function update_1_6_4_6() {
+
+		$result = true;
+		// Добавим поле модификации в значения характеристик для удаления старых опций
+		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "category_to_1c` WHERE `field` = 'delete'");
+		if (!$result->num_rows) {
+			$result = $this->db->query("ALTER TABLE  `" . DB_PREFIX . "category_to_1c` ADD `delete` VARCHAR(32)");
+		}
+		if (!$result) {
+			$this->ERROR = 4000;
+			$this->log("Error update to 1.6.4.6'");
+			return false;
+		}
+
+		return true;
+
+	} // update_1_6_4_6()
 
 }
 ?>

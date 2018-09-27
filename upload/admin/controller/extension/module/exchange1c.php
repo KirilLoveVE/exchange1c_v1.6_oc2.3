@@ -17,15 +17,14 @@ class ControllerExtensionModuleExchange1c extends Controller {
 				$this->log->write(print_r($message,true));
 
 			} elseif ($level == 2) {
-				$memory_usage = sprintf("%.3f", memory_get_usage() / 1024 / 1024);
 				list ($di) = debug_backtrace();
 				$line = sprintf("%04s",$di["line"]);
 
 				if (is_array($message) || is_object($message)) {
-					$this->log->write($memory_usage . " Mb | " . $line);
+					$this->log->write($line . "(C):");
 					$this->log->write(print_r($message, true));
 				} else {
-					$this->log->write($memory_usage . " Mb | " . $line . " | " . $message);
+					$this->log->write($line . "(C) " . $message);
 				}
 			}
 		}
@@ -421,12 +420,12 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		// Генерация данных для таблицы описания кодов ошибок
 		$data['error_description'] = array();
 		$list_errors = array(
-			1000,1001,1002,1003,1004,1005,1006,1007,
-			2001,2002,2003,2004,2005,2006,2207,2208,2010,2011,2012,
-			2020,2030,2031,2032,2033,2034,2040,2050,
-			2100,
+			1001,1002,1003,1004,1005,1006,1007,1008,
+			2001,2002,2003,2004,2006,2207,2208,2010,2011,2012,
+			2020,2030,2031,2032,2033,2034,2035,2040,2050,
+			2100,2110,2111,2112,
 			2200,2201,2202,2203,2204,2205,2206,
-			2300,2310,
+			2300,2301,2310,
 			2400,
 			// SEO
 			2500,
@@ -466,36 +465,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			0 => 'в разработке0',
 			1 => 'в разработке1',
 			2 => 'в разработке2'
-		);
-
-		// Поля товара для записи
-		$data['product_fields'] = array(
-			''				=> $this->language->get('text_not_import')
-			,'model'		=> $this->language->get('text_model')
-			,'sku'			=> $this->language->get('text_sku')
-			,'upc'			=> $this->language->get('text_upc')
-			,'ean'			=> $this->language->get('text_ean')
-			,'jan'			=> $this->language->get('text_jan')
-			,'isbn'			=> $this->language->get('text_isbn')
-			,'shipping'		=> $this->language->get('text_shipping')
-			,'location'		=> $this->language->get('text_location')
-			,'mpn'			=> $this->language->get('text_mpn')
-			,'weight'		=> $this->language->get('text_weight')
-			,'width'		=> $this->language->get('text_width')
-			,'height'		=> $this->language->get('text_height')
-			,'length'		=> $this->language->get('text_length')
-			,'status'		=> $this->language->get('text_status')
-			,'minimum'		=> $this->language->get('text_minimum')
-			,'sort_order'	=> $this->language->get('text_sort_order')
-		);
-
-		// Картинки
-		$images = array(
-			'watermark'	=> array(
-				'ph'			=> $this->model_tool_image->resize('no_image.png', 100, 100),
-				'value'			=> $this->getParam('watermark'),
-				'thumb'			=> $this->getParam('watermark') ? $this->model_tool_image->resize($this->getParam('watermark'), 100, 100) : $this->model_tool_image->resize('no_image.png', 100, 100)
-			)
 		);
 
 		// Уровень записи в журнал
@@ -560,14 +529,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		}
 		$data['order_statuses'] = $order_statuses;
 
-		$data['order_event'] = array(
-			'posted'			=> $this->language->get('text_order_posted'),
-			'paid'				=> $this->language->get('text_paid'),
-			'paid_shipped'		=> $this->language->get('text_paid_shipped'),
-			'shipped'			=> $this->language->get('text_shipped'),
-			'expired_payment'	=> $this->language->get('text_expired_payment')
-		);
-
 		// Дата и время выгрузки заказов
 		if (isset($this->request->post['exchange1c_order_date'])) {
 			$data['order_date_export'] = $this->request->post['exchange1c_order_date'];
@@ -584,7 +545,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 		$list_options = array(
 			'feature'	=> $this->language->get('text_product_options_feature')
-			,'related'	=> $this->language->get('text_product_options_related')
+			//,'related'	=> $this->language->get('text_product_options_related')
 			//,'certine'	=> $this->language->get('text_product_options_certine')
 		);
 
@@ -668,21 +629,10 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			'code'		=> $this->language->get('text_code')
 		);
 
-		// Статусы товаров
-		$select_product_status = array(
-			'status_not_change' 	=> $this->language->get('text_status_not_change'),
-			'disable_before_import'	=> $this->language->get('text_product_status_disable_before_import'),
-			'disable_not_import'	=> $this->language->get('text_not_import_status_disable'),
-			'disable_new'			=> $this->language->get('text_product_new_status_disable'),
-			'status_on'				=> $this->language->get('text_on')
-		);
-
-		// Режимы импорта
-		$select_mode_import = array(
-			'create_update' 	=> $this->language->get('text_create_update'),
-			'only_update'		=> $this->language->get('text_only_update'),
-			'only_create'		=> $this->language->get('text_only_create'),
-			'not_import'		=> $this->language->get('text_not_import')
+		// Учетные системы
+		$select_export_system = array(
+			'1c_unf16' 	=> $this->language->get('text_1c_unf16'),
+			'1c_ut11'  	=> $this->language->get('text_1c_ut11')
 		);
 
 		// Режимы группы атрибута
@@ -697,6 +647,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			'brackets'			=> $this->language->get('text_text_in_brackets')
 		);
 
+		$data['zip_support'] = class_exists('ZipArchive') ? true : false;
+
 		// Генерация опций
 		$params = array(
 			'username'									=> array('type' => 'input',)
@@ -707,18 +659,13 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			,'cleaning_old_images' 						=> array('type' => 'button')
 			,'generate_seo' 							=> array('type' => 'button')
 			,'flush_quantity'							=> array('type' => 'select', 'options' => $list_flush_quantity)
-			,'watermark'								=> array('type' => 'image')
-			,'watermark_prefix'							=> array('type' => 'input')
-			,'watermark_suffix'							=> array('type' => 'input')
-			,'watermark_old_no_delete'					=> array('type' => 'radio')
 			,'allow_ip'									=> array('type' => 'textarea')
 			,'status_new_product'						=> array('type' => 'radio', 'default' => 1, 'text' => 'on_off')
 			,'fill_parent_cats'							=> array('type' => 'radio', 'default' => 1)
 			,'synchronize_attribute_by' 	     	 	=> array('type' => 'select', 'options' => $select_sync_attributes, 'default' => 'guid')
 			,'module_status'							=> array('type' => 'radio', 'default' => 1, 'text' => 'on_off')
-			,'flush_log'								=> array('type' => 'radio', 'default' => 1)
 			,'currency_convert'							=> array('type' => 'radio', 'default' => 1)
-			,'clear_cache_mode_init'					=> array('type' => 'radio', 'default' => 1)
+			,'not_delete_files_after_import'			=> array('type' => 'radio', 'default' => 1)
 			,'seo_product_seo_url_import'				=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
 			,'seo_product_seo_url_template'				=> array('type' => 'input', 'width' => array(0,9,0))
 			,'seo_product_meta_title_import'			=> array('type' => 'input', 'width' => array(0,9,0), 'hidden' => 1)
@@ -742,7 +689,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			,'seo_manufacturer_meta_keyword_template'	=> array('type' => 'input', 'width' => array(0,9,0))
 			,'order_currency'							=> array('type' => 'input')
 			,'ignore_price_zero'						=> array('type' => 'radio', 'default' => 1)
-			,'log_memory_use_view'						=> array('type' => 'radio', 'default' => 1)
 			,'log_debug_line_view'						=> array('type' => 'radio', 'default' => 1)
 			,'log_level'								=> array('type' => 'select', 'options' => $log_level_list)
 			,'seo_product_mode'							=> array('type' => 'select', 'options' => $list_seo_mode, 'width' => array(1,2,9))
@@ -772,7 +718,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			,'order_status_completed'					=> array('type' => 'select', 'options' => $order_statuses, 'width' => array(2,3,7))
 			,'order_status_canceled'					=> array('type' => 'select', 'options' => $order_statuses, 'width' => array(2,3,7))
 			,'order_reserve_product'					=> array('type' => 'radio')
-			,'order_customer_export'					=> array('type' => 'radio', 'default' => 1)
 			,'orders_import'							=> array('type' => 'radio', 'default' => 1)
 			,'convert_orders_cp1251'					=> array('type' => 'radio', 'default' => 1)
 			,'set_quantity_if_zero'						=> array('type' => 'input')
@@ -793,8 +738,10 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			,'category_exist_status_enable'				=> array('type' => 'radio')
 			,'category_new_status_disable'				=> array('type' => 'radio')
 			,'category_attributes_parse'				=> array('type' => 'radio', 'default' => 1)
+			,'category_empty_disable'					=> array('type' => 'radio', 'default' => 1)
+			,'category_disable_before_full_import'		=> array('type' => 'radio')
 			,'warehouse_quantity_import'				=> array('type' => 'radio', 'default' => 1)
-			,'product_attribute_mode_import'			=> array('type' => 'select', 'options' => $select_mode_import)
+			,'product_attribute_not_import'				=> array('type' => 'radio')
 			,'product_link_option'						=> array('type' => 'radio')
 			,'product_feature_import'					=> array('type' => 'radio', 'default' => 1)
 			,'product_price_no_import'					=> array('type' => 'radio', 'default' => 1)
@@ -805,11 +752,13 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			,'product_images_check'						=> array('type' => 'radio')
 			,'product_images_cache_clean'				=> array('type' => 'radio')
 			,'product_sync_mode'						=> array('type' => 'select', 'options' => $select_product_sync_mode)
+			,'product_not_found_stop_error'				=> array('type' => 'radio')
 			,'product_options_type'						=> array('type' => 'select', 'options' => $select_product_options_type)
 			,'product_property_type_no_import'			=> array('type' => 'checkbox', 'options' => $select_product_property_type)
 			,'product_name'								=> array('type' => 'select', 'options' => $select_product_name, 'default' => 'name')
 			,'product_name_field'						=> array('type' => 'input', 'default' => 'Наименование')
-			,'product_status'							=> array('type' => 'select', 'options' => $select_product_status)
+			,'product_status_no_change'					=> array('type' => 'radio')
+			,'product_new_status_disable'				=> array('type' => 'radio')
 			,'product_images_no_import'					=> array('type' => 'radio')
 			,'product_description_no_import'			=> array('type' => 'radio')
 			,'product_manufacturer_no_import'			=> array('type' => 'radio')
@@ -818,16 +767,20 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			,'product_category_no_import'				=> array('type' => 'radio')
 			,'product_disable_if_quantity_zero'			=> array('type' => 'radio')
 			,'product_disable_if_price_zero'			=> array('type' => 'radio')
-			,'product_guid_in_mpn'						=> array('type' => 'radio', 'default' => 1)
-			,'product_sku_in_model'						=> array('type' => 'radio', 'default' => 1)
+			,'product_disable_before_full_import'		=> array('type' => 'radio')
 			,'product_no_create'						=> array('type' => 'radio')
-			,'product_new_status_disable'				=> array('type' => 'radio')
 			,'file_zip'									=> array('type' => 'radio')
 			,'file_max_size'							=> array('type' => 'input', 'format' => 'int')
 			,'log_filename'								=> array('type' => 'input')
 			,'import_product_rules'						=> array('type' => 'textarea')
 			,'delete_text_in_brackets_option'			=> array('type' => 'radio')
 			,'product_rules_pre_parse'					=> array('type' => 'textarea')
+			,'product_options_ignore'					=> array('type' => 'textarea')
+			,'option_name_generate_from_properties'		=> array('type' => 'radio')
+			,'option_name_default'						=> array('type' => 'radio')
+			,'product_price_min_option'					=> array('type' => 'radio')
+			,'cron_import_filename'						=> array('type' => 'input')
+			,'export_system'							=> array('type' => 'select', 'options' => $select_export_system)
 		);
 
 		if (isset($settings['exchange1c_table_fields'])) {
@@ -970,9 +923,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->model_extension_exchange1c->setEvents();
 		$module_version = "1.6.4.1";
 
-		$this->load->model('extension/unit');
-		$this->model_extension_unit->installUnit();
-
 		// Создадим директорию в кэше
 		$cache = DIR_CACHE . 'exchange1c';
 		if (!is_dir($cache)) {
@@ -1004,33 +954,10 @@ class ControllerExtensionModuleExchange1c extends Controller {
 //			)
 //		);
 
-		// Изменения в базе данных
-		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "cart` WHERE `field` = 'unit_id'");
-		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "cart` ADD  `unit_id` INT( 11 ) NOT NULL DEFAULT '0' AFTER  `option`");
-		}
-
-		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "order_product` WHERE `field` = 'unit_id'");
-		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order_product` ADD  `unit_id` INT( 11 ) NOT NULL DEFAULT '0' AFTER  `product_id`");
-		}
-
 		// Добавляем связь со значением атрибута
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product_attribute` WHERE `field` = 'attribute_value_id'");
 		if (!$result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product_attribute` ADD `attribute_value_id` INT( 11 ) NOT NULL DEFAULT '0' AFTER  `attribute_id`");
-		}
-
-		// Добавляем связь скидки с опцией
-		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product_discount` WHERE `field` = 'product_feature_id'");
-		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product_discount` ADD `product_feature_id` INT( 11 ) NOT NULL DEFAULT '0' AFTER  `customer_group_id`");
-		}
-
-		// Добавляем связь акции с опцией
-		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product_special` WHERE `field` = 'product_feature_id'");
-		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product_special` ADD `product_feature_id` INT( 11 ) NOT NULL DEFAULT '0' AFTER  `customer_group_id`");
 		}
 
 		$result = $this->db->query("SHOW INDEX FROM `" . DB_PREFIX . "product_attribute` WHERE `key_name` = 'value_id'");
@@ -1054,12 +981,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$result = $this->db->query("SHOW INDEX FROM `" . DB_PREFIX . "attribute_description` WHERE `column_name` = 'name'");
 		if (!$result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "attribute_description` ADD INDEX `name_key` ( `name` )");
-		}
-
-		// Добавим базовую единицу товара в товар
-		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product` WHERE `field` = 'unit_id'");
-		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product` ADD `unit_id` INT ( 11 ) NOT NULL AFTER `quantity`");
 		}
 
  		// Добавим отчество плательщика в заказ
@@ -1086,31 +1007,24 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `middlename` VARCHAR ( 32 ) NOT NULL AFTER `lastname`");
 		}
 
- 		// Добавим Организацию в покупателя
+ 		// Добавим компанию в покупателя
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'company'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company` VARCHAR ( 128 ) NOT NULL AFTER `middlename`");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company` VARCHAR ( 64 ) NOT NULL AFTER `lastname`");
 		}
-
- 		// Добавим ИНН для организации в покупателя
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'company_inn'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company_inn` VARCHAR ( 12 ) NOT NULL AFTER `company`");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company_inn` VARCHAR ( 64 ) NOT NULL AFTER `company`");
 		}
-
- 		// Добавим КПП для организации в покупателя
 		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "customer` WHERE `field` = 'company_kpp'");
 		if (!$result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company_kpp` VARCHAR ( 9 ) NOT NULL AFTER `company_inn`");
+			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "customer` ADD `company_kpp` VARCHAR ( 64 ) NOT NULL AFTER `company_inn`");
 		}
 
 		// Общее количество теперь можно хранить не только целое число (для совместимости)
 		// Увеличиваем точность поля веса до тысячных
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0.000");
+		//$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0.000");
 		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `weight` `weight` decimal(15,3) NOT NULL DEFAULT 0.000");
-
-		// Общее количество теперь можно хранить не только целое число (для совместимости)
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0");
 
 		// Связь товаров с 1С
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_to_1c`");
@@ -1218,36 +1132,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
 
-		// склады
-		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "warehouse`");
-		$this->db->query(
-			"CREATE TABLE `" . DB_PREFIX . "warehouse` (
-				`warehouse_id` 				SMALLINT(3) 	NOT NULL AUTO_INCREMENT,
-				`address_id`				INT(11)			NOT NULL,
-				`name` 						VARCHAR(100) 	NOT NULL,
-				`guid` 						VARCHAR(64) 	NOT NULL,
-				`phone`						VARCHAR(64)		NOT NULL,
-				`responsible`				VARCHAR(255)	NOT NULL,
-				PRIMARY KEY (`warehouse_id`),
-				UNIQUE KEY `warehouse_link` (`warehouse_id`, `guid`)
-			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
-		);
-
-		// Классификатор адресов
-		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "address_1c`");
-		$this->db->query(
-			"CREATE TABLE `" . DB_PREFIX . "address_1c` (
-				`address_id` 				INT(11) 		NOT NULL AUTO_INCREMENT,
-				`country` 					VARCHAR(100) 	NOT NULL,
-				`zip` 						VARCHAR(6) 		NOT NULL,
-				`region`					VARCHAR(100)	NOT NULL,
-				`city`						VARCHAR(100)	NOT NULL,
-				`street`					VARCHAR(100)	NOT NULL,
-				`home`						VARCHAR(8)		NOT NULL,
-				PRIMARY KEY (`address_id`)
-			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
-		);
-
 		// Характеристики товара
 		// Если характеристики не используются, эта таблица будет пустая
 		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature`");
@@ -1291,22 +1175,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 				FOREIGN KEY (`option_id`) 				REFERENCES `". DB_PREFIX ."option`(`option_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
 		);
-
-		// Типы цен
-//		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "prices_to_1c`");
-//		$this->db->query(
-//			"CREATE TABLE `" . DB_PREFIX . "prices_to_1c` (
-//				`guid` 						VARCHAR(64) 	NOT NULL,
-//				`version`					VARCHAR(32) 	NOT NULL,
-//				`name` 						VARCHAR(32) 	NOT NULL,
-//				`table` 					VARCHAR(32) 	NOT NULL,
-//				`quantity` 					INT(4) 			NOT NULL DEFAULT '1',
-//				`priority`					INT(5) 			NOT NULL DEFAULT '0',
-//				`currency_id` 				INT(11) 		NOT NULL,
-//				`tax_rate_id` 				VARCHAR(32) 	NOT NULL,
-//				UNIQUE KEY `price_key` (`name`, `guid`)
-//			) ENGINE=MyISAM DEFAULT CHARSET=utf8"
-//		);
 
 		// Значения характеристики товара(доп. значения)
 		// Если характеристики не используются, эта таблица будет пустая
@@ -1358,12 +1226,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 	 */
 	public function uninstall() {
 
-
 		$this->load->model('extension/exchange1c');
 		$table_fields = $this->model_extension_exchange1c->defineTableFields();
-
-		$this->load->model('extension/unit');
-		$this->model_extension_unit->uninstallUnit();
 
 		$this->load->model('extension/event');
 		$this->model_extension_event->deleteEvent('exchange1c');
@@ -1393,43 +1257,20 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "option_to_product`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "option_to_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_to_1c`");
-		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_unit`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_feature_value`");
-		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "warehouse`");
-		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "address_1c`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "attribute_value`");
 		$query = $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "product_category`");
 
 		// Удаляем все корректировки в базе
 
-		// Изменения в базе данных
-		$change = false;
-		if (isset($table_fields['cart']['unit_id'])) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "cart` DROP  `unit_id`");
-			$change = true;
-		}
-		if ($change) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "cart` DROP INDEX  `cart_id` ,	ADD INDEX  `cart_id` (  `customer_id` ,  `session_id` ,  `product_id` ,  `recurring_id`)");
-		}
-		if (isset($table_fields['order_product']['unit_id'])) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "order_product` DROP  `unit_id`");
-			$change = true;
-		}
-
 		// Общее количество теперь можно хранить не только целое число (для совместимости)
 		// Увеличиваем точность поля веса до тысячных
-		@$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `quantity` `quantity` int(6) NOT NULL DEFAULT 0.000 COMMENT 'Количество'");
+		//@$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `quantity` `quantity` int(6) NOT NULL DEFAULT 0.000 COMMENT 'Количество'");
 		@$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `weight` `weight` int(6) NOT NULL DEFAULT 0.000 COMMENT 'Вес'");
 
 		// Общее количество теперь можно хранить не только целое число (для совместимости)
-		@$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0 COMMENT 'Количество'");
-
-		// Общее количество теперь можно хранить не только целое число (для совместимости)
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` CHANGE `quantity` `quantity` int(4) NOT NULL DEFAULT 0 COMMENT 'Количество'");
-
-		// Общее количество теперь можно хранить не только целое число (для совместимости)
-		$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` CHANGE `quantity` `quantity` int(4) NOT NULL DEFAULT 0 COMMENT 'Количество'");
+		//@$this->db->query("ALTER TABLE `" . DB_PREFIX . "product_option_value` CHANGE `quantity` `quantity` decimal(15,3) NOT NULL DEFAULT 0 COMMENT 'Количество'");
 
 		// Восстанавливаем таблицу product_attribute
 		$result = @$this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product_attribute` WHERE `field` = 'attribute_value_id'");
@@ -1440,20 +1281,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$result = @$this->db->query("SHOW INDEX FROM `" . DB_PREFIX . "product_attribute` WHERE `key_name` = 'value_id'");
 		if ($result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product_attribute` DROP INDEX `value_id`");
-		}
-
-		// Восстанавливаем таблицу product_discount
-		$result = @$this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product_discount` WHERE `field` = 'product_feature_id'");
-		if ($result->num_rows) {
-			$this->db->query("DELETE FROM `" . DB_PREFIX . "product_discount` WHERE `product_feature_id` <> 0");
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product_discount` DROP `product_feature_id`");
-		}
-
-		// Восстанавливаем таблицу product_special
-		$result = @$this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product_special` WHERE `field` = 'product_feature_id'");
-		if ($result->num_rows) {
-			$this->db->query("DELETE FROM `" . DB_PREFIX . "product_special` WHERE `product_feature_id` <> 0");
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product_special` DROP `product_feature_id`");
 		}
 
 		// Удалим добавленный нами индекс
@@ -1472,12 +1299,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$result = $this->db->query("SHOW INDEX FROM `" . DB_PREFIX . "attribute_description` WHERE `key_name` = 'name_key'");
 		if ($result->num_rows) {
 			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "attribute_description` DROP INDEX `name_key`");
-		}
-
-		// Удалим базовую единицу товара
-		$result = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product` WHERE `field` = 'unit_id'");
-		if ($result->num_rows) {
-			$this->db->query("ALTER TABLE  `" . DB_PREFIX . "product` DROP `unit_id`");
 		}
 
 		// Таблица CUSTOMER
@@ -1527,7 +1348,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		}
 
 		$this->log->write("Отключен модуль " . $this->module_name);
-		$this->log->write("Удалены таблицы: product_quantity, category_to_1c, attribute_to_1c, manufacturer_to_1c, store_to_1c, product_quantity, product_price, product_to_1c, product_unit, unit, unit_group, unit_type, warehouse.");
+		$this->log->write("Удалены таблицы: product_quantity, category_to_1c, attribute_to_1c, manufacturer_to_1c, store_to_1c, product_to_1c");
 		$this->log->write("Восстановлены изменения таблиц product, product_option_value, cart");
 
 	} // uninstall()
@@ -1568,6 +1389,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
+	 * ver 2 update 2018-06-15
 	 * Алгортим описан https://dev.1c-bitrix.ru/api_help/sale/algorithms/data_2_site.php
 	 * Авторизация на сайте
 	 */
@@ -1575,11 +1397,38 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 		if (!$this->checkAccess(true))
 			exit;
+
+		$auth_user = "";
+		$auth_pw = "";
+
+		// Определение авторизации на сервере
+		if (!isset($_SERVER['PHP_AUTH_USER'])) {
+			if (isset($_SERVER["REMOTE_USER"]) && isset($_SERVER["REDIRECT_REMOTE_USER"])){
+				$remote_user = $_SERVER["REMOTE_USER"] ? $_SERVER["REMOTE_USER"]: $_SERVER["REDIRECT_REMOTE_USER"];
+			} elseif (isset($_SERVER["REDIRECT_HTTP_AUTHORIZATION"])) {
+				$remote_user = $_SERVER["REDIRECT_HTTP_AUTHORIZATION"];
+			}
+			if (isset($remote_user)) {
+				$strTmp = base64_decode(substr($remote_user,6));
+				if($strTmp)
+					list($auth_user, $auth_pw) = explode(':', $strTmp);
+			} else {
+				$this->echo_message(0, 'Auth Method Failed, check var $_SERVER');
+				//$this->log("Проверьте наличие записи в файле .htaccess в корне файла после RewriteEngine On:\nRewriteCond %{HTTP:Authorization} ^(.*)\nRewriteRule ^(.*) - [E=HTTP_AUTHORIZATION:%1]", 2);
+				$this->log($_SERVER, 2);
+				exit;
+			}
+
+		} else {
+			$auth_user = $_SERVER['PHP_AUTH_USER'];
+			$auth_pw = $_SERVER['PHP_AUTH_PW'];
+		}
+
 		// Авторизуем
-		if (($this->config->get('exchange1c_username') != '') && (@$_SERVER['PHP_AUTH_USER'] != $this->config->get('exchange1c_username'))) {
+		if (($this->config->get('exchange1c_username') != '') && ($auth_user != $this->config->get('exchange1c_username'))) {
 			$this->echo_message(0, "Incorrect login");
 		}
-		if (($this->config->get('exchange1c_password') != '') && (@$_SERVER['PHP_AUTH_PW'] != $this->config->get('exchange1c_password'))) {
+		if (($this->config->get('exchange1c_password') != '') && ($auth_pw != $this->config->get('exchange1c_password'))) {
 			$this->echo_message(0, "Incorrect password");
 			exit;
 		}
@@ -1852,7 +1701,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			$this->load->model('extension/exchange1c');
 			$result = $this->model_extension_exchange1c->deleteDoubleUrlAlias();
  			if ($result['error']) {
-				$json['error'] = "ERROR: 1007";
+				$json['error'] = "Ошибка при удалении дублей URL: " . $result['error'];
 			} else {
 				$json['success'] = "Успешно удалено:".
 				"\nВсего дублей: " . $result['total'].
@@ -1890,8 +1739,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 2
-	 * update 2017-06-03
+	 * ver 4
+	 * update 2018-06-29
 	 * Распаковываем картинки
 	 */
 	private function extractImage($zipArc, $zip_entry, $name) {
@@ -1903,29 +1752,55 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			return "";
 		}
 
-		$this->log("Распаковка картинки = " . $name, 2);
-
 		if (substr($name, -1) == "/") {
 
 			// проверим каталог
-			if (is_dir(DIR_IMAGE.$name)) {
+			if (is_dir(DIR_IMAGE . $name)) {
 				//$this->log('[zip] directory exist: '.$name, 2);
 
 			} else {
 				//$this->log('[zip] create directory: '.$name, 2);
-				@mkdir(DIR_IMAGE.$name, 0775) or die ($error = "Ошибка создания директории '" . DIR_IMAGE.$name . "'");
+				@mkdir(DIR_IMAGE . $name, 0775) or die ($error = "Ошибка создания директории '" . DIR_IMAGE . $name . "'");
 				if ($error) return $error;
+				$this->log("Создана директория: '" . $name . "'", 2);
 			}
 
 		} elseif (zip_entry_open($zipArc, $zip_entry, "r")) {
 
+			$dump = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
+			$this->log("Распаковка картинки: '" . $name . "'", 2);
+
 			$error = $this->checkDirectories($name);
 			if ($error) return $error;
 
-			if (is_file(DIR_IMAGE.$name)) {
-				//$this->log('[zip] file exist: '.$name, 2);
+			if (is_file(DIR_IMAGE . $name)) {
+				// Если файл существует
+				$size_dump = strlen($dump);
+				$size_file = filesize(DIR_IMAGE . $name);
+
+			 	if ($size_dump != $size_file) {
+			 		// файл был изменен, нужно заменить
+			 		$this->log("Файл '" . $name . "' изменен, старый размер " . $size_file . ", новый " . $size_dump);
+
+					$fd = @fopen(DIR_IMAGE . $name, "wb");
+					if ($fd === false) {
+						return "Ошибка записи файла: '" . DIR_IMAGE . $name . "'";
+					}
+					fwrite($fd, $dump);
+					fclose($fd);
+
+					if ($this->config->get('exchange1c_log_level') == 3) {
+						// проверим записанный размер файла
+						$new_size_file = filesize(DIR_IMAGE . $name);
+						if ($size_file != $new_size_file) {
+							$this->log('После перезаписи картинки, размер файла не изменился.');
+							$error = "1008";
+						}
+					}
+
+			 	}
+
 			} else {
-				$dump = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
 
 				// для безопасности проверим, не является ли этот файл php
 				$pos = strpos($dump, "<?php");
@@ -1935,17 +1810,12 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 				} else {
 
-					if (file_exists(DIR_IMAGE . $name) && $this->config->get('exchange1c_product_images_import_mode') != 'full') {
-						return "";
-					}
-					$fd = @fopen(DIR_IMAGE . $name, "w+");
-
+					$fd = @fopen(DIR_IMAGE . $name, "wb");
 					if ($fd === false) {
-						return "Ошибка создания файла: " . DIR_IMAGE.$name . ", проверьте права доступа!";
+						return "Ошибка создания файла: " . DIR_IMAGE . $name . ", проверьте права доступа!";
 					}
-
-					//$this->log('[zip] create file: '.$name, 2);
 					fwrite($fd, $dump);
+					$this->log("Создан файл: " . $name);
 					fclose($fd);
 
 					// для безопасности проверим, является ли этот файл картинкой
@@ -1966,8 +1836,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 3
-	 * update 2017-11-04
+	 * ver 5
+	 * update 2018-07-13
 	 * Распаковываем XML
 	 */
 	private function extractXML($zipArc, $zip_entry, $name, &$xmlFiles) {
@@ -1998,7 +1868,8 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			}
 
 			// для безопасности проверим, является ли этот файл XML
-			$str_xml = mb_substr($dump, 1, 5);
+			$str_xml = substr($dump, 1, 35);
+			$this->log($str_xml, 2);
 
 			$path_obj = explode('/', $name);
 			$filename = array_pop($path_obj);
@@ -2016,11 +1887,11 @@ class ControllerExtensionModuleExchange1c extends Controller {
 				$path .= $dir_name . "/";
 			}
 
-			if ($str_xml != "<?xml") {
+			if (strripos($str_xml, "?xml") === false) {
 
 				$this->log("[!] ВНИМАНИЕ Файл '" . $filename . "' не является XML файлом и не будет записан!");
 
-			} elseif ($fd = @fopen($cache . $path . $filename, "w+")) {
+			} elseif ($fd = @fopen($cache . $path . $filename, "wb")) {
 
 				$xmlFiles[] = $path . $filename;
 				$this->log("Создан файл: " . $path . $filename, 2);
@@ -2044,41 +1915,47 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 
 	/**
-	 * ver 3
-	 * update 2017-06-03
+	 * ver 4
+	 * update 2018-06-26
 	 * Распаковываем ZIP архив
 	 * Папка с картинками распаковывается в папку что указана в архиве
 	 */
 	private function extractZip($zipFile, &$error) {
 
 		$xmlFiles = array();
+		$imgFiles = 0;
 		$cache = DIR_CACHE . 'exchange1c/';
 
 		$zipArc = zip_open($zipFile);
 		if (is_resource($zipArc)) {
-			$this->log("extractZip(): Распаковка архива: " . $zipFile, 2);
+			$this->log("Начата распаковка архива: " . $zipFile);
 
 			while ($zip_entry = zip_read($zipArc)) {
 				$name = zip_entry_name($zip_entry);
-				$pos = stripos($name, 'import_files/');
+				$this->log("Имя файла: " . $name, 2);
+				$pos = stripos($name, 'import_files');
 
 				if ($pos !== false) {
 					$error = $this->extractImage($zipArc, $zip_entry, substr($name, $pos));
 					if ($error) return $xmlFiles;
-
+					$imgFiles ++;
 				} else {
 					$error = $this->extractXML($zipArc, $zip_entry, $name, $xmlFiles);
 					if ($error) return $xmlFiles;
 				}
 			}
 
+			if ($imgFiles)
+				$this->log('Распаковано картинок: ' . $imgFiles);
+
+			$this->log("Завершена распаковка архива", 2);
+
 		} else {
 			return $xmlFiles;
 		}
 
 		zip_close($zipArc);
-		$this->log("extractZip(): Завершена распаковка архива", 2);
-		$this->log("Распакованы XML файлы:", 2);
+		$this->log("Получены XML файлы:", 2);
 		$this->log($xmlFiles, 2);
 		return $xmlFiles;
 
@@ -2123,9 +2000,19 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->response->addheader('Content-Disposition: attachment; filename="orders.xml"');
 		$this->response->addheader('Content-Transfer-Encoding: binary');
 		$this->response->addheader('Content-Length: ' . strlen($orders));
-		//$this->response->addheader('Content-Type: text/html; charset=windows-1251');
 
 		//$this->response->setOutput(file_get_contents(DIR_CACHE . 'exchange1c/orders.xml', FILE_USE_INCLUDE_PATH, null));
+		if ($this->config->get('exchange1c_convert_orders_cp1251') == 1) {
+			//echo header('Content-Type: text/html; charset=windows-1251', true);
+			// посоветовал yuriygr с GitHub
+			//echo iconv('utf-8', 'cp1251', $orders);
+			//$orders = iconv('utf-8', 'cp1251//TRANSLIT', $orders);
+			//echo mb_convert_encoding($orders, 'UTF-8', mb_detect_encoding($orders, "UTF-8, Windows-1251, Windows-1252", true));
+			$orders = str_replace('utf-8', 'windows-1251', $orders);
+			$orders = iconv('utf-8', 'cp1251', $orders);
+			$this->response->addheader('Content-Type: text/html; charset=Windows-1251');
+			//$orders = mb_convert_encoding($orders, 'cp1251', 'utf-8');
+		}
         $this->response->setOutput($orders);
 
 	} // downloadOrders()
@@ -2140,10 +2027,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		if (!$this->checkAuthKey()) {
 			echo "failure";
 			exit;
-		}
-
-		if ($this->config->get('exchange1c_clear_cache_mode_init')) {
-			$this->cleanCache(1);
 		}
 
 		$result = $this->modeInit();
@@ -2174,9 +2057,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			exit;
 		}
 
-		if ($this->config->get('exchange1c_clear_cache_mode_init')) {
-			$this->cleanCache(1);
-		}
 		$result = $this->modeInit();
 		echo $result[0] . "\n";
 		echo $result[1] . "\n";
@@ -2202,7 +2082,12 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 		$result = array();
 
-		$result[0] = $this->config->get('exchange1c_file_zip') == 1 ?  "zip=yes" : "zip=no";
+		$zip_support = class_exists('ZipArchive') ? true : false;
+		if ($zip_support) {
+			$result[0] = $this->config->get('exchange1c_file_zip') == 1 ?  "zip=yes" : "zip=no";
+		} else {
+			$result[0] = "zip-no";
+		}
 		$manual_size = $this->formatSize($this->config->get('exchange1c_file_max_size'));
 		$post_max_size = $this->getPostMaxFileSize();
 		if ($this->config->get('exchange1c_file_max_size') && $manual_size <= $post_max_size) {
@@ -2214,29 +2099,20 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$this->log('PHP Version: ' . PHP_VERSION_ID, 2);
 		$this->log('client_max_body_size: ' . ini_get('client_max_body_size'), 2);
 
-		// Очистка лога при начале обмена
-		//if ($this->config->get('exchange1c_flush_log')) {
-		//	$this->clearLog();
-		//}
-
 		return $result;
 
 	} // modeInit()
 
 
 	/**
-	 * ver 3
-	 * update 2017-07-29
+	 * ver 4
+	 * update 2018-06-11
 	 * Импорт файла через админ-панель
 	 */
 	private function manualImportFile() {
 
 		$error = "";
 		$cache = DIR_CACHE . 'exchange1c/';
-
-		if ($this->config->get('exchange1c_flush_log') == 1) {
-			$this->clearLog();
-		}
 
 		$uploaded_file = $this->request->files['file']['tmp_name'];
 		$filename_decode = html_entity_decode($this->request->files['file']['name'], ENT_QUOTES, 'UTF-8');
@@ -2247,7 +2123,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		}
 
 		if (!is_dir($cache)) {
-			return "ERROR: 1005";
+			mkdir($cache);
 		}
 
 		if (!@move_uploaded_file($uploaded_file, $cache . $filename_decode)) {
@@ -2274,9 +2150,22 @@ class ControllerExtensionModuleExchange1c extends Controller {
 				return false;
 			}
 
+            $zip_support = class_exists('ZipArchive') ? true : false;
+
 			if ($extension == 'zip') {
 
+				if (!$zip_support) {
+					$this->error['warning'] = "Ваш PHP не поддерживает ZIP архивы, отсутствует класс ZipArchive";
+					return false;
+				}
+
 				$xmlFiles = $this->extractZip($import_file, $error);
+
+				if ($this->config->get('exchange1c_not_delete_files_after_import') != 1) {
+					$this->log("Удален файл: " . $import_file);
+					unlink($import_file);
+				}
+
 				if ($error) return $error;
 
 				$this->log($xmlFiles, 2);
@@ -2328,7 +2217,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 				if ($error) return $error;
 
 			} else {
-				return "Файл не является архивом ZIP или XML файлом";
+				return "ERROR: 1007";
 			}
 
 		} // if (!empty($this->request->files['file']['name']) && is_file($import_file))
@@ -2479,8 +2368,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 	 */
 	private function modeFile($mode, &$error) {
 
-    	$this->log('modeFile', 2);
-
         $xmlfiles = array();
 
 		if (!$this->checkAuthKey()) exit;
@@ -2527,6 +2414,12 @@ class ControllerExtensionModuleExchange1c extends Controller {
 				$xmlfiles = $this->extractZip($uplod_file, $error);
 				if ($error) {
 					$this->echo_message(0, "modeFile(): Error extract file: " . $uplod_file);
+
+					if ($this->config->get('exchange1c_not_delete_files_after_import') != 1) {
+						$this->log("Удален файл: " . $uplod_file);
+						unlink($uplod_file);
+					}
+
 					return false;
 				};
 			} else {
@@ -2549,7 +2442,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 	 */
 	public function modeFileCatalog() {
 
-    	$this->log('modeFileCatalog', 2);
         $error = '';
 
 		$this->modeFile('catalog', $error);
@@ -2604,6 +2496,12 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
 			// Загружаем файл
 			$error = $this->model_extension_exchange1c->importFile($importFile, $this->detectFileType($importFile));
+
+			if ($this->config->get('exchange1c_not_delete_files_after_import') != 1) {
+				@unlink($importFile);
+				$this->log("Удален файл: " . $importFile, 2);
+			}
+
 			if ($error) {
 				$this->echo_message(0, 'ERROR: ' . $error);
 				$this->log("modeFileSale(): Ошибка обработки файла: " . $importFile);
@@ -2629,7 +2527,7 @@ class ControllerExtensionModuleExchange1c extends Controller {
 
     	$this->log('modeImport', 2);
 
-		if ($manual) $this->log("modeImport(): Ручная загрузка данных.");
+		if ($manual) $this->log("Ручная загрузка данных");
 
 		$cache = DIR_CACHE . 'exchange1c/';
 		if(!is_dir($cache)) mkdir($cache);
@@ -2648,25 +2546,33 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			if (!$manual) $this->echo_message(0, "No import file name");
 
 			// Удалим файл
-//			$this->log("[i] Удаление файла: " . $importFile,2);
-//			@unlink($importFile);
+			if ($this->config->get('exchange1c_not_delete_files_after_import') != 1) {
+				@unlink($importFile);
+				$this->log("Удален файл: " . $importFile, 2);
+			}
 
-			return "ERROR 1002";
+			return "ERROR: 1002";
 
 		}
 
-		// Определяем текущую локаль
 		$this->load->model('extension/exchange1c');
 
 		// Загружаем файл
 		$error = $this->model_extension_exchange1c->importFile($importFile, $this->detectFileType($importFile));
+
+		if ($this->config->get('exchange1c_not_delete_files_after_import') != 1) {
+			@unlink($importFile);
+			$this->log("Удален файл: " . $importFile, 2);
+		}
+
+
 		if ($error) {
 
 			if (!$manual) {
 				$this->echo_message(0, 'ERROR: ' . $error);
 			}
 
-			$this->log("modeImport(): Ошибка при загрузке файла: " . $importFile);
+			$this->log("Ошибка при загрузке файла: " . $importFile);
 
 			return $error;
 
@@ -2680,6 +2586,125 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		return "";
 
 	} // modeImport()
+
+
+	/**
+	 * ver 3
+	 * update 2018-06-27
+	 */
+	public function cronImport() {
+
+ 		$cache = DIR_CACHE . 'exchange1c/';
+
+		$import_file = $this->config->get('exchange1c_cron_import_filename');
+		if (empty($import_file)) {
+			$this->log("Импорт по Cron не может быть выполнен, так как не указан файл");
+			return "Cron import filename not enter";
+		}
+
+		$import_file = $cache . $import_file;
+		if (!is_file($import_file)) {
+			$this->log("Файл импорта по Cron не существует");
+			return "Cron import filename dont exist";
+		}
+
+		$this->log("Загрузка файла '" . $import_file . "' по крону");
+
+		$xmlFiles = array();
+
+		$path_info = pathinfo($import_file);
+		$filename = $path_info['filename'];
+		$extension = $path_info['extension'];
+
+		$zip_support = class_exists('ZipArchive') ? true : false;
+
+		if ($extension == 'zip') {
+
+			if (!$zip_support) {
+				$this->log("ОШИБКА: Ваш PHP не поддерживает ZIP архивы, отсутствует класс ZipArchive");
+				return false;
+			}
+
+			$xmlFiles = $this->extractZip($import_file, $error);
+
+			if (count($xmlFiles)) {
+				if ($this->config->get('exchange1c_not_delete_files_after_import') != 1) {
+					$this->log("Удален файл: " . $import_file);
+					unlink($import_file);
+				}
+			} else {
+				$this->log("ОШИБКА: Архив поврежден или запаролен");
+				return false;
+			}
+
+			if ($error) return $error;
+
+			$this->log($xmlFiles, 2);
+
+			$goods = array();
+			$properties = array();
+			foreach ($xmlFiles as $key => $file) {
+				$pos = strripos($file, "/goods/");
+				if ($pos !== false) {
+					$goods[] = $file;
+					unset($xmlFiles[$key]);
+				}
+				$pos = strripos($file, "/properties/");
+				if ($pos !== false) {
+				$properties[] = $file;
+					unset($xmlFiles[$key]);
+				}
+			}
+
+			// Порядок обработки файлов
+			sort($goods);
+			sort($properties);
+			sort($xmlFiles);
+
+			foreach ($xmlFiles as $file) {
+				$this->log('Обрабатывается файл: ' . $file, 2);
+				$error = $this->modeImport($cache . $file);
+				if ($error) return $error;
+			}
+			foreach ($properties as $file) {
+				$this->log('Обрабатывается файл свойств: ' . $file, 2);
+				$error = $this->modeImport($cache . $file);
+				if ($error) return $error;
+			}
+			foreach ($goods as $file) {
+				$this->log('Обрабатывается файл товаров: ' . $file, 2);
+				$error = $this->modeImport($cache . $file);
+				if ($error) return $error;
+			}
+
+		} elseif ($extension == 'xml') {
+			// Это не архив
+			$error = $this->modeImport($import_file);
+			if ($error) return $error;
+
+		} else {
+			return "ERROR: 1007";
+		}
+
+		$this->log('cronImport', 2);
+    	$this->echo_message(1, "Successfully import file from folder");
+		return "success import file from folder!";
+
+	} // cronImport()
+
+
+	/**
+	 * ver 1
+	 * update 2018-05-24
+	 * В стадии разработке
+	 * Отправляет информацию для УС, например список статусов заказов
+	 */
+	public function modeInfo() {
+
+    	// В разработке
+		$this->log('type=sale, mode=info');
+
+	} // modeInfo()
 
 
 	/**
@@ -2706,8 +2731,11 @@ class ControllerExtensionModuleExchange1c extends Controller {
 			// посоветовал yuriygr с GitHub
 			//echo iconv('utf-8', 'cp1251', $orders);
 			//echo iconv('utf-8', 'cp1251//TRANSLIT', $orders);
-			echo mb_convert_encoding($orders, 'UTF-8', mb_detect_encoding($orders, "UTF-8, Windows-1251, Windows-1252", true));
-			//echo mb_convert_encoding($orders, 'cp1251//TRANSLIT', 'utf-8');
+			//echo mb_convert_encoding($orders, 'UTF-8', mb_detect_encoding($orders, "UTF-8, Windows-1251, Windows-1252", true));
+			$orders = str_replace('utf-8', 'windows-1251', $orders);
+			$orders = mb_convert_encoding($orders, 'cp1251', 'utf-8');
+			$this->response->addheader('Content-Type: text/html; charset=Windows-1251');
+			echo $orders;
 		} else {
 			echo $orders;
 		}
@@ -2937,21 +2965,9 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$zip->addFile(DIR_APPLICATION . 'language/en-gb/extension/module/exchange1c.php', 'upload/admin/language/en-gb/extension/module/exchange1c.php');
 		$zip->addFile(DIR_APPLICATION . 'language/ru-ru/extension/module/exchange1c.php', 'upload/admin/language/ru-ru/extension/module/exchange1c.php');
 		$zip->addFile(DIR_APPLICATION . 'model/extension/exchange1c.php', 'upload/admin/model/extension/exchange1c.php');
-		if (is_file(DIR_APPLICATION . 'model/catalog/unit.php')) {
-			$zip->addFile(DIR_APPLICATION . 'model/catalog/unit.php', 'upload/admin/model/catalog/unit.php');
-		}
-		if (is_file(DIR_APPLICATION . 'model/extension/unit.php')) {
-			$zip->addFile(DIR_APPLICATION . 'model/extension/unit.php', 'upload/admin/model/extension/unit.php');
-		}
-		if (is_file(DIR_APPLICATION . 'model/extension/unit_full.php')) {
-			$zip->addFile(DIR_APPLICATION . 'model/extension/unit_full.php', 'upload/admin/model/extension/unit_full.php');
-		}
 		$zip->addFile(DIR_APPLICATION . 'view/template/extension/module/exchange1c.tpl', 'upload/admin/view/template/extension/module/exchange1c.tpl');
 		$zip->addFile(DIR_APPLICATION . '../export/exchange1c.php', 'upload/export/exchange1c.php');
 		$zip->addFile(DIR_APPLICATION . '../bitrix/admin/1c_exchange.php', 'upload/bitrix/admin/1c_exchange.php');
-		if (is_file(DIR_APPLICATION . '../catalog/model/catalog/unit.php')) {
-			$zip->addFile(DIR_APPLICATION . '../catalog/model/catalog/unit.php', 'upload/catalog/model/catalog/unit.php');
-		}
 		if (is_file(DIR_APPLICATION . '../catalog/model/catalog/exchange1c.php')) {
 			$zip->addFile(DIR_APPLICATION . '../catalog/model/catalog/exchange1c.php', 'upload/catalog/model/catalog/exchange1c.php');
 		}
@@ -3028,11 +3044,6 @@ class ControllerExtensionModuleExchange1c extends Controller {
 		$files[] = DIR_APPLICATION . 'controller/extension/module/exchange1c.php';
 		$files[] = DIR_APPLICATION . 'language/en-gb/extension/module/exchange1c.php';
 		$files[] = DIR_APPLICATION . 'language/ru-ru/extension/module/exchange1c.php';
-		$files[] = DIR_APPLICATION . 'model/extension/unit.php';
-		$files[] = DIR_APPLICATION . 'model/catalog/unit.php';
-		$files[] = DIR_APPLICATION . '../catalog/model/catalog/unit.php';
-		$files[] = DIR_APPLICATION . '../catalog/model/catalog/exchange1c.php';
-		$files[] = DIR_APPLICATION . 'model/extension/unit_full.php';
 		$files[] = DIR_APPLICATION . 'model/extension/exchange1c.php';
 		$files[] = DIR_APPLICATION . 'view/template/extension/module/exchange1c.tpl';
 		$files[] = substr(DIR_APPLICATION, 0, strlen(DIR_APPLICATION) - 6) . 'export/exchange1c.php';
