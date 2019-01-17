@@ -154,6 +154,9 @@
 											<?php echo $html_product_no_create ?>
 										</div>
 										<div class="form-group">
+											<?php echo $html_product_delete_mode ?>
+										</div>
+										<div class="form-group">
 											<?php echo $html_product_new_status_disable ?>
 										</div>
 										<div class="form-group">
@@ -364,13 +367,10 @@
 								<div class="tab-pane" id="tab-product-features">
 									<fieldset>
 										<div class="form-group">
-											<?php echo $html_product_feature_import ?>
-										</div>
-										<div class="form-group">
 											<?php echo $html_product_options_mode ?>
 										</div>
 										<div class="form-group">
-											<?php echo $html_product_price_min_option ?>
+											<?php echo $html_feature_price_mode ?>
 										</div>
 										<div class="form-group">
 											<?php echo $html_product_options_empty_ignore ?>
@@ -382,7 +382,7 @@
 											<?php echo $html_product_options_subtract ?>
 										</div>
 										<div class="form-group">
-											<?php echo $html_product_link_option ?>
+											<?php echo $html_option_image_import ?>
 										</div>
 										<div class="form-group">
 											<?php echo $html_delete_text_in_brackets_option ?>
@@ -475,9 +475,6 @@
 						</div>
 						<div class="form-group">
 							<?php echo $html_product_disable_if_price_zero ?>
-						</div>
-						<div class="form-group">
-							<?php echo $html_clean_prices_full_import ?>
 						</div>
 						<div class="alert alert-info">
 							<i class="fa fa-info-circle"></i>
@@ -601,7 +598,10 @@
 							<?php echo $html_warehouse_quantity_import; ?>
 						</div>
 						<div class="form-group">
-							<?php echo $html_product_default_stock_status; ?>
+							<?php echo $html_product_stock_status_off; ?>
+						</div>
+						<div class="form-group">
+							<?php echo $html_product_stock_status_on; ?>
 						</div>
 						<div class="form-group">
 							<?php echo $html_product_disable_if_quantity_zero ?>
@@ -755,23 +755,14 @@
 							<div class="form-group">
 								<?php echo $html_convert_orders_cp1251; ?>
 							</div>
+							<div class="form-group">
+								<?php echo $html_order_customer_default; ?>
+							</div>
 						</fieldset>
 						<fieldset>
 							<legend><?php echo $lang['legend_set_order_status']; ?></legend>
 							<div class="form-group" id="orders_import">
 								<?php echo $html_orders_import; ?>
-							</div>
-							<div class="form-group" id="order_status_shipped">
-								<?php echo $html_order_status_shipped; ?>
-							</div>
-							<div class="form-group" id="order_status_shipped">
-								<?php echo $html_order_status_canceled; ?>
-							</div>
-							<div class="form-group" id="order_status_paid">
-								<?php echo $html_order_status_paid; ?>
-							</div>
-							<div class="form-group" id="order_status_completed">
-								<?php echo $html_order_status_completed; ?>
 							</div>
 						</fieldset>
 						<fieldset>
@@ -785,10 +776,6 @@
 							<div class="alert alert-info">
 								<i class="fa fa-info-circle"></i>
 								<?php echo $lang['i_setting_order_shipping']; ?>
-							</div>
-
-							<div class="form-group">
-								<?php echo $html_services_in_table_product; ?>
 							</div>
 							<!-- ТАБЛИЦА Настройка видов доставки для экспорта в заказы в ТС -->
 							<div class="table-responsive">
@@ -1087,10 +1074,27 @@
 									<li>Подправлена опция "Не показывать товар с нулевым остатком"</li>
 								</ul>
 							</div>
-							<legend>1.6.4.5 от 01.09.2018</legend>
+							<legend>1.6.4.5 от 04.10.2018</legend>
 							<div class="form-group">
 								<ul>
 									<li>Корректно теперь выгружает заказы в кодировке windows-1251</li>
+									<li>Добавил для УС УТ 11 выгрузку тега БазоваяЕдиница в товарах заказа. Всегда будет выгружаться "Штука" и Код "796"</li>
+									<li>Поиск производителя теперь будет производится без учета регистра, то есть Samsung = SAMSUNG = samsung</li>
+									<li>2018-10-15. Исправлена ошибка при авторизации 1С с модулем при наличии REMOTE_USER но при отсутствиии REDIRECT_REMOTE_USER</li>
+								</ul>
+							</div>
+							<legend>1.6.4.7 от 12.11.2018</legend>
+							<div class="form-group">
+								<ul>
+									<li>Исправлена ошибка с производителями для ocstore</li>
+									<li>Переработаны функции загрузки предложений</li>
+									<li>Добавлена поддержка 1С УТ 10.3, загрузка нулевых остатков</li>
+									<li>Добавлена настройка по пересчету цен для предложений с характеристиками (опций)</li>
+									<li>Удаление пустых опций</li>
+									<li>При включении не отображать товар с нулевой ценой или количеством, товар будет отключен еще при загрузке каталога, и будет включен если модуль увидит цену и остаток</li>
+									<li>Добавлена возможность выгружать заказы в учетную систему от одного покупателя, который будет указан в настройках модуля</li>
+									<li>Доработана система установки статуса товара на складе, статус может меняться как при загрузке import так и в offers в зависимости от количества товара.</li>
+									<li>Исправлена проблема с выгрузкой телефона и эл.почты в заказ 1С УТ 11</li>
 								</ul>
 							</div>
 						</fieldset>
