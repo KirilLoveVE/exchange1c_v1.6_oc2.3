@@ -468,9 +468,6 @@
 					<!-- ЦЕНЫ -->
 					<div class="tab-pane" id="tab-prices">
 						<div class="form-group">
-							<?php echo $html_product_price_import ?>
-						</div>
-						<div class="form-group">
 							<?php echo $html_price_types_auto_load ?>
 						</div>
 						<div class="form-group">
