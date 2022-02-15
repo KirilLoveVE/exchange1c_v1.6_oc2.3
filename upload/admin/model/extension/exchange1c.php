@@ -6257,11 +6257,11 @@ class ModelExtensionExchange1c extends Model {
 	 */
 	public function getCustomerInfo(&$order) {
 
-		$query = $this->query("SELECT `firstname`,`lastname`,`patronymic`,`company`,`company_inn`,`company_kpp` FROM `" . DB_PREFIX . "customer` WHERE `customer_id` = '" . (int)$order['customer_id'] . "'");
+		$query = $this->query("SELECT `firstname`,`lastname`,`middlename`,`company`,`company_inn`,`company_kpp` FROM `" . DB_PREFIX . "customer` WHERE `customer_id` = '" . (int)$order['customer_id'] . "'");
 		if ($query->num_rows) {
 			$order['firstname'] = $query->row['firstname'];
 			$order['lastname'] = $query->row['lastname'];
-			$order['patronymic'] = $query->row['patronymic'];
+			$order['middlename'] = $query->row['middlename'];
 			$order['company'] = $query->row['company'];
 			$order['company_inn'] = $query->row['company_inn'];
 			$order['company_kpp'] = $query->row['company_kpp'];
@@ -6280,7 +6280,7 @@ class ModelExtensionExchange1c extends Model {
 		$customer = array();
 		$this->log("Фамилия: " . $order['lastname'], 2);
 		$this->log("Имя: " . $order['firstname'], 2);
-		$this->log("Отчество: " . $order['patronymic'], 2);
+		$this->log("Отчество: " . $order['middlename'], 2);
 		$this->log("ФИО: " . $order['username'], 2);
 
 		if (empty($order['username'])) {
@@ -6306,7 +6306,7 @@ class ModelExtensionExchange1c extends Model {
 			} else if (count($fio) == 3) {
 				$order['lastname'] = $fio[0];
 				$order['firstname'] = $fio[1];
-				$order['patronymic'] = $fio[2];
+				$order['middlename'] = $fio[2];
 			}
 		}
 
